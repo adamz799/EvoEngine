@@ -24,3 +24,18 @@ if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/DirectXMath/Inc/DirectXMath.h)
 else()
     message(WARNING "DirectXMath submodule not found at ThirdParty/DirectXMath. Run: git submodule update --init")
 endif()
+
+# ---- Put all third-party targets into "ThirdParty" folder in VS solution ----
+# Recursively set FOLDER for all targets defined under this directory
+function(evo_set_folder_recursive dir folder)
+    get_property(targets DIRECTORY ${dir} PROPERTY BUILDSYSTEM_TARGETS)
+    foreach(target IN LISTS targets)
+        set_property(TARGET ${target} PROPERTY FOLDER ${folder})
+    endforeach()
+    get_property(subdirs DIRECTORY ${dir} PROPERTY SUBDIRECTORIES)
+    foreach(subdir IN LISTS subdirs)
+        evo_set_folder_recursive(${subdir} ${folder})
+    endforeach()
+endfunction()
+
+evo_set_folder_recursive(${CMAKE_CURRENT_SOURCE_DIR} "ThirdParty")
