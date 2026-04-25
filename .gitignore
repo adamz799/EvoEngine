@@ -1,0 +1,37 @@
+# Build
+build/
+out/
+cmake-build-*/
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.suo
+*.user
+*.sln
+*.vcxproj*
+CMakeSettings.json
+CMakePresets.json
+
+# Compiled
+*.obj
+*.o
+*.lib
+*.a
+*.exe
+*.dll
+*.so
+*.dylib
+*.pdb
+*.ilk
+*.exp
+
+# OS
+Thumbs.db
+.DS_Store
+
+# Compiled shaders
+*.cso
+*.dxil
+*.spv
