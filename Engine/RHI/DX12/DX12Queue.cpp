@@ -10,6 +10,7 @@ bool DX12Queue::Initialize(ID3D12Device* device, RHIQueueType type)
 {
     if (!device)
         return false;
+    m_Device = device;
     m_Type = type;
 
     D3D12_COMMAND_QUEUE_DESC queueDesc = {};
@@ -25,13 +26,29 @@ bool DX12Queue::Initialize(ID3D12Device* device, RHIQueueType type)
         return false;
     }
 
+    // Create internal fence for WaitIdle
+    hr = device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_IdleFence));
+    if (FAILED(hr))
+    {
+        EVO_LOG_ERROR("Failed to create idle fence: {}", GetHResultString(hr));
+        return false;
+    }
+    m_IdleEvent = CreateEventW(nullptr, FALSE, FALSE, nullptr);
+    m_IdleFenceValue = 0;
+
     EVO_LOG_INFO("DX12Queue created (type={})", static_cast<int>(type));
     return true;
 }
 
 void DX12Queue::ShutdownQueue()
 {
+    if (m_IdleEvent) {
+        CloseHandle(m_IdleEvent);
+        m_IdleEvent = nullptr;
+    }
+    m_IdleFence.Reset();
     m_Queue.Reset();
+    m_Device = nullptr;
 }
 
 void DX12Queue::Submit(
@@ -59,7 +76,17 @@ void DX12Queue::Submit(
 
 void DX12Queue::WaitIdle()
 {
-    // TODO Phase 1: create temp fence, signal, wait
+    if (!m_Queue || !m_IdleFence)
+        return;
+
+    m_IdleFenceValue++;
+    m_Queue->Signal(m_IdleFence.Get(), m_IdleFenceValue);
+
+    if (m_IdleFence->GetCompletedValue() < m_IdleFenceValue)
+    {
+        m_IdleFence->SetEventOnCompletion(m_IdleFenceValue, m_IdleEvent);
+        WaitForSingleObject(m_IdleEvent, INFINITE);
+    }
 }
 
 } // namespace Evo

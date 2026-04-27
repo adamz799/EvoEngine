@@ -102,7 +102,8 @@ void DX12Device::Shutdown()
 
     EVO_LOG_INFO("DX12Device::Shutdown");
 
-    // TODO: WaitIdle before releasing
+    WaitIdle();
+
     m_CopyQueue.reset();
     m_ComputeQueue.reset();
     m_GraphicsQueue.reset();
@@ -217,7 +218,9 @@ void DX12Device::EndFrame()
 
 void DX12Device::WaitIdle()
 {
-    // TODO Phase 1: signal fence on graphics queue, wait for completion
+    if (m_GraphicsQueue) m_GraphicsQueue->WaitIdle();
+    if (m_ComputeQueue)  m_ComputeQueue->WaitIdle();
+    if (m_CopyQueue)     m_CopyQueue->WaitIdle();
 }
 
 } // namespace Evo

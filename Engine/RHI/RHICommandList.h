@@ -26,13 +26,11 @@ public:
     virtual void BufferBarrier(const RHIBufferBarrier* barriers, uint32 count) = 0;
 
     // Convenience single-resource overloads (inline, non-virtual):
-    void TextureBarrier(RHITextureHandle tex, RHIResourceState before, RHIResourceState after) {
-        RHITextureBarrier b{ tex, before, after };
-        TextureBarrier(&b, 1);
+    void TextureBarrier(const RHITextureBarrier& barrier) {
+        TextureBarrier(&barrier, 1);
     }
-    void BufferBarrier(RHIBufferHandle buf, RHIResourceState before, RHIResourceState after) {
-        RHIBufferBarrier b{ buf, before, after };
-        BufferBarrier(&b, 1);
+    void BufferBarrier(const RHIBufferBarrier& barrier) {
+        BufferBarrier(&barrier, 1);
     }
 
     // ---- Render pass ----

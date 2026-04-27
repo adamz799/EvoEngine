@@ -43,26 +43,59 @@ inline DXGI_FORMAT MapFormat(RHIFormat format)
     return DXGI_FORMAT_UNKNOWN;
 }
 
-// ---- Resource state → D3D12_RESOURCE_STATES ----
-inline D3D12_RESOURCE_STATES MapResourceState(RHIResourceState state)
+// ---- Enhanced Barrier: sync stages ----
+inline D3D12_BARRIER_SYNC MapBarrierSync(RHIBarrierSync s)
 {
-    switch (state) {
-    case RHIResourceState::Undefined:        return D3D12_RESOURCE_STATE_COMMON;
-    case RHIResourceState::Common:           return D3D12_RESOURCE_STATE_COMMON;
-    case RHIResourceState::VertexBuffer:     return D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-    case RHIResourceState::IndexBuffer:      return D3D12_RESOURCE_STATE_INDEX_BUFFER;
-    case RHIResourceState::ConstantBuffer:   return D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-    case RHIResourceState::ShaderResource:   return D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
-                                                  | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
-    case RHIResourceState::UnorderedAccess:  return D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
-    case RHIResourceState::RenderTarget:     return D3D12_RESOURCE_STATE_RENDER_TARGET;
-    case RHIResourceState::DepthStencilWrite:return D3D12_RESOURCE_STATE_DEPTH_WRITE;
-    case RHIResourceState::DepthStencilRead: return D3D12_RESOURCE_STATE_DEPTH_READ;
-    case RHIResourceState::CopySrc:          return D3D12_RESOURCE_STATE_COPY_SOURCE;
-    case RHIResourceState::CopyDst:          return D3D12_RESOURCE_STATE_COPY_DEST;
-    case RHIResourceState::Present:          return D3D12_RESOURCE_STATE_PRESENT;
+    D3D12_BARRIER_SYNC result = D3D12_BARRIER_SYNC_NONE;
+    auto flags = static_cast<uint32>(s);
+    if (flags & static_cast<uint32>(RHIBarrierSync::All))            result |= D3D12_BARRIER_SYNC_ALL;
+    if (flags & static_cast<uint32>(RHIBarrierSync::Draw))           result |= D3D12_BARRIER_SYNC_DRAW;
+    if (flags & static_cast<uint32>(RHIBarrierSync::VertexShading))  result |= D3D12_BARRIER_SYNC_VERTEX_SHADING;
+    if (flags & static_cast<uint32>(RHIBarrierSync::PixelShading))   result |= D3D12_BARRIER_SYNC_PIXEL_SHADING;
+    if (flags & static_cast<uint32>(RHIBarrierSync::DepthStencil))   result |= D3D12_BARRIER_SYNC_DEPTH_STENCIL;
+    if (flags & static_cast<uint32>(RHIBarrierSync::RenderTarget))   result |= D3D12_BARRIER_SYNC_RENDER_TARGET;
+    if (flags & static_cast<uint32>(RHIBarrierSync::ComputeShading)) result |= D3D12_BARRIER_SYNC_COMPUTE_SHADING;
+    if (flags & static_cast<uint32>(RHIBarrierSync::Copy))           result |= D3D12_BARRIER_SYNC_COPY;
+    if (flags & static_cast<uint32>(RHIBarrierSync::AllShading))     result |= D3D12_BARRIER_SYNC_ALL_SHADING;
+    return result;
+}
+
+// ---- Enhanced Barrier: access types ----
+inline D3D12_BARRIER_ACCESS MapBarrierAccess(RHIBarrierAccess a)
+{
+    if (a == RHIBarrierAccess::Common)   return D3D12_BARRIER_ACCESS_COMMON;
+    if (a == RHIBarrierAccess::NoAccess) return D3D12_BARRIER_ACCESS_NO_ACCESS;
+
+    D3D12_BARRIER_ACCESS result = D3D12_BARRIER_ACCESS_COMMON;
+    auto flags = static_cast<uint32>(a);
+    if (flags & static_cast<uint32>(RHIBarrierAccess::VertexBuffer))      result |= D3D12_BARRIER_ACCESS_VERTEX_BUFFER;
+    if (flags & static_cast<uint32>(RHIBarrierAccess::ConstantBuffer))    result |= D3D12_BARRIER_ACCESS_CONSTANT_BUFFER;
+    if (flags & static_cast<uint32>(RHIBarrierAccess::IndexBuffer))       result |= D3D12_BARRIER_ACCESS_INDEX_BUFFER;
+    if (flags & static_cast<uint32>(RHIBarrierAccess::RenderTarget))      result |= D3D12_BARRIER_ACCESS_RENDER_TARGET;
+    if (flags & static_cast<uint32>(RHIBarrierAccess::UnorderedAccess))   result |= D3D12_BARRIER_ACCESS_UNORDERED_ACCESS;
+    if (flags & static_cast<uint32>(RHIBarrierAccess::DepthStencilWrite)) result |= D3D12_BARRIER_ACCESS_DEPTH_STENCIL_WRITE;
+    if (flags & static_cast<uint32>(RHIBarrierAccess::DepthStencilRead))  result |= D3D12_BARRIER_ACCESS_DEPTH_STENCIL_READ;
+    if (flags & static_cast<uint32>(RHIBarrierAccess::ShaderResource))    result |= D3D12_BARRIER_ACCESS_SHADER_RESOURCE;
+    if (flags & static_cast<uint32>(RHIBarrierAccess::CopyDest))          result |= D3D12_BARRIER_ACCESS_COPY_DEST;
+    if (flags & static_cast<uint32>(RHIBarrierAccess::CopySource))        result |= D3D12_BARRIER_ACCESS_COPY_SOURCE;
+    return result;
+}
+
+// ---- Enhanced Barrier: texture layout ----
+inline D3D12_BARRIER_LAYOUT MapTextureLayout(RHITextureLayout l)
+{
+    switch (l) {
+    case RHITextureLayout::Undefined:         return D3D12_BARRIER_LAYOUT_UNDEFINED;
+    case RHITextureLayout::Common:            return D3D12_BARRIER_LAYOUT_COMMON;
+    case RHITextureLayout::RenderTarget:      return D3D12_BARRIER_LAYOUT_RENDER_TARGET;
+    case RHITextureLayout::UnorderedAccess:   return D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS;
+    case RHITextureLayout::DepthStencilWrite: return D3D12_BARRIER_LAYOUT_DEPTH_STENCIL_WRITE;
+    case RHITextureLayout::DepthStencilRead:  return D3D12_BARRIER_LAYOUT_DEPTH_STENCIL_READ;
+    case RHITextureLayout::ShaderResource:    return D3D12_BARRIER_LAYOUT_SHADER_RESOURCE;
+    case RHITextureLayout::CopySource:        return D3D12_BARRIER_LAYOUT_COPY_SOURCE;
+    case RHITextureLayout::CopyDest:          return D3D12_BARRIER_LAYOUT_COPY_DEST;
     }
-    return D3D12_RESOURCE_STATE_COMMON;
+    return D3D12_BARRIER_LAYOUT_UNDEFINED;
 }
 
 // ---- Memory usage → D3D12_HEAP_TYPE ----

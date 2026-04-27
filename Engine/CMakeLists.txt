@@ -31,7 +31,6 @@ if(EVO_RHI_DX12)
         RHI/DX12/DX12Fence.cpp
         RHI/DX12/DX12SwapChain.cpp
         RHI/DX12/DX12CommandList.cpp
-        RHI/DX12/DX12CommandListManager.cpp
     )
 endif()
 

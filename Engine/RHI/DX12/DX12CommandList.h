@@ -58,15 +58,20 @@ public:
 	RHIQueueType GetQueueType() const override { return m_QueueType; }
 
 	// ---- Native accessor ----
-	ID3D12GraphicsCommandList* GetD3D12CommandList() const { return m_CmdList.Get(); }
+	ID3D12GraphicsCommandList7* GetD3D12CommandList() const { return m_CmdList.Get(); }
+
+	// ---- Native barrier (Phase 1: for SwapChain back buffers without Handle) ----
+	void NativeTextureBarrier(ID3D12Resource* resource,
+	                          D3D12_BARRIER_SYNC syncBefore, D3D12_BARRIER_SYNC syncAfter,
+	                          D3D12_BARRIER_ACCESS accessBefore, D3D12_BARRIER_ACCESS accessAfter,
+	                          D3D12_BARRIER_LAYOUT layoutBefore, D3D12_BARRIER_LAYOUT layoutAfter);
 
 private:
 	DX12Device*                         m_Device = nullptr;   // non-owning
 	RHIQueueType                        m_QueueType = RHIQueueType::Graphics;
 
-	// TODO: Fill in during Phase 1 implementation
-	ComPtr<ID3D12CommandAllocator>      m_Allocator;
-	ComPtr<ID3D12GraphicsCommandList>   m_CmdList;
+	ComPtr<ID3D12CommandAllocator>       m_Allocator;
+	ComPtr<ID3D12GraphicsCommandList7>   m_CmdList;
 };
 
 } // namespace Evo

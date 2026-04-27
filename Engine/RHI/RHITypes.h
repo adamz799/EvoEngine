@@ -63,21 +63,59 @@ enum class RHIFormat : uint32 {
 	D32_FLOAT_S8X24_UINT,
 };
 
-// ---- Resource state (for barriers) ----
-enum class RHIResourceState : uint32 {
-	Undefined = 0,
-	Common,
-	VertexBuffer,
-	IndexBuffer,
-	ConstantBuffer,
-	ShaderResource,
-	UnorderedAccess,
+// ---- Barrier sync stages (flags, combinable) ----
+enum class RHIBarrierSync : uint32 {
+	None            = 0,
+	All             = 1 << 0,
+	Draw            = 1 << 1,
+	VertexShading   = 1 << 2,
+	PixelShading    = 1 << 3,
+	DepthStencil    = 1 << 4,
+	RenderTarget    = 1 << 5,
+	ComputeShading  = 1 << 6,
+	Copy            = 1 << 7,
+	AllShading      = 1 << 8,
+};
+inline RHIBarrierSync operator|(RHIBarrierSync a, RHIBarrierSync b) {
+	return static_cast<RHIBarrierSync>(static_cast<uint32>(a) | static_cast<uint32>(b));
+}
+inline RHIBarrierSync operator&(RHIBarrierSync a, RHIBarrierSync b) {
+	return static_cast<RHIBarrierSync>(static_cast<uint32>(a) & static_cast<uint32>(b));
+}
+
+// ---- Barrier access types (flags, combinable) ----
+enum class RHIBarrierAccess : uint32 {
+	Common            = 0,
+	VertexBuffer      = 1 << 0,
+	ConstantBuffer    = 1 << 1,
+	IndexBuffer       = 1 << 2,
+	RenderTarget      = 1 << 3,
+	UnorderedAccess   = 1 << 4,
+	DepthStencilWrite = 1 << 5,
+	DepthStencilRead  = 1 << 6,
+	ShaderResource    = 1 << 7,
+	CopyDest          = 1 << 8,
+	CopySource        = 1 << 9,
+	NoAccess          = 1u << 31,
+};
+inline RHIBarrierAccess operator|(RHIBarrierAccess a, RHIBarrierAccess b) {
+	return static_cast<RHIBarrierAccess>(static_cast<uint32>(a) | static_cast<uint32>(b));
+}
+inline RHIBarrierAccess operator&(RHIBarrierAccess a, RHIBarrierAccess b) {
+	return static_cast<RHIBarrierAccess>(static_cast<uint32>(a) & static_cast<uint32>(b));
+}
+
+// ---- Texture memory layout (mutually exclusive, not flags) ----
+enum class RHITextureLayout : uint32 {
+	Undefined         = 0xFFFFFFFF,
+	Common            = 0,       // also used for Present
 	RenderTarget,
+	UnorderedAccess,
 	DepthStencilWrite,
 	DepthStencilRead,
-	CopySrc,
-	CopyDst,
-	Present,
+	ShaderResource,
+	CopySource,
+	CopyDest,
 };
 
 // ---- Shader stage ----
@@ -360,15 +398,21 @@ struct RHIRenderPassDesc {
 
 // ---- Barrier ----
 struct RHITextureBarrier {
-	RHITextureHandle texture;
-	RHIResourceState before;
-	RHIResourceState after;
+	RHITextureHandle   texture;
+	RHIBarrierSync     syncBefore;
+	RHIBarrierSync     syncAfter;
+	RHIBarrierAccess   accessBefore;
+	RHIBarrierAccess   accessAfter;
+	RHITextureLayout   layoutBefore;
+	RHITextureLayout   layoutAfter;
 };
 
 struct RHIBufferBarrier {
-	RHIBufferHandle  buffer;
-	RHIResourceState before;
-	RHIResourceState after;
+	RHIBufferHandle    buffer;
+	RHIBarrierSync     syncBefore;
+	RHIBarrierSync     syncAfter;
+	RHIBarrierAccess   accessBefore;
+	RHIBarrierAccess   accessAfter;
 };
 
 // ---- Swap chain ----

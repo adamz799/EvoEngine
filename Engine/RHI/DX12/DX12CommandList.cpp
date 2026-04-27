@@ -13,25 +13,30 @@ bool DX12CommandList::Initialize(DX12Device* device, RHIQueueType type)
 	if (!device || !device->GetD3D12Device())
 		return false;
 
-	// TODO Phase 1:
-	// 1. Determine D3D12_COMMAND_LIST_TYPE from RHIQueueType
-	// 2. device->GetD3D12Device()->CreateCommandAllocator(type, ...) → m_Allocator
-	// 3. device->GetD3D12Device()->CreateCommandList(0, type, m_Allocator.Get(), nullptr, ...) → m_CmdList
-	// 4. m_CmdList->Close()  (starts in closed state)
-
-	EVO_LOG_INFO("DX12CommandList::Initialize (stub)");
 	HRESULT hr = device->GetD3D12Device()->CreateCommandAllocator(MapQueueType(type), IID_PPV_ARGS(&m_Allocator));
 	if (FAILED(hr))
 	{
-		EVO_LOG_ERROR("Failed to create command allocator: 0x{:X}", hr);
+		EVO_LOG_ERROR("Failed to create command allocator: {}", GetHResultString(hr));
 		return false;
 	}
-	hr = device->GetD3D12Device()->CreateCommandList(0, MapQueueType(type), m_Allocator.Get(), nullptr, IID_PPV_ARGS(&m_CmdList));
+
+	// Create as base CommandList, then QI for CommandList7 (Enhanced Barriers)
+	ComPtr<ID3D12GraphicsCommandList> baseCmdList;
+	hr = device->GetD3D12Device()->CreateCommandList(0, MapQueueType(type), m_Allocator.Get(), nullptr, IID_PPV_ARGS(&baseCmdList));
 	if (FAILED(hr))
 	{
-		EVO_LOG_ERROR("Failed to create command list: 0x{:X}", hr);
+		EVO_LOG_ERROR("Failed to create command list: {}", GetHResultString(hr));
 		return false;
 	}
+
+	hr = baseCmdList.As(&m_CmdList);
+	if (FAILED(hr))
+	{
+		EVO_LOG_ERROR("Failed to query ID3D12GraphicsCommandList7 (Enhanced Barriers require Agility SDK): {}",
+		              GetHResultString(hr));
+		return false;
+	}
+
 	m_CmdList->Close();
 	return true;
 }
@@ -39,6 +44,7 @@ bool DX12CommandList::Initialize(DX12Device* device, RHIQueueType type)
 void DX12CommandList::ShutdownCommandList()
 {
 	m_CmdList.Reset();
+	m_Allocator.Reset();
 }
 
 void DX12CommandList::Begin()
@@ -52,18 +58,46 @@ void DX12CommandList::End()
 	m_CmdList->Close();
 }
 
-// ---- Barriers ----
+// ---- Barriers (Enhanced Barrier API via ID3D12GraphicsCommandList7) ----
 
 void DX12CommandList::TextureBarrier(const RHITextureBarrier* barriers, uint32 count)
 {
-	// TODO: translate to D3D12_RESOURCE_BARRIER and call ResourceBarrier()
-	CBarrier
-
+	// TODO: resolve RHITextureHandle → ID3D12Resource* via Device handle pool (Phase 3)
+	// For Phase 1, use NativeTextureBarrier() directly with SwapChain resources.
+	(void)barriers;
+	(void)count;
 }
 
-void DX12CommandList::BufferBarrier(const RHIBufferBarrier* /*barriers*/, uint32 /*count*/)
+void DX12CommandList::BufferBarrier(const RHIBufferBarrier* barriers, uint32 count)
 {
-	// TODO: same as texture barrier but for buffer resources
+	// TODO: resolve RHIBufferHandle → ID3D12Resource* via Device handle pool (Phase 3)
+	(void)barriers;
+	(void)count;
+}
+
+void DX12CommandList::NativeTextureBarrier(
+	ID3D12Resource* resource,
+	D3D12_BARRIER_SYNC syncBefore, D3D12_BARRIER_SYNC syncAfter,
+	D3D12_BARRIER_ACCESS accessBefore, D3D12_BARRIER_ACCESS accessAfter,
+	D3D12_BARRIER_LAYOUT layoutBefore, D3D12_BARRIER_LAYOUT layoutAfter)
+{
+	D3D12_TEXTURE_BARRIER texBarrier = {};
+	texBarrier.SyncBefore   = syncBefore;
+	texBarrier.SyncAfter    = syncAfter;
+	texBarrier.AccessBefore = accessBefore;
+	texBarrier.AccessAfter  = accessAfter;
+	texBarrier.LayoutBefore = layoutBefore;
+	texBarrier.LayoutAfter  = layoutAfter;
+	texBarrier.pResource    = resource;
+	texBarrier.Subresources.IndexOrFirstMipLevel = 0xFFFFFFFF; // all subresources
+	texBarrier.Flags        = D3D12_TEXTURE_BARRIER_FLAG_NONE;
+
+	D3D12_BARRIER_GROUP group = {};
+	group.Type                = D3D12_BARRIER_TYPE_TEXTURE;
+	group.NumBarriers         = 1;
+	group.pTextureBarriers    = &texBarrier;
+
+	m_CmdList->Barrier(1, &group);
 }
 
 // ---- Render pass ----

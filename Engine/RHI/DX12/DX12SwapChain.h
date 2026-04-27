@@ -45,7 +45,6 @@ private:
 	 ComPtr<ID3D12Resource>       m_BackBuffers[NUM_BACK_FRAMES];
 	 ComPtr<ID3D12DescriptorHeap> m_RTVHeap;
 	 UINT                        m_RTVDescriptorSize = 0;
-	 RHITextureHandle            m_BackBufferHandles[NUM_BACK_FRAMES];
 };
 
 } // namespace Evo
