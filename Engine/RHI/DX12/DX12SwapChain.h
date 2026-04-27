@@ -38,14 +38,14 @@ private:
 	ComPtr<IDXGISwapChain3> m_SwapChain;
 	uint32       m_Width       = 0;
 	uint32       m_Height      = 0;
-	uint32       m_BufferCount = 2;
+	uint32       m_BufferCount = NUM_BACK_FRAMES;
 	RHIFormat m_Format      = RHIFormat::R8G8B8A8_UNORM;
 	bool      m_Vsync       = true;
 
-	 ComPtr<ID3D12Resource>       m_BackBuffers[3];
+	 ComPtr<ID3D12Resource>       m_BackBuffers[NUM_BACK_FRAMES];
 	 ComPtr<ID3D12DescriptorHeap> m_RTVHeap;
 	 UINT                        m_RTVDescriptorSize = 0;
-	 RHITextureHandle            m_BackBufferHandles[3];
+	 RHITextureHandle            m_BackBufferHandles[NUM_BACK_FRAMES];
 };
 
 } // namespace Evo

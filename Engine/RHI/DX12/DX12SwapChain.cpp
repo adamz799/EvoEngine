@@ -74,41 +74,38 @@ void DX12SwapChain::ShutdownSwapChain()
 
 void DX12SwapChain::Present()
 {
-	// TODO: m_SwapChain->Present(m_Vsync ? 1 : 0, 0);
+	m_SwapChain->Present(m_Vsync ? 1 : 0, 0);
 }
 
 void DX12SwapChain::Resize(uint32 width, uint32 height)
 {
 	// TODO:
-	// ReleaseRenderTargetViews();
-	// m_SwapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
-	// CreateRenderTargetViews();
-	m_Width  = width;
+	ReleaseRenderTargetViews();
+	m_SwapChain->ResizeBuffers(0, width, height, DXGI_FORMAT_UNKNOWN, 0);
+	CreateRenderTargetViews();
+	m_Width = width;
 	m_Height = height;
 }
 
 uint32 DX12SwapChain::GetCurrentBackBufferIndex() const
 {
-	// TODO: return m_SwapChain->GetCurrentBackBufferIndex();
-	return 0;
+	return m_SwapChain->GetCurrentBackBufferIndex();
 }
 
 RHITextureHandle DX12SwapChain::GetCurrentBackBuffer()
 {
-	// TODO: return m_BackBufferHandles[GetCurrentBackBufferIndex()];
-	return {};
+	return m_BackBufferHandles[GetCurrentBackBufferIndex()];
 }
 
-D3D12_CPU_DESCRIPTOR_HANDLE DX12SwapChain::GetBackBufferRTV(uint32 /*index*/) const
+D3D12_CPU_DESCRIPTOR_HANDLE DX12SwapChain::GetBackBufferRTV(uint32 index) const
 {
 	// TODO: compute from RTV heap start + index * descriptorSize
 	return {};
 }
 
-ID3D12Resource* DX12SwapChain::GetBackBufferResource(uint32 /*index*/) const
+ID3D12Resource* DX12SwapChain::GetBackBufferResource(uint32 index) const
 {
-	// TODO: return m_BackBuffers[index].Get();
-	return nullptr;
+	return m_BackBuffers[index].Get();
 }
 
 void DX12SwapChain::CreateRenderTargetViews()
@@ -121,15 +118,42 @@ void DX12SwapChain::CreateRenderTargetViews()
 	rtvHeapDesc.Type           = D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 	rtvHeapDesc.Flags          = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 	rtvHeapDesc.NodeMask       = 0;
-	if (FAILED(m_Device->GetD3D12Device()->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&m_RTVHeap))))
+
+	HRESULT hr = m_Device->GetD3D12Device()->CreateDescriptorHeap(&rtvHeapDesc, IID_PPV_ARGS(&m_RTVHeap));
+	m_RTVDescriptorSize = m_Device->GetD3D12Device()->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+
+	if (FAILED(hr))
 	{
 		EVO_LOG_ERROR("Failed to create RTV descriptor heap");
+	}
+	else
+	{
+		m_RTVHeap->SetName(L"SwapChainRTVHeap");
+		CD3DX12_CPU_DESCRIPTOR_HANDLE rtvHandle(m_RTVHeap->GetCPUDescriptorHandleForHeapStart());
+		for (UINT i = 0; i < m_BufferCount; ++i)
+		{
+			HRESULT _hr = m_SwapChain->GetBuffer(i, IID_PPV_ARGS(&m_BackBuffers[i]));
+			if (SUCCEEDED(_hr))
+			{
+				wchar_t bufferName[64];
+				swprintf_s(bufferName, L"SwapChainBackBuffer%d", i);
+				m_BackBuffers[i]->SetName(bufferName);
+			}
+			m_Device->GetD3D12Device()->CreateRenderTargetView(m_BackBuffers[i].Get(), nullptr, rtvHandle);
+			m_BackBufferHandles[i] = RHITextureHandle{ .Handle = rtvHandle.ptr, .generation = 0 };
+			rtvHandle.Offset(1, m_RTVDescriptorSize);
+		}
 	}
 }
 
 void DX12SwapChain::ReleaseRenderTargetViews()
 {
 	// TODO: release back buffer ComPtrs
+	for (UINT i = 0; i < m_BufferCount; ++i)
+	{
+		m_BackBuffers[i].Reset();
+		m_BackBufferHandles[i] = {};
+	}
 }
 
 } // namespace Evo

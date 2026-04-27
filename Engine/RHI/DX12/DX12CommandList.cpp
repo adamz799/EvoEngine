@@ -1,6 +1,7 @@
 #include "RHI/DX12/DX12CommandList.h"
 #include "RHI/DX12/DX12Device.h"
 #include "Core/Log.h"
+#include "DX12TypeMap.h"
 
 namespace Evo {
 
@@ -9,7 +10,7 @@ bool DX12CommandList::Initialize(DX12Device* device, RHIQueueType type)
 	m_Device    = device;
 	m_QueueType = type;
 
-	if (!device)
+	if (!device || !device->GetD3D12Device())
 		return false;
 
 	// TODO Phase 1:
@@ -19,6 +20,19 @@ bool DX12CommandList::Initialize(DX12Device* device, RHIQueueType type)
 	// 4. m_CmdList->Close()  (starts in closed state)
 
 	EVO_LOG_INFO("DX12CommandList::Initialize (stub)");
+	HRESULT hr = device->GetD3D12Device()->CreateCommandAllocator(MapQueueType(type), IID_PPV_ARGS(&m_Allocator));
+	if (FAILED(hr))
+	{
+		EVO_LOG_ERROR("Failed to create command allocator: 0x{:X}", hr);
+		return false;
+	}
+	hr = device->GetD3D12Device()->CreateCommandList(0, MapQueueType(type), m_Allocator.Get(), nullptr, IID_PPV_ARGS(&m_CmdList));
+	if (FAILED(hr))
+	{
+		EVO_LOG_ERROR("Failed to create command list: 0x{:X}", hr);
+		return false;
+	}
+	m_CmdList->Close();
 	return true;
 }
 
@@ -29,19 +43,22 @@ void DX12CommandList::ShutdownCommandList()
 
 void DX12CommandList::Begin()
 {
-	// TODO: m_Allocator->Reset(); m_CmdList->Reset(m_Allocator.Get(), nullptr);
+	m_Allocator->Reset(); 
+	m_CmdList->Reset(m_Allocator.Get(), nullptr);
 }
 
 void DX12CommandList::End()
 {
-	// TODO: m_CmdList->Close();
+	m_CmdList->Close();
 }
 
 // ---- Barriers ----
 
-void DX12CommandList::TextureBarrier(const RHITextureBarrier* /*barriers*/, uint32 /*count*/)
+void DX12CommandList::TextureBarrier(const RHITextureBarrier* barriers, uint32 count)
 {
 	// TODO: translate to D3D12_RESOURCE_BARRIER and call ResourceBarrier()
+	CBarrier
+
 }
 
 void DX12CommandList::BufferBarrier(const RHIBufferBarrier* /*barriers*/, uint32 /*count*/)

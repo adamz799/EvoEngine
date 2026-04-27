@@ -48,7 +48,8 @@ bool Renderer::Initialize(const RendererDesc& desc, Window& window)
 
 void Renderer::Shutdown()
 {
-    if (m_Device) {
+    if (m_Device) 
+    {
         m_Device->WaitIdle();
 
         m_FrameFence.reset();
