@@ -20,11 +20,8 @@ bool Renderer::Initialize(const RendererDesc& desc, Window& window)
     }
 
     RHIDeviceDesc deviceDesc{};
-    deviceDesc.backend      = desc.backend;
-    deviceDesc.enableDebug  = desc.enableDebug;
-    deviceDesc.windowHandle = window.GetNativeHandle();
-    deviceDesc.windowWidth  = window.GetWidth();
-    deviceDesc.windowHeight = window.GetHeight();
+    deviceDesc.backend     = desc.backend;
+    deviceDesc.enableDebug = desc.enableDebug;
 
     if (!m_Device->Initialize(deviceDesc)) {
         EVO_LOG_CRITICAL("Failed to initialize RHI device");
@@ -40,7 +37,9 @@ bool Renderer::Initialize(const RendererDesc& desc, Window& window)
     scDesc.format       = RHIFormat::R8G8B8A8_UNORM;
 
     m_SwapChain = m_Device->CreateSwapChain(scDesc);
-    // SwapChain is nullptr in stub — that's OK for the skeleton
+
+    // Create frame fence
+    m_FrameFence = m_Device->CreateFence(0);
 
     EVO_LOG_INFO("Renderer initialized (backend: {})",
         desc.backend == RHIBackendType::DX12 ? "DX12" : "Vulkan");
@@ -52,6 +51,7 @@ void Renderer::Shutdown()
     if (m_Device) {
         m_Device->WaitIdle();
 
+        m_FrameFence.reset();
         m_SwapChain.reset();
         m_Device->Shutdown();
         m_Device.reset();
@@ -65,17 +65,20 @@ void Renderer::BeginFrame()
     if (m_Device)
         m_Device->BeginFrame();
 
-    // TODO: acquire back buffer, begin command list, clear render target
+    // TODO Phase 1: create command list, begin recording, transition back buffer, clear
 }
 
 void Renderer::EndFrame()
 {
-    // TODO: end command list, submit, present
+    // TODO Phase 1: transition back buffer to present, submit, signal fence
+
     if (m_Device)
         m_Device->EndFrame();
 
     if (m_SwapChain)
         m_SwapChain->Present();
+
+    m_FrameCount++;
 }
 
 } // namespace Evo

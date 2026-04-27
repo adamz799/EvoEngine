@@ -3,6 +3,14 @@
 #include "Platform/Window.h"
 #include "Renderer/Renderer.h"
 
+// ---- D3D12 Agility SDK runtime selection ----
+// These exports tell the D3D12 loader to use the Agility SDK DLLs
+// from the ./D3D12/ subdirectory next to the executable.
+#if EVO_RHI_DX12
+extern "C" { __declspec(dllexport) extern const unsigned int D3D12SDKVersion = EVO_D3D12_AGILITY_SDK_VERSION; }
+extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ".\\D3D12\\"; }
+#endif
+
 static void TestMathLibrary()
 {
     using namespace Evo;

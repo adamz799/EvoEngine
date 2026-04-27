@@ -27,6 +27,8 @@ public:
 private:
     std::unique_ptr<RHIDevice>    m_Device;
     std::unique_ptr<RHISwapChain> m_SwapChain;
+    std::unique_ptr<RHIFence>     m_FrameFence;
+    u64                           m_FrameCount = 0;
 };
 
 } // namespace Evo

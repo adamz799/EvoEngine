@@ -4,51 +4,72 @@ configure_file(
     ${CMAKE_CURRENT_BINARY_DIR}/Generated/RHIConfig.h
 )
 
-# ---- Collect source files ----
-set(CORE_SOURCES
-    Core/Log.cpp
-)
+# ---- Collect source files by module ----
+# We glob headers too so they appear in the VS solution tree.
 
-set(PLATFORM_SOURCES
-    Platform/Window.cpp
-    Platform/FileSystem.cpp
-)
+file(GLOB CORE_HEADERS    Core/*.h)
+set(CORE_SOURCES          Core/Log.cpp)
 
-set(RHI_SOURCES
-    RHI/RHI.cpp
-)
+file(GLOB MATH_HEADERS    Math/*.h)
 
-set(RENDERER_SOURCES
-    Renderer/Renderer.cpp
-)
+file(GLOB PLATFORM_HEADERS Platform/*.h)
+set(PLATFORM_SOURCES       Platform/Window.cpp
+                           Platform/FileSystem.cpp)
 
-# Conditionally add backend sources
+file(GLOB RHI_HEADERS     RHI/*.h)
+set(RHI_SOURCES           RHI/RHI.cpp)
+
+file(GLOB RENDERER_HEADERS Renderer/*.h)
+set(RENDERER_SOURCES       Renderer/Renderer.cpp)
+
+# ---- Backend sources ----
 if(EVO_RHI_DX12)
-    list(APPEND RHI_SOURCES
+    file(GLOB DX12_HEADERS  RHI/DX12/*.h)
+    set(DX12_SOURCES
         RHI/DX12/DX12Device.cpp
+        RHI/DX12/DX12Queue.cpp
+        RHI/DX12/DX12Fence.cpp
+        RHI/DX12/DX12SwapChain.cpp
+        RHI/DX12/DX12CommandList.cpp
     )
 endif()
 
 if(EVO_RHI_VULKAN)
-    list(APPEND RHI_SOURCES
+    file(GLOB VULKAN_HEADERS  RHI/Vulkan/*.h)
+    set(VULKAN_SOURCES
         RHI/Vulkan/VulkanDevice.cpp
     )
 endif()
 
 # ---- Create static library ----
 add_library(EvoEngine STATIC
-    ${CORE_SOURCES}
-    ${PLATFORM_SOURCES}
-    ${RHI_SOURCES}
-    ${RENDERER_SOURCES}
+    ${CORE_HEADERS}     ${CORE_SOURCES}
+    ${MATH_HEADERS}
+    ${PLATFORM_HEADERS} ${PLATFORM_SOURCES}
+    ${RHI_HEADERS}      ${RHI_SOURCES}
+    ${RENDERER_HEADERS} ${RENDERER_SOURCES}
+    ${DX12_HEADERS}     ${DX12_SOURCES}
+    ${VULKAN_HEADERS}   ${VULKAN_SOURCES}
 )
 
 evo_set_compiler_flags(EvoEngine)
 
+# ---- VS solution folder tree ----
+# Maps physical directory structure into VS filters so files aren't flat.
+source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES
+    ${CORE_HEADERS}     ${CORE_SOURCES}
+    ${MATH_HEADERS}
+    ${PLATFORM_HEADERS} ${PLATFORM_SOURCES}
+    ${RHI_HEADERS}      ${RHI_SOURCES}
+    ${RENDERER_HEADERS} ${RENDERER_SOURCES}
+    ${DX12_HEADERS}     ${DX12_SOURCES}
+    ${VULKAN_HEADERS}   ${VULKAN_SOURCES}
+)
+
 # ---- Include directories ----
 target_include_directories(EvoEngine
     PUBLIC
-        ${CMAKE_CURRENT_SOURCE_DIR}        # Engine/ root, so includes are "Core/Log.h"
+        ${CMAKE_CURRENT_SOURCE_DIR}            # Engine/ root: #include "Core/Log.h"
         ${CMAKE_CURRENT_BINARY_DIR}/Generated  # For RHIConfig.h
 )
 
@@ -58,6 +79,7 @@ target_link_libraries(EvoEngine
         SDL3::SDL3-static
         spdlog::spdlog
         DirectXMath
+        ImGui
 )
 
 # ---- Platform / backend specific linking ----
@@ -65,7 +87,7 @@ if(EVO_RHI_DX12)
     target_compile_definitions(EvoEngine PUBLIC EVO_RHI_DX12=1)
     target_link_libraries(EvoEngine
         PUBLIC
-            d3d12
+            AgilitySDK
             dxgi
             dxguid
     )
