@@ -3,6 +3,8 @@
 // EvoEngine RHI — aggregate header
 
 #include "RHI/RHITypes.h"
+#include "RHI/RHIBuffer.h"
+#include "RHI/RHITexture.h"
 #include "RHI/RHIDescriptor.h"
 #include "RHI/RHIFence.h"
 #include "RHI/RHIQueue.h"

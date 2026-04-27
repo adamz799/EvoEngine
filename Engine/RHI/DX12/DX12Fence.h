@@ -10,12 +10,12 @@ public:
     DX12Fence() = default;
     ~DX12Fence() override;
 
-    bool Initialize(ID3D12Device* device, u64 initialValue);
+    bool Initialize(ID3D12Device* device, uint64 initialValue = 0);
     void ShutdownFence();
 
-    u64  GetCompletedValue() override;
-    void CpuWait(u64 value) override;
-    void CpuSignal(u64 value) override;
+    uint64  GetCompletedValue() override;
+    void CpuWait(uint64 value) override;
+    void CpuSignal(uint64 value) override;
 
     // Native accessor
     ID3D12Fence* GetD3D12Fence() const { return m_Fence.Get(); }

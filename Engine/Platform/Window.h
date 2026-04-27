@@ -9,8 +9,8 @@ namespace Evo {
 
 struct WindowDesc {
     std::string title  = "EvoEngine";
-    u32         width  = 1280;
-    u32         height = 720;
+    uint32         width  = 1280;
+    uint32         height = 720;
     bool        resizable = true;
 };
 
@@ -25,8 +25,8 @@ public:
     /// Poll events. Returns false if quit was requested.
     bool PollEvents();
 
-    u32  GetWidth()  const { return m_Width; }
-    u32  GetHeight() const { return m_Height; }
+    uint32  GetWidth()  const { return m_Width; }
+    uint32  GetHeight() const { return m_Height; }
     bool IsMinimized() const { return m_Minimized; }
 
     /// Get platform-native window handle (HWND on Windows).
@@ -36,8 +36,8 @@ public:
 
 private:
     SDL_Window* m_Window    = nullptr;
-    u32         m_Width     = 0;
-    u32         m_Height    = 0;
+    uint32         m_Width     = 0;
+    uint32         m_Height    = 0;
     bool        m_Minimized = false;
 };
 

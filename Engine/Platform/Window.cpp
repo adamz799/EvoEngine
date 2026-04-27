@@ -59,8 +59,8 @@ bool Window::PollEvents()
                 break;
 
             case SDL_EVENT_WINDOW_RESIZED:
-                m_Width  = static_cast<u32>(event.window.data1);
-                m_Height = static_cast<u32>(event.window.data2);
+                m_Width  = static_cast<uint32>(event.window.data1);
+                m_Height = static_cast<uint32>(event.window.data2);
                 EVO_LOG_DEBUG("Window resized: {}x{}", m_Width, m_Height);
                 break;
 

@@ -6,7 +6,7 @@
 
 namespace Evo {
 
-std::vector<u8> FileSystem::ReadBinary(const std::filesystem::path& path)
+std::vector<uint8> FileSystem::ReadBinary(const std::filesystem::path& path)
 {
     std::ifstream file(path, std::ios::binary | std::ios::ate);
     if (!file.is_open()) {
@@ -17,7 +17,7 @@ std::vector<u8> FileSystem::ReadBinary(const std::filesystem::path& path)
     auto size = file.tellg();
     if (size <= 0) return {};
 
-    std::vector<u8> buffer(static_cast<usize>(size));
+    std::vector<uint8> buffer(static_cast<size_t>(size));
     file.seekg(0);
     file.read(reinterpret_cast<char*>(buffer.data()), size);
     return buffer;
@@ -36,7 +36,7 @@ std::optional<std::string> FileSystem::ReadText(const std::filesystem::path& pat
     return content;
 }
 
-bool FileSystem::WriteBinary(const std::filesystem::path& path, std::span<const u8> data)
+bool FileSystem::WriteBinary(const std::filesystem::path& path, std::span<const uint8> data)
 {
     std::ofstream file(path, std::ios::binary);
     if (!file.is_open()) {

@@ -22,8 +22,8 @@ public:
 
     // ---- Resource barriers ----
 
-    virtual void TextureBarrier(const RHITextureBarrier* barriers, u32 count) = 0;
-    virtual void BufferBarrier(const RHIBufferBarrier* barriers, u32 count) = 0;
+    virtual void TextureBarrier(const RHITextureBarrier* barriers, uint32 count) = 0;
+    virtual void BufferBarrier(const RHIBufferBarrier* barriers, uint32 count) = 0;
 
     // Convenience single-resource overloads (inline, non-virtual):
     void TextureBarrier(RHITextureHandle tex, RHIResourceState before, RHIResourceState after) {
@@ -48,30 +48,30 @@ public:
 
     // ---- Resource binding ----
 
-    virtual void SetPushConstants(const void* data, u32 size) = 0;
-    virtual void SetDescriptorSet(u32 index, RHIDescriptorSetHandle set) = 0;
+    virtual void SetPushConstants(const void* data, uint32 size) = 0;
+    virtual void SetDescriptorSet(uint32 index, RHIDescriptorSetHandle set) = 0;
 
     // ---- Vertex / Index buffers ----
 
-    virtual void SetVertexBuffer(u32 slot, RHIBufferHandle buffer, u64 offset = 0) = 0;
-    virtual void SetIndexBuffer(RHIBufferHandle buffer, u64 offset, RHIIndexFormat format) = 0;
+    virtual void SetVertexBuffer(uint32 slot, RHIBufferHandle buffer, uint64 offset = 0) = 0;
+    virtual void SetIndexBuffer(RHIBufferHandle buffer, uint64 offset, RHIIndexFormat format) = 0;
 
     // ---- Draw ----
 
-    virtual void Draw(u32 vertexCount, u32 instanceCount = 1,
-                      u32 firstVertex = 0, u32 firstInstance = 0) = 0;
-    virtual void DrawIndexed(u32 indexCount, u32 instanceCount = 1,
-                             u32 firstIndex = 0, i32 vertexOffset = 0,
-                             u32 firstInstance = 0) = 0;
+    virtual void Draw(uint32 vertexCount, uint32 instanceCount = 1,
+                      uint32 firstVertex = 0, uint32 firstInstance = 0) = 0;
+    virtual void DrawIndexed(uint32 indexCount, uint32 instanceCount = 1,
+                             uint32 firstIndex = 0, int32 vertexOffset = 0,
+                             uint32 firstInstance = 0) = 0;
 
     // ---- Compute ----
 
-    virtual void Dispatch(u32 groupCountX, u32 groupCountY, u32 groupCountZ) = 0;
+    virtual void Dispatch(uint32 groupCountX, uint32 groupCountY, uint32 groupCountZ) = 0;
 
     // ---- Copy ----
 
-    virtual void CopyBuffer(RHIBufferHandle src, u64 srcOffset,
-                            RHIBufferHandle dst, u64 dstOffset, u64 size) = 0;
+    virtual void CopyBuffer(RHIBufferHandle src, uint64 srcOffset,
+                            RHIBufferHandle dst, uint64 dstOffset, uint64 size) = 0;
     virtual void CopyBufferToTexture(RHIBufferHandle src, RHITextureHandle dst) = 0;
 
     // ---- Query ----

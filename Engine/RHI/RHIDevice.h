@@ -39,7 +39,7 @@ public:
     // ---- Direct object creation (unique_ptr ownership) ----
     virtual std::unique_ptr<RHISwapChain>   CreateSwapChain(const RHISwapChainDesc& desc) = 0;
     virtual std::unique_ptr<RHICommandList> CreateCommandList(RHIQueueType type) = 0;
-    virtual std::unique_ptr<RHIFence>       CreateFence(u64 initialValue = 0) = 0;
+    virtual std::unique_ptr<RHIFence>       CreateFence(uint64 initialValue = 0) = 0;
 
     // ---- Handle-managed resource creation ----
     virtual RHIBufferHandle   CreateBuffer(const RHIBufferDesc& desc) = 0;
@@ -67,7 +67,7 @@ public:
         RHIDescriptorSetLayoutHandle layout) = 0;
     virtual void FreeDescriptorSet(RHIDescriptorSetHandle handle) = 0;
     virtual void WriteDescriptorSet(RHIDescriptorSetHandle set,
-        const RHIDescriptorWrite* writes, u32 writeCount) = 0;
+        const RHIDescriptorWrite* writes, uint32 writeCount) = 0;
 
     // ---- Frame management ----
     /// Process deferred deletions for frames the GPU has completed.

@@ -19,7 +19,7 @@ void VulkanDevice::Shutdown()
 
 std::unique_ptr<RHISwapChain>   VulkanDevice::CreateSwapChain(const RHISwapChainDesc&) { return nullptr; }
 std::unique_ptr<RHICommandList> VulkanDevice::CreateCommandList(RHIQueueType) { return nullptr; }
-std::unique_ptr<RHIFence>       VulkanDevice::CreateFence(u64) { return nullptr; }
+std::unique_ptr<RHIFence>       VulkanDevice::CreateFence(uint64) { return nullptr; }
 
 RHIBufferHandle   VulkanDevice::CreateBuffer(const RHIBufferDesc&) { return {}; }
 RHITextureHandle  VulkanDevice::CreateTexture(const RHITextureDesc&) { return {}; }
@@ -39,7 +39,7 @@ RHIDescriptorSetLayoutHandle VulkanDevice::CreateDescriptorSetLayout(const RHIDe
 void VulkanDevice::DestroyDescriptorSetLayout(RHIDescriptorSetLayoutHandle) {}
 RHIDescriptorSetHandle VulkanDevice::AllocateDescriptorSet(RHIDescriptorSetLayoutHandle) { return {}; }
 void VulkanDevice::FreeDescriptorSet(RHIDescriptorSetHandle) {}
-void VulkanDevice::WriteDescriptorSet(RHIDescriptorSetHandle, const RHIDescriptorWrite*, u32) {}
+void VulkanDevice::WriteDescriptorSet(RHIDescriptorSetHandle, const RHIDescriptorWrite*, uint32) {}
 
 void VulkanDevice::BeginFrame() {}
 void VulkanDevice::EndFrame() {}

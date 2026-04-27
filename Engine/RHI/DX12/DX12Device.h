@@ -25,7 +25,7 @@ public:
     // ---- Direct object creation ----
     std::unique_ptr<RHISwapChain>   CreateSwapChain(const RHISwapChainDesc& desc) override;
     std::unique_ptr<RHICommandList> CreateCommandList(RHIQueueType type) override;
-    std::unique_ptr<RHIFence>       CreateFence(u64 initialValue = 0) override;
+    std::unique_ptr<RHIFence>       CreateFence(uint64 initialValue = 0) override;
 
     // ---- Handle resources ----
     RHIBufferHandle   CreateBuffer(const RHIBufferDesc& desc) override;
@@ -52,7 +52,7 @@ public:
         RHIDescriptorSetLayoutHandle layout) override;
     void FreeDescriptorSet(RHIDescriptorSetHandle handle) override;
     void WriteDescriptorSet(RHIDescriptorSetHandle set,
-        const RHIDescriptorWrite* writes, u32 writeCount) override;
+        const RHIDescriptorWrite* writes, uint32 writeCount) override;
 
     // ---- Frame management ----
     void BeginFrame() override;
@@ -61,18 +61,26 @@ public:
 
     // ---- Native handle accessors (for ImGui and other integrations) ----
     ID3D12Device*        GetD3D12Device()   const { return m_Device.Get(); }
-    IDXGIFactory4*       GetDxgiFactory()   const { return m_DxgiFactory.Get(); }
+    IDXGIFactory4*       GetDXGIFactory()   const { return m_DxgiFactory.Get(); }
+
+    // Return the native DX12 graphics command queue (needed by SwapChain creation, ImGui, etc.)
+    ID3D12CommandQueue*  GetGraphicsCommandQueue() const;
+
+    // Return the HWND stored during SwapChain creation
+    HWND                 GetHWND() const { return m_HWND; }
+    void                 SetHWND(HWND hwnd) { m_HWND = hwnd; }
 
 private:
     std::string m_AdapterName;
 
-    // TODO: Fill in during Phase 1 implementation
-    ComPtr<IDXGIFactory4>  m_DxgiFactory;
-    ComPtr<ID3D12Device>   m_Device;
+    ComPtr<IDXGIFactory4>   m_DxgiFactory;
+    ComPtr<ID3D12Device>    m_Device;
 
     std::unique_ptr<DX12Queue> m_GraphicsQueue;
     std::unique_ptr<DX12Queue> m_ComputeQueue;
     std::unique_ptr<DX12Queue> m_CopyQueue;
+
+    HWND m_HWND = nullptr;
 };
 
 } // namespace Evo

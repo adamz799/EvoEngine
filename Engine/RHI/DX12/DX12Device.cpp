@@ -5,6 +5,9 @@
 #include "RHI/DX12/DX12CommandList.h"
 #include "Core/Log.h"
 
+#include <locale>
+#include <codecvt>
+
 namespace Evo {
 
 DX12Device::~DX12Device()
@@ -14,18 +17,81 @@ DX12Device::~DX12Device()
 
 bool DX12Device::Initialize(const RHIDeviceDesc& desc)
 {
-    EVO_LOG_INFO("DX12Device::Initialize (stub — implement Phase 1 here)");
+    EVO_LOG_INFO("DX12Device::Initialize");
 
-    // TODO Phase 1:
-    // 1. Enable debug layer if desc.enableDebug
-    //    ID3D12Debug* debug; D3D12GetDebugInterface(...); debug->EnableDebugLayer();
-    // 2. CreateDXGIFactory2 → m_DxgiFactory
-    // 3. EnumAdapterByGpuPreference → choose GPU → fill m_AdapterName
-    // 4. D3D12CreateDevice → m_Device
-    // 5. Create graphics queue: m_GraphicsQueue->Initialize(m_Device.Get(), RHIQueueType::Graphics)
-    // 6. Optionally create compute and copy queues
+    // 1. Enable debug layer
+    if (desc.enableDebug)
+    {
+        ComPtr<ID3D12Debug> debug;
+        if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debug))))
+        {
+            debug->EnableDebugLayer();
+			{
+				ComPtr<ID3D12Debug1> debug1;
+				if (SUCCEEDED(debug.As(&debug1)))
+				{
+					debug1->SetEnableGPUBasedValidation(TRUE);
+				}
+			}
+        }
+    }
 
-    m_AdapterName = "DX12 Device (stub)";
+    // 2. Create DXGI factory
+    UINT factoryFlags = 0;
+    if (desc.enableDebug)
+        factoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
+
+    HRESULT hr = CreateDXGIFactory2(factoryFlags, IID_PPV_ARGS(&m_DxgiFactory));
+    if (FAILED(hr))
+    {
+        EVO_LOG_ERROR("Failed to create DXGI factory: {}", GetHResultString(hr));
+        return false;
+    }
+
+    // 3. Enumerate adapter (prefer high-performance GPU)
+    ComPtr<IDXGIAdapter1> adapter;
+    ComPtr<IDXGIFactory6> dxgiFactory6;
+    if (SUCCEEDED(m_DxgiFactory.As(&dxgiFactory6)))
+    {
+        dxgiFactory6->EnumAdapterByGpuPreference(
+            0, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&adapter));
+    }
+    else
+    {
+        m_DxgiFactory->EnumAdapters1(0, &adapter);
+    }
+
+    DXGI_ADAPTER_DESC1 adapterDesc;
+    adapter->GetDesc1(&adapterDesc);
+
+    // Convert wide-char adapter description to UTF-8
+    {
+        int len = WideCharToMultiByte(CP_UTF8, 0, adapterDesc.Description, -1,
+                                      nullptr, 0, nullptr, nullptr);
+        if (len > 0) {
+            m_AdapterName.resize(static_cast<size_t>(len - 1));
+            WideCharToMultiByte(CP_UTF8, 0, adapterDesc.Description, -1,
+                                m_AdapterName.data(), len, nullptr, nullptr);
+        }
+    }
+    EVO_LOG_INFO("GPU: {}", m_AdapterName);
+
+    // 4. Create D3D12 device
+    hr = D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_Device));
+    if (FAILED(hr))
+    {
+        EVO_LOG_ERROR("Failed to create D3D12 device: {}", GetHResultString(hr));
+        return false;
+    }
+
+    // 5. Create graphics queue
+    m_GraphicsQueue = std::make_unique<DX12Queue>();
+    if (!m_GraphicsQueue->Initialize(m_Device.Get(), RHIQueueType::Graphics))
+    {
+        EVO_LOG_ERROR("Failed to create graphics queue");
+        return false;
+    }
+
     return true;
 }
 
@@ -36,7 +102,7 @@ void DX12Device::Shutdown()
 
     EVO_LOG_INFO("DX12Device::Shutdown");
 
-    // TODO: WaitIdle, release queues, device, factory
+    // TODO: WaitIdle before releasing
     m_CopyQueue.reset();
     m_ComputeQueue.reset();
     m_GraphicsQueue.reset();
@@ -49,6 +115,11 @@ void DX12Device::Shutdown()
 RHIQueue* DX12Device::GetGraphicsQueue() { return m_GraphicsQueue.get(); }
 RHIQueue* DX12Device::GetComputeQueue()  { return m_ComputeQueue.get(); }
 RHIQueue* DX12Device::GetCopyQueue()     { return m_CopyQueue.get(); }
+
+ID3D12CommandQueue* DX12Device::GetGraphicsCommandQueue() const
+{
+    return m_GraphicsQueue ? m_GraphicsQueue->GetD3D12Queue() : nullptr;
+}
 
 // ---- Direct object creation ----
 
@@ -68,7 +139,7 @@ std::unique_ptr<RHICommandList> DX12Device::CreateCommandList(RHIQueueType type)
     return cl;
 }
 
-std::unique_ptr<RHIFence> DX12Device::CreateFence(u64 initialValue)
+std::unique_ptr<RHIFence> DX12Device::CreateFence(uint64 initialValue)
 {
     auto fence = std::make_unique<DX12Fence>();
     if (!fence->Initialize(m_Device.Get(), initialValue))
@@ -130,7 +201,7 @@ RHIDescriptorSetHandle DX12Device::AllocateDescriptorSet(RHIDescriptorSetLayoutH
 }
 void DX12Device::FreeDescriptorSet(RHIDescriptorSetHandle /*handle*/) {}
 void DX12Device::WriteDescriptorSet(RHIDescriptorSetHandle /*set*/,
-    const RHIDescriptorWrite* /*writes*/, u32 /*writeCount*/) {}
+    const RHIDescriptorWrite* /*writes*/, uint32 /*writeCount*/) {}
 
 // ---- Frame management ----
 

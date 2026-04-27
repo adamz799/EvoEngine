@@ -25,9 +25,9 @@ public:
     /// @param signalFence   Optional fence to signal after execution completes.
     /// @param signalValue   Value to signal on signalFence.
     virtual void Submit(
-        RHICommandList* const* cmdLists, u32 cmdListCount,
-        RHIFence* waitFence   = nullptr, u64 waitValue   = 0,
-        RHIFence* signalFence = nullptr, u64 signalValue = 0
+        RHICommandList* const* cmdLists, uint32 cmdListCount,
+        RHIFence* waitFence   = nullptr, uint64 waitValue   = 0,
+        RHIFence* signalFence = nullptr, uint64 signalValue = 0
     ) = 0;
 
     /// Block until all previously submitted work on this queue completes.

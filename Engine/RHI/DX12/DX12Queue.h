@@ -14,9 +14,9 @@ public:
     void ShutdownQueue();
 
     void Submit(
-        RHICommandList* const* cmdLists, u32 cmdListCount,
-        RHIFence* waitFence, u64 waitValue,
-        RHIFence* signalFence, u64 signalValue
+        RHICommandList* const* cmdLists, uint32 cmdListCount,
+        RHIFence* waitFence   = nullptr, uint64 waitValue   = 0,
+        RHIFence* signalFence = nullptr, uint64 signalValue = 0
     ) override;
 
     void WaitIdle() override;

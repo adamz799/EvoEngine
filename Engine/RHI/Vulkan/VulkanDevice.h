@@ -23,7 +23,7 @@ public:
     // ---- Direct object creation ----
     std::unique_ptr<RHISwapChain>   CreateSwapChain(const RHISwapChainDesc& desc) override;
     std::unique_ptr<RHICommandList> CreateCommandList(RHIQueueType type) override;
-    std::unique_ptr<RHIFence>       CreateFence(u64 initialValue) override;
+    std::unique_ptr<RHIFence>       CreateFence(uint64 initialValue) override;
 
     // ---- Handle resources ----
     RHIBufferHandle   CreateBuffer(const RHIBufferDesc& desc) override;
@@ -48,7 +48,7 @@ public:
         RHIDescriptorSetLayoutHandle layout) override;
     void FreeDescriptorSet(RHIDescriptorSetHandle handle) override;
     void WriteDescriptorSet(RHIDescriptorSetHandle set,
-        const RHIDescriptorWrite* writes, u32 writeCount) override;
+        const RHIDescriptorWrite* writes, uint32 writeCount) override;
 
     // ---- Frame management ----
     void BeginFrame() override;

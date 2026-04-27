@@ -20,8 +20,8 @@ public:
     void End() override;
 
     // ---- Barriers ----
-    void TextureBarrier(const RHITextureBarrier* barriers, u32 count) override;
-    void BufferBarrier(const RHIBufferBarrier* barriers, u32 count) override;
+    void TextureBarrier(const RHITextureBarrier* barriers, uint32 count) override;
+    void BufferBarrier(const RHIBufferBarrier* barriers, uint32 count) override;
 
     // ---- Render pass ----
     void BeginRenderPass(const RHIRenderPassDesc& desc) override;
@@ -33,25 +33,25 @@ public:
     void SetScissorRect(const RHIScissorRect& rect) override;
 
     // ---- Binding ----
-    void SetPushConstants(const void* data, u32 size) override;
-    void SetDescriptorSet(u32 index, RHIDescriptorSetHandle set) override;
+    void SetPushConstants(const void* data, uint32 size) override;
+    void SetDescriptorSet(uint32 index, RHIDescriptorSetHandle set) override;
 
     // ---- Vertex / Index ----
-    void SetVertexBuffer(u32 slot, RHIBufferHandle buffer, u64 offset) override;
-    void SetIndexBuffer(RHIBufferHandle buffer, u64 offset, RHIIndexFormat format) override;
+    void SetVertexBuffer(uint32 slot, RHIBufferHandle buffer, uint64 offset) override;
+    void SetIndexBuffer(RHIBufferHandle buffer, uint64 offset, RHIIndexFormat format) override;
 
     // ---- Draw ----
-    void Draw(u32 vertexCount, u32 instanceCount,
-              u32 firstVertex, u32 firstInstance) override;
-    void DrawIndexed(u32 indexCount, u32 instanceCount,
-                     u32 firstIndex, i32 vertexOffset, u32 firstInstance) override;
+    void Draw(uint32 vertexCount, uint32 instanceCount,
+              uint32 firstVertex, uint32 firstInstance) override;
+    void DrawIndexed(uint32 indexCount, uint32 instanceCount,
+                     uint32 firstIndex, int32 vertexOffset, uint32 firstInstance) override;
 
     // ---- Compute ----
-    void Dispatch(u32 groupCountX, u32 groupCountY, u32 groupCountZ) override;
+    void Dispatch(uint32 groupCountX, uint32 groupCountY, uint32 groupCountZ) override;
 
     // ---- Copy ----
-    void CopyBuffer(RHIBufferHandle src, u64 srcOffset,
-                    RHIBufferHandle dst, u64 dstOffset, u64 size) override;
+    void CopyBuffer(RHIBufferHandle src, uint64 srcOffset,
+                    RHIBufferHandle dst, uint64 dstOffset, uint64 size) override;
     void CopyBufferToTexture(RHIBufferHandle src, RHITextureHandle dst) override;
 
     // ---- Query ----

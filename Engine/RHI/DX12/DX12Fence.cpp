@@ -5,50 +5,51 @@ namespace Evo {
 
 DX12Fence::~DX12Fence()
 {
-    ShutdownFence();
+	ShutdownFence();
 }
 
-bool DX12Fence::Initialize(ID3D12Device* device, u64 initialValue)
+bool DX12Fence::Initialize(ID3D12Device* device, uint64 initialValue)
 {
-    // TODO Phase 1:
-    // device->CreateFence(initialValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_Fence));
-    // m_Event = CreateEventW(nullptr, FALSE, FALSE, nullptr);
+	if (!device)
+		return false;
 
-    (void)device;
-    (void)initialValue;
-    EVO_LOG_INFO("DX12Fence::Initialize (stub)");
-    return true;
+	HRESULT hr = device->CreateFence(initialValue, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_Fence));
+	if (FAILED(hr))
+	{
+		EVO_LOG_ERROR("Failed to create D3D12 fence: {}", GetHResultString(hr));
+		return false;
+	}
+	m_Event = CreateEventW(nullptr, FALSE, FALSE, nullptr);
+
+	return true;
 }
 
 void DX12Fence::ShutdownFence()
 {
-    if (m_Event) {
-        CloseHandle(m_Event);
-        m_Event = nullptr;
-    }
-    m_Fence.Reset();
+	if (m_Event) {
+		CloseHandle(m_Event);
+		m_Event = nullptr;
+	}
+	m_Fence.Reset();
 }
 
-u64 DX12Fence::GetCompletedValue()
+uint64 DX12Fence::GetCompletedValue()
 {
-    // TODO: return m_Fence->GetCompletedValue();
-    return 0;
+	return m_Fence->GetCompletedValue();
 }
 
-void DX12Fence::CpuWait(u64 value)
+void DX12Fence::CpuWait(uint64 value)
 {
-    // TODO:
-    // if (m_Fence->GetCompletedValue() < value) {
-    //     m_Fence->SetEventOnCompletion(value, m_Event);
-    //     WaitForSingleObject(m_Event, INFINITE);
-    // }
-    (void)value;
+	if (m_Fence->GetCompletedValue() < value)
+	{
+		m_Fence->SetEventOnCompletion(value, m_Event);
+		WaitForSingleObject(m_Event, INFINITE);
+	}
 }
 
-void DX12Fence::CpuSignal(u64 value)
+void DX12Fence::CpuSignal(uint64 value)
 {
-    // TODO: m_Fence->Signal(value);
-    (void)value;
+	m_Fence->Signal(value);
 }
 
 } // namespace Evo

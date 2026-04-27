@@ -15,7 +15,38 @@
 
 #include "Core/Log.h"
 
+#include <string>
+
 namespace Evo {
+
+// Convert HRESULT to a human-readable string via FormatMessage.
+// Falls back to hex code if no system message is available.
+inline std::string GetHResultString(HRESULT hr)
+{
+    char* msgBuf = nullptr;
+    DWORD len = FormatMessageA(
+        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+        nullptr,
+        static_cast<DWORD>(hr),
+        MAKELANGID(LANG_ENGLISH, SUBLANG_DEFAULT),
+        reinterpret_cast<LPSTR>(&msgBuf),
+        0,
+        nullptr);
+
+    std::string result;
+    if (len > 0 && msgBuf) {
+        // Trim trailing \r\n
+        while (len > 0 && (msgBuf[len - 1] == '\n' || msgBuf[len - 1] == '\r'))
+            --len;
+        result.assign(msgBuf, len);
+        LocalFree(msgBuf);
+    } else {
+        char buf[32];
+        snprintf(buf, sizeof(buf), "0x%08X", static_cast<unsigned>(hr));
+        result = buf;
+    }
+    return result;
+}
 
 // ComPtr alias for convenience
 template<typename T>
