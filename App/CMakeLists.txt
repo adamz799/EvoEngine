@@ -21,3 +21,16 @@ if(WIN32 AND TARGET SDL3::SDL3-shared)
             $<TARGET_FILE_DIR:EvoApp>
     )
 endif()
+
+# Copy Agility SDK DLLs next to executable (handles multi-config generators like MSVC)
+if(EVO_RHI_DX12 AND TARGET CopyAgilitySDK)
+    set(AGILITY_BIN_SRC ${CMAKE_SOURCE_DIR}/ThirdParty/AgilitySDK/build/native/bin/x64)
+    add_custom_command(TARGET EvoApp POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:EvoApp>/D3D12"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${AGILITY_BIN_SRC}/D3D12Core.dll"
+            "${AGILITY_BIN_SRC}/d3d12SDKLayers.dll"
+            "$<TARGET_FILE_DIR:EvoApp>/D3D12"
+        COMMENT "Copying Agility SDK DLLs next to EvoApp"
+    )
+endif()

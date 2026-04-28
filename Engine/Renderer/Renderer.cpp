@@ -41,6 +41,17 @@ bool Renderer::Initialize(const RendererDesc& desc, Window& window)
 	// Create frame fence
 	m_pFrameFence = m_pRHIDevice->CreateFence(0);
 
+	// Pre-create command lists (one per back buffer)
+	for (uint32 i = 0; i < NUM_BACK_FRAMES; ++i)
+	{
+		m_vCmdLists[i] = m_pRHIDevice->CreateCommandList(RHIQueueType::Graphics);
+		if (!m_vCmdLists[i])
+		{
+			EVO_LOG_CRITICAL("Failed to create command list {}", i);
+			return false;
+		}
+	}
+
 	EVO_LOG_INFO("Renderer initialized (backend: {})",
 		desc.backend == RHIBackendType::DX12 ? "DX12" : "Vulkan");
 	return true;
@@ -52,6 +63,8 @@ void Renderer::Shutdown()
 	{
 		m_pRHIDevice->WaitIdle();
 
+		for (auto& cmd : m_vCmdLists)
+			cmd.reset();
 		m_pFrameFence.reset();
 		m_pSwapChain.reset();
 		m_pRHIDevice->Shutdown();
@@ -69,7 +82,7 @@ void Renderer::BeginFrame()
 	m_uFrameIndex = m_pSwapChain->GetCurrentBackBufferIndex();
 	m_pFrameFence->CpuWait(m_vFenceValues[m_uFrameIndex]);
 
-	auto pCmdList = m_pRHIDevice->CreateCommandList(RHIQueueType::Graphics);
+	auto* pCmdList = m_vCmdLists[m_uFrameIndex].get();
 	pCmdList->Begin();
 
 	RHITextureHandle BackBuffer = m_pSwapChain->GetCurrentBackBuffer();
@@ -92,15 +105,35 @@ void Renderer::BeginFrame()
 
 void Renderer::EndFrame()
 {
-	// TODO Phase 1: transition back buffer to present, submit, signal fence
+	auto* pCmdList = m_vCmdLists[m_uFrameIndex].get();
+
+	// Back buffer: RenderTarget → Present
+	RHITextureHandle BackBuffer = m_pSwapChain->GetCurrentBackBuffer();
+	RHITextureBarrier barrier = {};
+	barrier.texture      = BackBuffer;
+	barrier.syncBefore   = RHIBarrierSync::RenderTarget;
+	barrier.syncAfter    = RHIBarrierSync::All;
+	barrier.accessBefore = RHIBarrierAccess::RenderTarget;
+	barrier.accessAfter  = RHIBarrierAccess::Common;
+	barrier.layoutBefore = RHITextureLayout::RenderTarget;
+	barrier.layoutAfter  = RHITextureLayout::Common;
+	pCmdList->TextureBarrier(&barrier, 1);
+
+	pCmdList->End();
+
+	// Submit + signal fence
+	RHICommandList* cmdListPtr = pCmdList;
+	m_uCurrentFrame++;
+	m_pRHIDevice->GetGraphicsQueue()->Submit(
+		&cmdListPtr, 1,
+		nullptr, 0,
+		m_pFrameFence.get(), m_uCurrentFrame);
+	m_vFenceValues[m_uFrameIndex] = m_uCurrentFrame;
+
+	m_pSwapChain->Present();
 
 	if (m_pRHIDevice)
 		m_pRHIDevice->EndFrame();
-
-	if (m_pSwapChain)
-		m_pSwapChain->Present();
-
-	m_uCurrentFrame++;
 }
 
 } // namespace Evo
