@@ -10,3 +10,9 @@
 [submodule "ThirdParty/imgui"]
 	path = ThirdParty/imgui
 	url = https://github.com/ocornut/imgui.git
+[submodule "ThirdParty/D3D12MA"]
+	path = ThirdParty/D3D12MA
+	url = https://github.com/GPUOpen-LibrariesAndSDKs/D3D12MemoryAllocator.git
+[submodule "ThirdParty/flatbuffers"]
+	path = ThirdParty/flatbuffers
+	url = https://github.com/google/flatbuffers.git
