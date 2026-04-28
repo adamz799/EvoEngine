@@ -61,6 +61,30 @@ if(EVO_RHI_DX12)
     endif()
 endif()
 
+# ---- D3D12 Memory Allocator ----
+if(EVO_RHI_DX12)
+    set(D3D12MA_DIR ${CMAKE_CURRENT_SOURCE_DIR}/D3D12MA)
+    if(EXISTS ${D3D12MA_DIR}/include/D3D12MemAlloc.h)
+        add_library(D3D12MemoryAllocator STATIC
+            ${D3D12MA_DIR}/src/D3D12MemAlloc.cpp
+            ${D3D12MA_DIR}/include/D3D12MemAlloc.h
+        )
+        target_include_directories(D3D12MemoryAllocator PUBLIC ${D3D12MA_DIR}/include)
+        target_link_libraries(D3D12MemoryAllocator PUBLIC AgilitySDK)
+    else()
+        message(WARNING "D3D12MemoryAllocator not found at ThirdParty/D3D12MA")
+    endif()
+endif()
+
+# ---- FlatBuffers (header-only runtime) ----
+set(FLATBUFFERS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/flatbuffers)
+if(EXISTS ${FLATBUFFERS_DIR}/include/flatbuffers/flatbuffers.h)
+    add_library(FlatBuffers INTERFACE)
+    target_include_directories(FlatBuffers INTERFACE ${FLATBUFFERS_DIR}/include)
+else()
+    message(WARNING "FlatBuffers not found at ThirdParty/flatbuffers")
+endif()
+
 # ---- Dear ImGui ----
 if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/imgui/imgui.h)
     set(IMGUI_DIR ${CMAKE_CURRENT_SOURCE_DIR}/imgui)

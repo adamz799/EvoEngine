@@ -27,6 +27,8 @@ public:
 	void ClearRenderTarget(RHIRenderTargetView rtv, const RHIColor& color) override;
 
 	// ---- Render pass ----
+	void SetRenderTargets(const RHIRenderTargetView* rtvs, uint32 count,
+	                      const RHIDepthStencilView* dsv = nullptr) override;
 	void BeginRenderPass(const RHIRenderPassDesc& desc) override;
 	void EndRenderPass() override;
 
@@ -40,8 +42,8 @@ public:
 	void SetDescriptorSet(uint32 index, RHIDescriptorSetHandle set) override;
 
 	// ---- Vertex / Index ----
-	void SetVertexBuffer(uint32 slot, RHIBufferHandle buffer, uint64 offset) override;
-	void SetIndexBuffer(RHIBufferHandle buffer, uint64 offset, RHIIndexFormat format) override;
+	void SetVertexBuffer(uint32 slot, const RHIVertexBufferView& view) override;
+	void SetIndexBuffer(const RHIIndexBufferView& view) override;
 
 	// ---- Draw ----
 	void Draw(uint32 vertexCount, uint32 instanceCount,

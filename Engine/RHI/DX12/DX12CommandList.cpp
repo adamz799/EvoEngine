@@ -146,6 +146,21 @@ void DX12CommandList::NativeTextureBarrier(
 
 // ---- Render pass ----
 
+void DX12CommandList::SetRenderTargets(const RHIRenderTargetView* rtvs, uint32 count,
+                                       const RHIDepthStencilView* dsv)
+{
+	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandles[8] = {};
+	for (uint32 i = 0; i < count && i < 8; ++i)
+		rtvHandles[i] = UnwrapRTV(rtvs[i]);
+
+	D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = {};
+	bool hasDsv = dsv && dsv->IsValid();
+	if (hasDsv)
+		dsvHandle = UnwrapDSV(*dsv);
+
+	m_CmdList->OMSetRenderTargets(count, rtvHandles, FALSE, hasDsv ? &dsvHandle : nullptr);
+}
+
 void DX12CommandList::BeginRenderPass(const RHIRenderPassDesc& /*desc*/)
 {
 	// TODO Phase 1:
@@ -161,9 +176,17 @@ void DX12CommandList::EndRenderPass()
 
 // ---- Pipeline ----
 
-void DX12CommandList::SetPipeline(RHIPipelineHandle /*pipeline*/)
+void DX12CommandList::SetPipeline(RHIPipelineHandle pipeline)
 {
-	// TODO Phase 3: resolve handle, SetPipelineState + SetGraphicsRootSignature
+	auto* entry = m_pDevice->ResolvePipeline(pipeline);
+	if (!entry)
+	{
+		EVO_LOG_WARN("SetPipeline: invalid pipeline handle");
+		return;
+	}
+	m_CmdList->SetPipelineState(entry->pso.Get());
+	m_CmdList->SetGraphicsRootSignature(entry->rootSignature.Get());
+	m_CmdList->IASetPrimitiveTopology(MapPrimitiveTopology(entry->topology));
 }
 
 void DX12CommandList::SetViewport(const RHIViewport& viewport)
@@ -193,28 +216,48 @@ void DX12CommandList::SetDescriptorSet(uint32 /*index*/, RHIDescriptorSetHandle 
 
 // ---- Vertex / Index ----
 
-void DX12CommandList::SetVertexBuffer(uint32 /*slot*/, RHIBufferHandle /*buffer*/, uint64 /*offset*/)
+void DX12CommandList::SetVertexBuffer(uint32 slot, const RHIVertexBufferView& view)
 {
-	// TODO Phase 3: IASetVertexBuffers
+	auto* entry = m_pDevice->ResolveBuffer(view.buffer);
+	if (!entry)
+	{
+		EVO_LOG_WARN("SetVertexBuffer: invalid buffer handle");
+		return;
+	}
+	D3D12_VERTEX_BUFFER_VIEW vbv = {};
+	vbv.BufferLocation = entry->gpuAddress + view.offset;
+	vbv.SizeInBytes    = view.size ? view.size : static_cast<UINT>(entry->size - view.offset);
+	vbv.StrideInBytes  = view.stride;
+	m_CmdList->IASetVertexBuffers(slot, 1, &vbv);
 }
 
-void DX12CommandList::SetIndexBuffer(RHIBufferHandle /*buffer*/, uint64 /*offset*/, RHIIndexFormat /*format*/)
+void DX12CommandList::SetIndexBuffer(const RHIIndexBufferView& view)
 {
-	// TODO Phase 3: IASetIndexBuffer
+	auto* entry = m_pDevice->ResolveBuffer(view.buffer);
+	if (!entry)
+	{
+		EVO_LOG_WARN("SetIndexBuffer: invalid buffer handle");
+		return;
+	}
+	D3D12_INDEX_BUFFER_VIEW ibv = {};
+	ibv.BufferLocation = entry->gpuAddress + view.offset;
+	ibv.SizeInBytes    = view.size ? view.size : static_cast<UINT>(entry->size - view.offset);
+	ibv.Format         = MapIndexFormat(view.format);
+	m_CmdList->IASetIndexBuffer(&ibv);
 }
 
 // ---- Draw ----
 
-void DX12CommandList::Draw(uint32 /*vertexCount*/, uint32 /*instanceCount*/,
-	uint32 /*firstVertex*/, uint32 /*firstInstance*/)
+void DX12CommandList::Draw(uint32 vertexCount, uint32 instanceCount,
+	uint32 firstVertex, uint32 firstInstance)
 {
-	// TODO Phase 3: m_CmdList->DrawInstanced(...)
+	m_CmdList->DrawInstanced(vertexCount, instanceCount, firstVertex, firstInstance);
 }
 
-void DX12CommandList::DrawIndexed(uint32 /*indexCount*/, uint32 /*instanceCount*/,
-	uint32 /*firstIndex*/, int32 /*vertexOffset*/, uint32 /*firstInstance*/)
+void DX12CommandList::DrawIndexed(uint32 indexCount, uint32 instanceCount,
+	uint32 firstIndex, int32 vertexOffset, uint32 firstInstance)
 {
-	// TODO Phase 3: m_CmdList->DrawIndexedInstanced(...)
+	m_CmdList->DrawIndexedInstanced(indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 }
 
 // ---- Compute ----

@@ -39,6 +39,8 @@ public:
 
     // ---- Render pass ----
 
+    virtual void SetRenderTargets(const RHIRenderTargetView* rtvs, uint32 count,
+                                  const RHIDepthStencilView* dsv = nullptr) = 0;
     virtual void BeginRenderPass(const RHIRenderPassDesc& desc) = 0;
     virtual void EndRenderPass() = 0;
 
@@ -55,8 +57,8 @@ public:
 
     // ---- Vertex / Index buffers ----
 
-    virtual void SetVertexBuffer(uint32 slot, RHIBufferHandle buffer, uint64 offset = 0) = 0;
-    virtual void SetIndexBuffer(RHIBufferHandle buffer, uint64 offset, RHIIndexFormat format) = 0;
+    virtual void SetVertexBuffer(uint32 slot, const RHIVertexBufferView& view) = 0;
+    virtual void SetIndexBuffer(const RHIIndexBufferView& view) = 0;
 
     // ---- Draw ----
 

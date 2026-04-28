@@ -85,7 +85,20 @@ bool DX12Device::Initialize(const RHIDeviceDesc& desc)
         return false;
     }
 
-    // 5. Create graphics queue
+    // 5. Create D3D12MA allocator
+    {
+        D3D12MA::ALLOCATOR_DESC allocatorDesc = {};
+        allocatorDesc.pDevice  = m_pDevice.Get();
+        allocatorDesc.pAdapter = adapter.Get();
+        hr = D3D12MA::CreateAllocator(&allocatorDesc, &m_pAllocator);
+        if (FAILED(hr))
+        {
+            EVO_LOG_ERROR("Failed to create D3D12MA allocator: {}", GetHResultString(hr));
+            return false;
+        }
+    }
+
+    // 6. Create graphics queue
     m_GraphicsQueue = std::make_unique<DX12Queue>();
     if (!m_GraphicsQueue->Initialize(m_pDevice.Get(), RHIQueueType::Graphics))
     {
@@ -93,7 +106,7 @@ bool DX12Device::Initialize(const RHIDeviceDesc& desc)
         return false;
     }
 
-    // 6. Create CPU-visible descriptor allocators
+    // 7. Create CPU-visible descriptor allocators
     if (!m_RTVAllocator.Initialize(m_pDevice.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 256))
     {
         EVO_LOG_ERROR("Failed to create RTV descriptor allocator");
@@ -116,6 +129,7 @@ void DX12Device::Shutdown()
     m_CopyQueue.reset();
     m_ComputeQueue.reset();
     m_GraphicsQueue.reset();
+    if (m_pAllocator) { m_pAllocator->Release(); m_pAllocator = nullptr; }
     m_pDevice.Reset();
     m_DxgiFactory.Reset();
 }
@@ -160,10 +174,51 @@ std::unique_ptr<RHIFence> DX12Device::CreateFence(uint64 initialValue)
 
 // ---- Handle resources (all stubs — implement in Phase 3+) ----
 
-RHIBufferHandle DX12Device::CreateBuffer(const RHIBufferDesc& /*desc*/)
+RHIBufferHandle DX12Device::CreateBuffer(const RHIBufferDesc& desc)
 {
-    EVO_LOG_WARN("DX12Device::CreateBuffer — not yet implemented");
-    return {};
+    D3D12_RESOURCE_DESC resourceDesc = {};
+    resourceDesc.Dimension          = D3D12_RESOURCE_DIMENSION_BUFFER;
+    resourceDesc.Width              = desc.size;
+    resourceDesc.Height             = 1;
+    resourceDesc.DepthOrArraySize   = 1;
+    resourceDesc.MipLevels          = 1;
+    resourceDesc.SampleDesc.Count   = 1;
+    resourceDesc.Layout             = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+
+    D3D12MA::ALLOCATION_DESC allocDesc = {};
+    allocDesc.HeapType = MapMemoryUsage(desc.memory);
+
+    D3D12_RESOURCE_STATES initialState = (desc.memory == RHIMemoryUsage::CpuToGpu)
+        ? D3D12_RESOURCE_STATE_GENERIC_READ
+        : D3D12_RESOURCE_STATE_COMMON;
+
+    D3D12MA::Allocation* allocation = nullptr;
+    ComPtr<ID3D12Resource> resource;
+    HRESULT hr = m_pAllocator->CreateResource(
+        &allocDesc, &resourceDesc, initialState,
+        nullptr, &allocation,
+        IID_PPV_ARGS(&resource));
+    if (FAILED(hr))
+    {
+        EVO_LOG_ERROR("Failed to create buffer '{}': {}", desc.debugName, GetHResultString(hr));
+        return {};
+    }
+
+    if (!desc.debugName.empty())
+    {
+        wchar_t wname[256];
+        MultiByteToWideChar(CP_UTF8, 0, desc.debugName.c_str(), -1, wname, 256);
+        resource->SetName(wname);
+    }
+
+    void* mappedPtr = nullptr;
+    if (desc.memory == RHIMemoryUsage::CpuToGpu)
+    {
+        resource->Map(0, nullptr, &mappedPtr);
+    }
+
+    D3D12_GPU_VIRTUAL_ADDRESS gpuAddress = resource->GetGPUVirtualAddress();
+    return m_BufferPool.Allocate(std::move(resource), allocation, gpuAddress, desc.size, mappedPtr, desc.debugName);
 }
 
 RHITextureHandle DX12Device::CreateTexture(const RHITextureDesc& /*desc*/)
@@ -172,16 +227,125 @@ RHITextureHandle DX12Device::CreateTexture(const RHITextureDesc& /*desc*/)
     return {};
 }
 
-RHIShaderHandle DX12Device::CreateShader(const RHIShaderDesc& /*desc*/)
+RHIShaderHandle DX12Device::CreateShader(const RHIShaderDesc& desc)
 {
-    EVO_LOG_WARN("DX12Device::CreateShader — not yet implemented");
-    return {};
+    if (!desc.bytecode || desc.bytecodeSize == 0)
+    {
+        EVO_LOG_ERROR("CreateShader: null or empty bytecode");
+        return {};
+    }
+    return m_ShaderPool.Allocate(desc.bytecode, desc.bytecodeSize, desc.stage, desc.debugName);
 }
 
-RHIPipelineHandle DX12Device::CreateGraphicsPipeline(const RHIGraphicsPipelineDesc& /*desc*/)
+RHIPipelineHandle DX12Device::CreateGraphicsPipeline(const RHIGraphicsPipelineDesc& desc)
 {
-    EVO_LOG_WARN("DX12Device::CreateGraphicsPipeline — not yet implemented");
-    return {};
+    // Resolve shader bytecode
+    auto* vsEntry = m_ShaderPool.GetEntry(desc.vertexShader);
+    auto* psEntry = m_ShaderPool.GetEntry(desc.pixelShader);
+    if (!vsEntry || !psEntry)
+    {
+        EVO_LOG_ERROR("CreateGraphicsPipeline: invalid shader handle");
+        return {};
+    }
+
+    // Build root signature (empty for now — extend with push constants / descriptors later)
+    D3D12_ROOT_SIGNATURE_DESC rootSigDesc = {};
+    rootSigDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
+
+    ComPtr<ID3DBlob> sigBlob, errorBlob;
+    HRESULT hr = D3D12SerializeRootSignature(&rootSigDesc, D3D_ROOT_SIGNATURE_VERSION_1,
+                                             &sigBlob, &errorBlob);
+    if (FAILED(hr))
+    {
+        EVO_LOG_ERROR("Failed to serialize root signature: {}",
+                      errorBlob ? static_cast<const char*>(errorBlob->GetBufferPointer()) : "unknown");
+        return {};
+    }
+
+    ComPtr<ID3D12RootSignature> rootSig;
+    hr = m_pDevice->CreateRootSignature(0, sigBlob->GetBufferPointer(), sigBlob->GetBufferSize(),
+                                        IID_PPV_ARGS(&rootSig));
+    if (FAILED(hr))
+    {
+        EVO_LOG_ERROR("Failed to create root signature: {}", GetHResultString(hr));
+        return {};
+    }
+
+    // Input layout
+    std::vector<D3D12_INPUT_ELEMENT_DESC> inputElements(desc.inputElementCount);
+    for (uint32 i = 0; i < desc.inputElementCount; ++i)
+    {
+        auto& src = desc.inputElements[i];
+        auto& dst = inputElements[i];
+        dst.SemanticName         = src.semanticName;
+        dst.SemanticIndex        = src.semanticIndex;
+        dst.Format               = MapFormat(src.format);
+        dst.InputSlot            = src.bufferSlot;
+        dst.AlignedByteOffset    = src.byteOffset;
+        dst.InputSlotClass       = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+        dst.InstanceDataStepRate = 0;
+    }
+
+    // PSO description
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
+    psoDesc.pRootSignature = rootSig.Get();
+
+    psoDesc.VS = { vsEntry->bytecode.data(), vsEntry->bytecode.size() };
+    psoDesc.PS = { psEntry->bytecode.data(), psEntry->bytecode.size() };
+
+    psoDesc.InputLayout = { inputElements.data(), static_cast<UINT>(inputElements.size()) };
+
+    // Rasterizer
+    psoDesc.RasterizerState.FillMode              = MapFillMode(desc.rasterizer.fillMode);
+    psoDesc.RasterizerState.CullMode              = MapCullMode(desc.rasterizer.cullMode);
+    psoDesc.RasterizerState.FrontCounterClockwise = desc.rasterizer.frontCounterClockwise;
+    psoDesc.RasterizerState.DepthBias             = desc.rasterizer.depthBias;
+    psoDesc.RasterizerState.SlopeScaledDepthBias  = desc.rasterizer.slopeScaledDepthBias;
+    psoDesc.RasterizerState.DepthClipEnable       = TRUE;
+
+    // Blend
+    for (uint32 i = 0; i < desc.renderTargetCount; ++i)
+    {
+        auto& src = desc.blendTargets[i];
+        auto& dst = psoDesc.BlendState.RenderTarget[i];
+        dst.BlendEnable    = src.blendEnable;
+        dst.SrcBlend       = MapBlendFactor(src.srcColor);
+        dst.DestBlend      = MapBlendFactor(src.dstColor);
+        dst.BlendOp        = MapBlendOp(src.colorOp);
+        dst.SrcBlendAlpha  = MapBlendFactor(src.srcAlpha);
+        dst.DestBlendAlpha = MapBlendFactor(src.dstAlpha);
+        dst.BlendOpAlpha   = MapBlendOp(src.alphaOp);
+        dst.RenderTargetWriteMask = src.writeMask;
+    }
+
+    // Depth stencil
+    psoDesc.DepthStencilState.DepthEnable    = desc.depthStencil.depthTestEnable;
+    psoDesc.DepthStencilState.DepthWriteMask = desc.depthStencil.depthWriteEnable
+                                               ? D3D12_DEPTH_WRITE_MASK_ALL
+                                               : D3D12_DEPTH_WRITE_MASK_ZERO;
+    psoDesc.DepthStencilState.DepthFunc      = MapCompareOp(desc.depthStencil.depthCompareOp);
+
+    // Render targets
+    psoDesc.NumRenderTargets = desc.renderTargetCount;
+    for (uint32 i = 0; i < desc.renderTargetCount; ++i)
+        psoDesc.RTVFormats[i] = MapFormat(desc.renderTargetFormats[i]);
+
+    if (desc.depthStencilFormat != RHIFormat::Unknown)
+        psoDesc.DSVFormat = MapFormat(desc.depthStencilFormat);
+
+    psoDesc.PrimitiveTopologyType = MapPrimitiveTopologyType(desc.topology);
+    psoDesc.SampleDesc.Count      = 1;
+    psoDesc.SampleMask             = UINT_MAX;
+
+    ComPtr<ID3D12PipelineState> pso;
+    hr = m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pso));
+    if (FAILED(hr))
+    {
+        EVO_LOG_ERROR("Failed to create graphics pipeline '{}': {}", desc.debugName, GetHResultString(hr));
+        return {};
+    }
+
+    return m_PipelinePool.Allocate(std::move(pso), std::move(rootSig), desc.topology, desc.debugName);
 }
 
 RHIPipelineHandle DX12Device::CreateComputePipeline(const RHIComputePipelineDesc& /*desc*/)
@@ -190,10 +354,10 @@ RHIPipelineHandle DX12Device::CreateComputePipeline(const RHIComputePipelineDesc
     return {};
 }
 
-void DX12Device::DestroyBuffer(RHIBufferHandle /*handle*/) {}
+void DX12Device::DestroyBuffer(RHIBufferHandle handle) { m_BufferPool.Free(handle); }
 void DX12Device::DestroyTexture(RHITextureHandle /*handle*/) {}
-void DX12Device::DestroyShader(RHIShaderHandle /*handle*/) {}
-void DX12Device::DestroyPipeline(RHIPipelineHandle /*handle*/) {}
+void DX12Device::DestroyShader(RHIShaderHandle handle) { m_ShaderPool.Free(handle); }
+void DX12Device::DestroyPipeline(RHIPipelineHandle handle) { m_PipelinePool.Free(handle); }
 
 // ---- Views ----
 
@@ -221,8 +385,16 @@ void DX12Device::DestroyRenderTargetView(RHIRenderTargetView rtv)
     m_RTVAllocator.Free(UnwrapRTV(rtv));
 }
 
-void* DX12Device::MapBuffer(RHIBufferHandle /*handle*/) { return nullptr; }
-void  DX12Device::UnmapBuffer(RHIBufferHandle /*handle*/) {}
+void* DX12Device::MapBuffer(RHIBufferHandle handle)
+{
+    auto* entry = m_BufferPool.GetEntry(handle);
+    return entry ? entry->mappedPtr : nullptr;
+}
+
+void DX12Device::UnmapBuffer(RHIBufferHandle /*handle*/)
+{
+    // Upload heap uses persistent mapping — no explicit unmap needed
+}
 
 // ---- Descriptors (implement in Phase 4) ----
 
@@ -263,6 +435,23 @@ RHITextureHandle DX12Device::RegisterTextureExternal(
 void DX12Device::UnregisterTextureExternal(RHITextureHandle handle)
 {
     m_TexturePool.Free(handle);
+}
+
+// ---- Buffer / Shader / Pipeline pool access ----
+
+const DX12BufferEntry* DX12Device::ResolveBuffer(RHIBufferHandle handle) const
+{
+    return m_BufferPool.GetEntry(handle);
+}
+
+const DX12ShaderEntry* DX12Device::ResolveShader(RHIShaderHandle handle) const
+{
+    return m_ShaderPool.GetEntry(handle);
+}
+
+const DX12PipelineEntry* DX12Device::ResolvePipeline(RHIPipelineHandle handle) const
+{
+    return m_PipelinePool.GetEntry(handle);
 }
 
 // ---- Frame management ----

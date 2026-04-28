@@ -13,6 +13,17 @@ if(EVO_RHI_DX12 AND DEFINED EVO_D3D12_AGILITY_SDK_VERSION)
     )
 endif()
 
+# Set VS debugger working directory to project root (Assets/ lives there)
+set_target_properties(EvoApp PROPERTIES VS_DEBUGGER_WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}")
+
+# Copy Assets to output directory for non-IDE launches
+add_custom_command(TARGET EvoApp POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_SOURCE_DIR}/Assets"
+        "$<TARGET_FILE_DIR:EvoApp>/Assets"
+    COMMENT "Copying Assets to output directory"
+)
+
 # Copy SDL3 DLL next to executable on Windows (if shared build)
 if(WIN32 AND TARGET SDL3::SDL3-shared)
     add_custom_command(TARGET EvoApp POST_BUILD

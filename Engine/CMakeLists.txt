@@ -31,6 +31,7 @@ if(EVO_RHI_DX12)
         RHI/DX12/DX12Fence.cpp
         RHI/DX12/DX12SwapChain.cpp
         RHI/DX12/DX12CommandList.cpp
+        RHI/DX12/DX12ShaderCompiler.cpp
     )
 endif()
 
@@ -80,6 +81,7 @@ target_link_libraries(EvoEngine
         spdlog::spdlog
         DirectXMath
         ImGui
+        FlatBuffers
 )
 
 # ---- Platform / backend specific linking ----
@@ -88,8 +90,10 @@ if(EVO_RHI_DX12)
     target_link_libraries(EvoEngine
         PUBLIC
             AgilitySDK
+            D3D12MemoryAllocator
             dxgi
             dxguid
+            d3dcompiler
     )
 endif()
 

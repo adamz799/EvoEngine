@@ -4,7 +4,11 @@
 #include "RHI/DX12/DX12Common.h"
 #include "RHI/DX12/DX12Queue.h"
 #include "RHI/DX12/DX12TexturePool.h"
+#include "RHI/DX12/DX12BufferPool.h"
+#include "RHI/DX12/DX12ShaderPool.h"
+#include "RHI/DX12/DX12PipelinePool.h"
 #include "RHI/DX12/DX12DescriptorAllocator.h"
+#include <D3D12MemAlloc.h>
 
 namespace Evo {
 
@@ -85,11 +89,17 @@ public:
                                               const RHIBarrierState& initialBarrier = {});
     void UnregisterTextureExternal(RHITextureHandle handle);
 
+    // ---- Buffer / Shader / Pipeline pool access ----
+    const DX12BufferEntry*   ResolveBuffer(RHIBufferHandle handle) const;
+    const DX12ShaderEntry*   ResolveShader(RHIShaderHandle handle) const;
+    const DX12PipelineEntry* ResolvePipeline(RHIPipelineHandle handle) const;
+
 private:
     std::string m_AdapterName;
 
     ComPtr<IDXGIFactory4>   m_DxgiFactory;
     ComPtr<ID3D12Device>    m_pDevice;
+    D3D12MA::Allocator*     m_pAllocator = nullptr;
 
     std::unique_ptr<DX12Queue> m_GraphicsQueue;
     std::unique_ptr<DX12Queue> m_ComputeQueue;
@@ -98,6 +108,9 @@ private:
     HWND m_HWND = nullptr;
 
     DX12TexturePool m_TexturePool;
+    DX12BufferPool  m_BufferPool;
+    DX12ShaderPool  m_ShaderPool;
+    DX12PipelinePool m_PipelinePool;
     DX12CpuDescriptorAllocator m_RTVAllocator;
 };
 

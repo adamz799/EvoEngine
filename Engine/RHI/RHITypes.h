@@ -202,6 +202,26 @@ enum class RHIIndexFormat : uint8 {
 	U32,
 };
 
+// ============================================================================
+// Buffer view types — describe how to interpret a buffer for binding.
+// ============================================================================
+
+/// Vertex buffer view — describes how to interpret a buffer as vertex data.
+struct RHIVertexBufferView {
+	RHIBufferHandle buffer;
+	uint64          offset = 0;
+	uint32          size   = 0;    // 0 = whole buffer from offset
+	uint32          stride = 0;
+};
+
+/// Index buffer view — describes how to interpret a buffer as index data.
+struct RHIIndexBufferView {
+	RHIBufferHandle buffer;
+	uint64          offset = 0;
+	uint32          size   = 0;
+	RHIIndexFormat  format = RHIIndexFormat::U32;
+};
+
 // ---- Primitive topology ----
 enum class RHIPrimitiveTopology : uint8 {
 	TriangleList,
