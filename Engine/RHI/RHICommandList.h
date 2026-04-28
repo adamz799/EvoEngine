@@ -33,6 +33,10 @@ public:
         BufferBarrier(&barrier, 1);
     }
 
+    // ---- Clear ----
+
+    virtual void ClearRenderTarget(RHIRenderTargetView rtv, const RHIColor& color) = 0;
+
     // ---- Render pass ----
 
     virtual void BeginRenderPass(const RHIRenderPassDesc& desc) = 0;

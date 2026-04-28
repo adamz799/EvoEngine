@@ -7,7 +7,7 @@ namespace Evo {
 
 bool DX12CommandList::Initialize(DX12Device* device, RHIQueueType type)
 {
-	m_Device    = device;
+	m_pDevice    = device;
 	m_QueueType = type;
 
 	if (!device || !device->GetD3D12Device())
@@ -62,10 +62,40 @@ void DX12CommandList::End()
 
 void DX12CommandList::TextureBarrier(const RHITextureBarrier* barriers, uint32 count)
 {
-	// TODO: resolve RHITextureHandle → ID3D12Resource* via Device handle pool (Phase 3)
-	// For Phase 1, use NativeTextureBarrier() directly with SwapChain resources.
-	(void)barriers;
-	(void)count;
+	for (uint32 i = 0; i < count; ++i)
+	{
+		const auto& b = barriers[i];
+
+		auto* entry = m_pDevice->ResolveTexture(b.texture);
+		if (!entry)
+		{
+			EVO_LOG_WARN("TextureBarrier: invalid texture handle (idx={}, gen={})",
+			             b.texture.Handle, b.texture.generation);
+			continue;
+		}
+
+		ID3D12Resource* resource = entry->resource.Get();
+		if (!resource)
+		{
+			EVO_LOG_WARN("TextureBarrier: texture '{}' has null ID3D12Resource",
+			             entry->debugName);
+			continue;
+		}
+
+		NativeTextureBarrier(
+			resource,
+			MapBarrierSync(b.syncBefore),    MapBarrierSync(b.syncAfter),
+			MapBarrierAccess(b.accessBefore), MapBarrierAccess(b.accessAfter),
+			MapTextureLayout(b.layoutBefore), MapTextureLayout(b.layoutAfter));
+
+		// Update CPU-side barrier state tracking
+		if (auto* mut = m_pDevice->ResolveTextureMutable(b.texture))
+		{
+			mut->barrierState.currentSync   = b.syncAfter;
+			mut->barrierState.currentAccess  = b.accessAfter;
+			mut->barrierState.currentLayout  = b.layoutAfter;
+		}
+	}
 }
 
 void DX12CommandList::BufferBarrier(const RHIBufferBarrier* barriers, uint32 count)
@@ -73,6 +103,20 @@ void DX12CommandList::BufferBarrier(const RHIBufferBarrier* barriers, uint32 cou
 	// TODO: resolve RHIBufferHandle → ID3D12Resource* via Device handle pool (Phase 3)
 	(void)barriers;
 	(void)count;
+}
+
+// ---- Clear ----
+
+void DX12CommandList::ClearRenderTarget(RHIRenderTargetView rtv, const RHIColor& color)
+{
+	if (!rtv.IsValid())
+	{
+		EVO_LOG_WARN("ClearRenderTarget: invalid RTV");
+		return;
+	}
+
+	const float clearColor[4] = { color.r, color.g, color.b, color.a };
+	m_CmdList->ClearRenderTargetView(UnwrapRTV(rtv), clearColor, 0, nullptr);
 }
 
 void DX12CommandList::NativeTextureBarrier(
@@ -124,19 +168,15 @@ void DX12CommandList::SetPipeline(RHIPipelineHandle /*pipeline*/)
 
 void DX12CommandList::SetViewport(const RHIViewport& viewport)
 {
-	// TODO:
-	// D3D12_VIEWPORT vp = { viewport.x, viewport.y, viewport.width, viewport.height,
-	//                       viewport.minDepth, viewport.maxDepth };
-	// m_CmdList->RSSetViewports(1, &vp);
-	(void)viewport;
+	D3D12_VIEWPORT vp = { viewport.x, viewport.y, viewport.width, viewport.height,
+						  viewport.minDepth, viewport.maxDepth };
+	m_CmdList->RSSetViewports(1, &vp);
 }
 
 void DX12CommandList::SetScissorRect(const RHIScissorRect& rect)
 {
-	// TODO:
-	// D3D12_RECT r = { rect.left, rect.top, rect.right, rect.bottom };
-	// m_CmdList->RSSetScissorRects(1, &r);
-	(void)rect;
+	D3D12_RECT r = { rect.left, rect.top, rect.right, rect.bottom };
+	m_CmdList->RSSetScissorRects(1, &r);
 }
 
 // ---- Binding ----

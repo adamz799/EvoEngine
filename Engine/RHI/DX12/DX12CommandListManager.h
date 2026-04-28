@@ -70,7 +70,7 @@ private:
         std::queue<ComPtr<ID3D12GraphicsCommandList>> freeLists;
     };
 
-    ID3D12Device* m_Device = nullptr;
+    ID3D12Device* m_pDevice = nullptr;
 
     // One pool per command list type (DIRECT=0, BUNDLE=1, COMPUTE=2, COPY=3)
     PerTypePool m_Pools[4];

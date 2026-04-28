@@ -21,8 +21,11 @@ public:
     /// Index of the current back buffer (0..bufferCount-1).
     virtual uint32 GetCurrentBackBufferIndex() const = 0;
 
-    /// Handle to the current back buffer texture.
+    /// Handle to the current back buffer texture (resource).
     virtual RHITextureHandle GetCurrentBackBuffer() = 0;
+
+    /// Render target view for the current back buffer.
+    virtual RHIRenderTargetView GetCurrentBackBufferRTV() = 0;
 
     virtual uint32       GetWidth()  const = 0;
     virtual uint32       GetHeight() const = 0;

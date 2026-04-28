@@ -10,7 +10,7 @@ bool DX12Queue::Initialize(ID3D12Device* device, RHIQueueType type)
 {
     if (!device)
         return false;
-    m_Device = device;
+    m_pDevice = device;
     m_Type = type;
 
     D3D12_COMMAND_QUEUE_DESC queueDesc = {};
@@ -48,7 +48,7 @@ void DX12Queue::ShutdownQueue()
     }
     m_IdleFence.Reset();
     m_Queue.Reset();
-    m_Device = nullptr;
+    m_pDevice = nullptr;
 }
 
 void DX12Queue::Submit(

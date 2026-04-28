@@ -3,6 +3,7 @@
 #include "RHI/DX12/DX12Fence.h"
 #include "RHI/DX12/DX12SwapChain.h"
 #include "RHI/DX12/DX12CommandList.h"
+#include "RHI/DX12/DX12TypeMap.h"
 #include "Core/Log.h"
 
 #include <locale>
@@ -77,7 +78,7 @@ bool DX12Device::Initialize(const RHIDeviceDesc& desc)
     EVO_LOG_INFO("GPU: {}", m_AdapterName);
 
     // 4. Create D3D12 device
-    hr = D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_Device));
+    hr = D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_pDevice));
     if (FAILED(hr))
     {
         EVO_LOG_ERROR("Failed to create D3D12 device: {}", GetHResultString(hr));
@@ -86,9 +87,16 @@ bool DX12Device::Initialize(const RHIDeviceDesc& desc)
 
     // 5. Create graphics queue
     m_GraphicsQueue = std::make_unique<DX12Queue>();
-    if (!m_GraphicsQueue->Initialize(m_Device.Get(), RHIQueueType::Graphics))
+    if (!m_GraphicsQueue->Initialize(m_pDevice.Get(), RHIQueueType::Graphics))
     {
         EVO_LOG_ERROR("Failed to create graphics queue");
+        return false;
+    }
+
+    // 6. Create CPU-visible descriptor allocators
+    if (!m_RTVAllocator.Initialize(m_pDevice.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_RTV, 256))
+    {
+        EVO_LOG_ERROR("Failed to create RTV descriptor allocator");
         return false;
     }
 
@@ -97,17 +105,18 @@ bool DX12Device::Initialize(const RHIDeviceDesc& desc)
 
 void DX12Device::Shutdown()
 {
-    if (!m_Device)
+    if (!m_pDevice)
         return;
 
     EVO_LOG_INFO("DX12Device::Shutdown");
 
     WaitIdle();
 
+    m_RTVAllocator.Shutdown();
     m_CopyQueue.reset();
     m_ComputeQueue.reset();
     m_GraphicsQueue.reset();
-    m_Device.Reset();
+    m_pDevice.Reset();
     m_DxgiFactory.Reset();
 }
 
@@ -134,6 +143,7 @@ std::unique_ptr<RHISwapChain> DX12Device::CreateSwapChain(const RHISwapChainDesc
 
 std::unique_ptr<RHICommandList> DX12Device::CreateCommandList(RHIQueueType type)
 {
+    //Todo 这里还是应该使用一个支持多线程的Manager单例来管理
     auto cl = std::make_unique<DX12CommandList>();
     if (!cl->Initialize(this, type))
         return nullptr;
@@ -143,7 +153,7 @@ std::unique_ptr<RHICommandList> DX12Device::CreateCommandList(RHIQueueType type)
 std::unique_ptr<RHIFence> DX12Device::CreateFence(uint64 initialValue)
 {
     auto fence = std::make_unique<DX12Fence>();
-    if (!fence->Initialize(m_Device.Get(), initialValue))
+    if (!fence->Initialize(m_pDevice.Get(), initialValue))
         return nullptr;
     return fence;
 }
@@ -185,6 +195,32 @@ void DX12Device::DestroyTexture(RHITextureHandle /*handle*/) {}
 void DX12Device::DestroyShader(RHIShaderHandle /*handle*/) {}
 void DX12Device::DestroyPipeline(RHIPipelineHandle /*handle*/) {}
 
+// ---- Views ----
+
+RHIRenderTargetView DX12Device::CreateRenderTargetView(RHITextureHandle texture)
+{
+    auto* entry = m_TexturePool.GetEntry(texture);
+    if (!entry || !entry->resource)
+    {
+        EVO_LOG_WARN("CreateRenderTargetView: invalid texture handle");
+        return {};
+    }
+
+    D3D12_CPU_DESCRIPTOR_HANDLE slot = m_RTVAllocator.Allocate();
+    if (slot.ptr == 0)
+        return {};
+
+    m_pDevice->CreateRenderTargetView(entry->resource.Get(), nullptr, slot);
+    return WrapRTV(slot);
+}
+
+void DX12Device::DestroyRenderTargetView(RHIRenderTargetView rtv)
+{
+    if (!rtv.IsValid())
+        return;
+    m_RTVAllocator.Free(UnwrapRTV(rtv));
+}
+
 void* DX12Device::MapBuffer(RHIBufferHandle /*handle*/) { return nullptr; }
 void  DX12Device::UnmapBuffer(RHIBufferHandle /*handle*/) {}
 
@@ -203,6 +239,31 @@ RHIDescriptorSetHandle DX12Device::AllocateDescriptorSet(RHIDescriptorSetLayoutH
 void DX12Device::FreeDescriptorSet(RHIDescriptorSetHandle /*handle*/) {}
 void DX12Device::WriteDescriptorSet(RHIDescriptorSetHandle /*set*/,
     const RHIDescriptorWrite* /*writes*/, uint32 /*writeCount*/) {}
+
+// ---- Texture pool access ----
+
+const DX12TextureEntry* DX12Device::ResolveTexture(RHITextureHandle handle) const
+{
+    return m_TexturePool.GetEntry(handle);
+}
+
+DX12TextureEntry* DX12Device::ResolveTextureMutable(RHITextureHandle handle)
+{
+    return m_TexturePool.GetEntry(handle);
+}
+
+RHITextureHandle DX12Device::RegisterTextureExternal(
+    ComPtr<ID3D12Resource> resource,
+    const std::string& debugName,
+    const RHIBarrierState& initialBarrier)
+{
+    return m_TexturePool.Allocate(std::move(resource), debugName, initialBarrier);
+}
+
+void DX12Device::UnregisterTextureExternal(RHITextureHandle handle)
+{
+    m_TexturePool.Free(handle);
+}
 
 // ---- Frame management ----
 

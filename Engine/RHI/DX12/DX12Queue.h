@@ -30,7 +30,7 @@ private:
     RHIQueueType               m_Type = RHIQueueType::Graphics;
 
     // Internal fence for WaitIdle
-    ID3D12Device*       m_Device         = nullptr;
+    ID3D12Device*       m_pDevice         = nullptr;
     ComPtr<ID3D12Fence> m_IdleFence;
     HANDLE              m_IdleEvent      = nullptr;
     uint64              m_IdleFenceValue = 0;

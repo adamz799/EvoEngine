@@ -3,6 +3,8 @@
 #include "RHI/RHIDevice.h"
 #include "RHI/DX12/DX12Common.h"
 #include "RHI/DX12/DX12Queue.h"
+#include "RHI/DX12/DX12TexturePool.h"
+#include "RHI/DX12/DX12DescriptorAllocator.h"
 
 namespace Evo {
 
@@ -39,6 +41,10 @@ public:
     void DestroyShader(RHIShaderHandle handle) override;
     void DestroyPipeline(RHIPipelineHandle handle) override;
 
+    // ---- Views ----
+    RHIRenderTargetView CreateRenderTargetView(RHITextureHandle texture) override;
+    void                DestroyRenderTargetView(RHIRenderTargetView rtv) override;
+
     // ---- Buffer ops ----
     void* MapBuffer(RHIBufferHandle handle) override;
     void  UnmapBuffer(RHIBufferHandle handle) override;
@@ -60,7 +66,7 @@ public:
     void WaitIdle() override;
 
     // ---- Native handle accessors (for ImGui and other integrations) ----
-    ID3D12Device*        GetD3D12Device()   const { return m_Device.Get(); }
+    ID3D12Device*        GetD3D12Device()   const { return m_pDevice.Get(); }
     IDXGIFactory4*       GetDXGIFactory()   const { return m_DxgiFactory.Get(); }
 
     // Return the native DX12 graphics command queue (needed by SwapChain creation, ImGui, etc.)
@@ -70,17 +76,29 @@ public:
     HWND                 GetHWND() const { return m_HWND; }
     void                 SetHWND(HWND hwnd) { m_HWND = hwnd; }
 
+    // ---- Texture pool access ----
+    const DX12TextureEntry* ResolveTexture(RHITextureHandle handle) const;
+    DX12TextureEntry*       ResolveTextureMutable(RHITextureHandle handle);
+
+    RHITextureHandle RegisterTextureExternal(ComPtr<ID3D12Resource> resource,
+                                              const std::string& debugName,
+                                              const RHIBarrierState& initialBarrier = {});
+    void UnregisterTextureExternal(RHITextureHandle handle);
+
 private:
     std::string m_AdapterName;
 
     ComPtr<IDXGIFactory4>   m_DxgiFactory;
-    ComPtr<ID3D12Device>    m_Device;
+    ComPtr<ID3D12Device>    m_pDevice;
 
     std::unique_ptr<DX12Queue> m_GraphicsQueue;
     std::unique_ptr<DX12Queue> m_ComputeQueue;
     std::unique_ptr<DX12Queue> m_CopyQueue;
 
     HWND m_HWND = nullptr;
+
+    DX12TexturePool m_TexturePool;
+    DX12CpuDescriptorAllocator m_RTVAllocator;
 };
 
 } // namespace Evo

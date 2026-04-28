@@ -6,6 +6,13 @@
 namespace Evo {
 
 // ============================================================================
+// Constants
+// ============================================================================
+
+/// Number of back buffers (frames in flight) for swap chain double/triple buffering.
+constexpr uint32 NUM_BACK_FRAMES = 3;
+
+// ============================================================================
 // Handle system
 // ============================================================================
 
@@ -29,6 +36,23 @@ using RHIShaderHandle              = RHIHandle<struct ShaderTag>;
 using RHIPipelineHandle            = RHIHandle<struct PipelineTag>;
 using RHIDescriptorSetLayoutHandle = RHIHandle<struct DescriptorSetLayoutTag>;
 using RHIDescriptorSetHandle       = RHIHandle<struct DescriptorSetTag>;
+
+// ============================================================================
+// View types — lightweight value wrappers around backend-specific descriptors.
+// Resource (Handle) and View are 1:N — a single texture can have multiple views.
+// ============================================================================
+
+/// Render target view. DX12: wraps D3D12_CPU_DESCRIPTOR_HANDLE. Vulkan: wraps VkImageView.
+struct RHIRenderTargetView {
+	uint64 _opaque = 0;
+	bool IsValid() const { return _opaque != 0; }
+};
+
+/// Depth/stencil view.
+struct RHIDepthStencilView {
+	uint64 _opaque = 0;
+	bool IsValid() const { return _opaque != 0; }
+};
 
 // ============================================================================
 // Enumerations

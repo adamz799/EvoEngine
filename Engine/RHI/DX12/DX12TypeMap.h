@@ -212,4 +212,26 @@ inline DXGI_FORMAT MapIndexFormat(RHIIndexFormat format)
     return DXGI_FORMAT_R32_UINT;
 }
 
+// ---- View wrapping: RHI View ↔ D3D12_CPU_DESCRIPTOR_HANDLE ----
+
+inline RHIRenderTargetView WrapRTV(D3D12_CPU_DESCRIPTOR_HANDLE h)
+{
+	return { static_cast<uint64>(h.ptr) };
+}
+
+inline D3D12_CPU_DESCRIPTOR_HANDLE UnwrapRTV(RHIRenderTargetView v)
+{
+	return { static_cast<SIZE_T>(v._opaque) };
+}
+
+inline RHIDepthStencilView WrapDSV(D3D12_CPU_DESCRIPTOR_HANDLE h)
+{
+	return { static_cast<uint64>(h.ptr) };
+}
+
+inline D3D12_CPU_DESCRIPTOR_HANDLE UnwrapDSV(RHIDepthStencilView v)
+{
+	return { static_cast<SIZE_T>(v._opaque) };
+}
+
 } // namespace Evo

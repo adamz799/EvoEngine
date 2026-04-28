@@ -11,3 +11,7 @@
 #include "RHI/RHISwapChain.h"
 #include "RHI/RHICommandList.h"
 #include "RHI/RHIDevice.h"
+
+
+
+#define NUM_BACK_FRAMES (3)

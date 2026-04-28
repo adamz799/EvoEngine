@@ -7,28 +7,31 @@
 namespace Evo {
 
 struct RendererDesc {
-    RHIBackendType backend = RHIBackendType::DX12;
-    bool enableDebug       = true;
+	RHIBackendType backend = RHIBackendType::DX12;
+	bool enableDebug       = true;
 };
 
 class Renderer {
 public:
-    Renderer() = default;
-    ~Renderer();
+	Renderer() = default;
+	~Renderer();
 
-    bool Initialize(const RendererDesc& desc, Window& window);
-    void Shutdown();
+	bool Initialize(const RendererDesc& desc, Window& window);
+	void Shutdown();
 
-    void BeginFrame();
-    void EndFrame();
+	void BeginFrame();
+	void EndFrame();
 
-    RHIDevice* GetDevice() const { return m_Device.get(); }
+	RHIDevice* GetDevice() const { return m_pRHIDevice.get(); }
 
 private:
-    std::unique_ptr<RHIDevice>    m_Device;
-    std::unique_ptr<RHISwapChain> m_SwapChain;
-    std::unique_ptr<RHIFence>     m_FrameFence;
-    uint64                           m_FrameCount = 0;
+	std::unique_ptr<RHIDevice>		m_pRHIDevice;
+	std::unique_ptr<RHISwapChain>	m_pSwapChain;
+	std::unique_ptr<RHIFence>		m_pFrameFence;
+	uint64                          m_uCurrentFrame = 0;
+	uint64							m_uFrameIndex = 0;//swapchain中对应的index
+	std::unique_ptr<RHICommandList> m_vCmdLists[NUM_BACK_FRAMES];
+	uint64                          m_vFenceValues[NUM_BACK_FRAMES] = {0, 0, 0};
 };
 
 } // namespace Evo

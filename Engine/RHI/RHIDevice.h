@@ -54,6 +54,10 @@ public:
     virtual void DestroyShader(RHIShaderHandle handle) = 0;
     virtual void DestroyPipeline(RHIPipelineHandle handle) = 0;
 
+    // ---- View creation / destruction ----
+    virtual RHIRenderTargetView CreateRenderTargetView(RHITextureHandle texture) = 0;
+    virtual void                DestroyRenderTargetView(RHIRenderTargetView rtv) = 0;
+
     // ---- Buffer operations ----
     virtual void* MapBuffer(RHIBufferHandle handle) = 0;
     virtual void  UnmapBuffer(RHIBufferHandle handle) = 0;

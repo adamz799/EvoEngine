@@ -17,8 +17,6 @@
 
 #include <string>
 
-#define NUM_BACK_FRAMES (3)
-
 namespace Evo {
 
 // Convert HRESULT to a human-readable string via FormatMessage.

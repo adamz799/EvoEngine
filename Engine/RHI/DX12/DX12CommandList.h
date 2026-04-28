@@ -23,6 +23,9 @@ public:
 	void TextureBarrier(const RHITextureBarrier* barriers, uint32 count) override;
 	void BufferBarrier(const RHIBufferBarrier* barriers, uint32 count) override;
 
+	// ---- Clear ----
+	void ClearRenderTarget(RHIRenderTargetView rtv, const RHIColor& color) override;
+
 	// ---- Render pass ----
 	void BeginRenderPass(const RHIRenderPassDesc& desc) override;
 	void EndRenderPass() override;
@@ -67,7 +70,7 @@ public:
 	                          D3D12_BARRIER_LAYOUT layoutBefore, D3D12_BARRIER_LAYOUT layoutAfter);
 
 private:
-	DX12Device*                         m_Device = nullptr;   // non-owning
+	DX12Device*                         m_pDevice = nullptr;   // non-owning
 	RHIQueueType                        m_QueueType = RHIQueueType::Graphics;
 
 	ComPtr<ID3D12CommandAllocator>       m_Allocator;
