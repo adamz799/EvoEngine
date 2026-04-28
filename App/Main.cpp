@@ -2,6 +2,7 @@
 #include "Math/Math.h"
 #include "Platform/Window.h"
 #include "Renderer/Renderer.h"
+#include "TriangleDemo.h"
 
 // ---- D3D12 Agility SDK runtime selection ----
 // These exports tell the D3D12 loader to use the Agility SDK DLLs
@@ -93,6 +94,13 @@ int main(int /*argc*/, char* /*argv*/[])
         EVO_LOG_ERROR("Failed to initialize renderer (continuing with window only)");
     }
 
+    // ---- Initialize demo ----
+    Evo::TriangleDemo triangleDemo;
+    if (!triangleDemo.Initialize(renderer.GetDevice(), renderer.GetSwapChain()->GetFormat()))
+    {
+        EVO_LOG_ERROR("Failed to initialize triangle demo");
+    }
+
     // ---- Main loop ----
     EVO_LOG_INFO("Entering main loop");
     while (window.PollEvents()) {
@@ -101,13 +109,15 @@ int main(int /*argc*/, char* /*argv*/[])
 
         renderer.BeginFrame();
 
-        // TODO: Scene update, render passes, UI, etc.
+        triangleDemo.AddPasses(renderer);
 
         renderer.EndFrame();
     }
 
     // ---- Shutdown (reverse order) ----
     EVO_LOG_INFO("Shutting down...");
+    renderer.GetDevice()->WaitIdle();
+    triangleDemo.Shutdown(renderer.GetDevice());
     renderer.Shutdown();
     window.Shutdown();
     Evo::Log::Shutdown();

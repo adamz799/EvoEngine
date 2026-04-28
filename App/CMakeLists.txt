@@ -1,5 +1,6 @@
 add_executable(EvoApp
     Main.cpp
+    TriangleDemo.cpp
 )
 
 evo_set_compiler_flags(EvoApp)

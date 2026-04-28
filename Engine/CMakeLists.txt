@@ -20,7 +20,8 @@ file(GLOB RHI_HEADERS     RHI/*.h)
 set(RHI_SOURCES           RHI/RHI.cpp)
 
 file(GLOB RENDERER_HEADERS Renderer/*.h)
-set(RENDERER_SOURCES       Renderer/Renderer.cpp)
+set(RENDERER_SOURCES       Renderer/Renderer.cpp
+                           Renderer/RenderGraph.cpp)
 
 # ---- Backend sources ----
 if(EVO_RHI_DX12)
