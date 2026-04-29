@@ -34,7 +34,11 @@ set(RENDERER_SOURCES       Renderer/Renderer.cpp
 file(GLOB SCENE_HEADERS    Scene/*.h)
 set(SCENE_SOURCES          Scene/Scene.cpp
                            Scene/MeshAsset.cpp
-                           Scene/MeshWriter.cpp)
+                           Scene/MeshWriter.cpp
+                           Scene/PrefabAsset.cpp
+                           Scene/PrefabWriter.cpp
+                           Scene/SceneWriter.cpp
+                           Scene/SceneLoader.cpp)
 
 # ---- Backend sources ----
 if(EVO_RHI_DX12)

@@ -22,8 +22,9 @@ struct TransformComponent {
 
 /// Mesh component — references a MeshAsset for rendering.
 struct MeshComponent {
-	MeshAsset* pMesh    = nullptr;
+	MeshAsset* pMesh     = nullptr;
 	uint32     uLODIndex = 0;
+	bool       bVisible  = true;
 };
 
 } // namespace Evo

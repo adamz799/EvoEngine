@@ -25,7 +25,6 @@ private:
 	// Asset management
 	AssetManager  m_AssetManager;
 	AssetHandle   m_ShaderHandle;
-	AssetHandle   m_MeshHandle;
 
 	// GPU resources
 	RHIPipelineHandle m_Pipeline;

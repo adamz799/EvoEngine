@@ -1,6 +1,10 @@
 ﻿#include "CubeDemo.h"
 #include "Asset/ShaderAsset.h"
 #include "Scene/MeshWriter.h"
+#include "Scene/PrefabAsset.h"
+#include "Scene/PrefabWriter.h"
+#include "Scene/SceneWriter.h"
+#include "Scene/SceneLoader.h"
 #include "Renderer/Renderer.h"
 #include "Platform/Input.h"
 #include "Platform/Window.h"
@@ -77,8 +81,9 @@ bool CubeDemo::Initialize(RHIDevice* pDevice, RHIFormat rtFormat)
 #if EVO_RHI_DX12
 	// ---- Initialize asset manager ----
 	m_AssetManager.Initialize(pDevice);
-	m_AssetManager.RegisterFactory(".hlsl",  [] { return std::make_unique<ShaderAsset>(); });
-	m_AssetManager.RegisterFactory(".emesh", [] { return std::make_unique<MeshAsset>(); });
+	m_AssetManager.RegisterFactory(".hlsl",    [] { return std::make_unique<ShaderAsset>(); });
+	m_AssetManager.RegisterFactory(".emesh",   [] { return std::make_unique<MeshAsset>(); });
+	m_AssetManager.RegisterFactory(".eprefab", [] { return std::make_unique<PrefabAsset>(); });
 
 	// ---- Load shader via asset system ----
 	m_ShaderHandle = m_AssetManager.LoadSync("Assets/Shaders/StaticMesh.hlsl");
@@ -147,41 +152,57 @@ bool CubeDemo::Initialize(RHIDevice* pDevice, RHIFormat rtFormat)
 		return false;
 	}
 
-	// ---- Load cube mesh from .emesh file via asset system ----
-	m_MeshHandle = m_AssetManager.LoadSync("Assets/Meshes/Cube.emesh");
-	auto* pCubeMesh = m_AssetManager.Get<MeshAsset>(m_MeshHandle);
-	if (!pCubeMesh)
+	// ---- Write prefab file ----
+	if (!WritePrefab("Assets/Prefabs/CubePrefab.eprefab", "Assets/Meshes/Cube.emesh"))
 	{
-		EVO_LOG_ERROR("CubeDemo: failed to load Cube.emesh");
+		EVO_LOG_ERROR("CubeDemo: failed to write CubePrefab.eprefab");
 		return false;
 	}
 
-	// Create scene with multiple cubes at different positions
-	struct CubeSetup {
-		Vec3 vPosition;
-		Vec3 vScale;
-	};
-
-	CubeSetup cubes[] = {
-		{ Vec3( 0.0f,  0.0f,  0.0f), Vec3(1.0f) },
-		{ Vec3( 3.0f,  0.0f,  0.0f), Vec3(0.7f) },
-		{ Vec3(-3.0f,  0.0f,  0.0f), Vec3(0.7f) },
-		{ Vec3( 0.0f,  2.5f,  0.0f), Vec3(0.5f) },
-		{ Vec3( 0.0f, -2.5f,  0.0f), Vec3(0.5f) },
-	};
-
-	for (const auto& setup : cubes)
+	// ---- Build a temporary scene and write .escene file ----
 	{
-		auto entity = m_Scene.CreateEntity("Cube");
+		Scene tempScene;
 
-		TransformComponent transform;
-		transform.vPosition = setup.vPosition;
-		transform.vScale    = setup.vScale;
-		m_Scene.Transforms().Add(entity, transform);
+		struct CubeSetup {
+			const char* pName;
+			Vec3 vPosition;
+			Vec3 vScale;
+		};
 
-		MeshComponent mesh;
-		mesh.pMesh = pCubeMesh;
-		m_Scene.Meshes().Add(entity, mesh);
+		CubeSetup cubes[] = {
+			{ "CenterCube", Vec3( 0.0f,  0.0f,  0.0f), Vec3(1.0f) },
+			{ "RightCube",  Vec3( 3.0f,  0.0f,  0.0f), Vec3(0.7f) },
+			{ "LeftCube",   Vec3(-3.0f,  0.0f,  0.0f), Vec3(0.7f) },
+			{ "TopCube",    Vec3( 0.0f,  2.5f,  0.0f), Vec3(0.5f) },
+			{ "BottomCube", Vec3( 0.0f, -2.5f,  0.0f), Vec3(0.5f) },
+		};
+
+		for (const auto& setup : cubes)
+		{
+			auto entity = tempScene.CreateEntity(setup.pName);
+
+			TransformComponent transform;
+			transform.vPosition = setup.vPosition;
+			transform.vScale    = setup.vScale;
+			tempScene.Transforms().Add(entity, transform);
+
+			tempScene.SetEntityPrefab(entity, "Assets/Prefabs/CubePrefab.eprefab");
+		}
+
+		// Write scene to file
+		std::filesystem::create_directories("Assets/Scenes");
+		if (!WriteScene("Assets/Scenes/CubeScene.escene", tempScene))
+		{
+			EVO_LOG_ERROR("CubeDemo: failed to write CubeScene.escene");
+			return false;
+		}
+	}
+
+	// ---- Load scene from .escene file (validates the full round-trip) ----
+	if (!LoadScene("Assets/Scenes/CubeScene.escene", m_Scene, m_AssetManager))
+	{
+		EVO_LOG_ERROR("CubeDemo: failed to load CubeScene.escene");
+		return false;
 	}
 
 	// Initialize camera
@@ -189,7 +210,7 @@ bool CubeDemo::Initialize(RHIDevice* pDevice, RHIFormat rtFormat)
 	m_Camera.SetPosition(Vec3(0.0f, 3.0f, -8.0f));
 	m_Camera.LookAt(Vec3::Zero);
 
-	EVO_LOG_INFO("CubeDemo initialized: {} entities (mesh loaded from .emesh)", 5);
+	EVO_LOG_INFO("CubeDemo initialized: {} entities (loaded from .escene)", m_Scene.GetEntityCount());
 	return true;
 #else
 	return false;

@@ -1,6 +1,8 @@
 // Mesh.fbs — EvoEngine mesh schema (one LOD per file).
 // Generated header: Mesh_generated.h
 
+include "Common.fbs";
+
 namespace Evo.Schema;
 
 // ---- 顶点属性数据格式 ----
@@ -43,16 +45,6 @@ struct SubMeshRange {
 }
 
 // ---- 包围盒 (metadata，始终 float32) ----
-struct Vec3 {
-	x: float;
-	y: float;
-	z: float;
-}
-
-struct AABB {
-	min: Vec3;
-	max: Vec3;
-}
 
 // ---- Root: 单个 mesh LOD ----
 table Mesh {

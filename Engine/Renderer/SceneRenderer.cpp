@@ -19,6 +19,7 @@ void SceneRenderer::CollectDrawItems(Scene& scene, RHIPipelineHandle defaultPipe
 {
 	// Iterate entities that have both Transform and Mesh components
 	scene.Meshes().ForEach([&](EntityHandle entity, MeshComponent& mesh) {
+		if (!mesh.bVisible) return;
 		auto* pTransform = scene.Transforms().Get(entity);
 		if (!pTransform || !mesh.pMesh)
 			return;

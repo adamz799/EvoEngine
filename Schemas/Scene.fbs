@@ -1,0 +1,30 @@
+// Scene.fbs — EvoEngine scene serialization schema.
+// Generated header: Scene_generated.h
+
+include "Common.fbs";
+
+namespace Evo.Schema;
+
+table SceneEntity {
+	name:       string;
+
+	// Transform
+	position:   Vec3;
+	rotation:   Vec4;       // 四元数 (x, y, z, w)
+	scale:      Vec3;
+
+	// Prefab 引用
+	prefab_path: string;    // 资产路径，如 "Assets/Prefabs/CubePrefab.eprefab"
+	lod_index:   uint = 0;
+
+	// 渲染标志
+	visible:    bool = true;
+}
+
+table Scene {
+	entities:   [SceneEntity] (required);
+}
+
+root_type Scene;
+file_identifier "ESCN";
+file_extension "escene";

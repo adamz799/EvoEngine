@@ -1,0 +1,14 @@
+// Prefab.fbs — EvoEngine prefab schema.
+// Generated header: Prefab_generated.h
+
+include "Common.fbs";
+
+namespace Evo.Schema;
+
+table Prefab {
+	mesh_path: string;
+}
+
+root_type Prefab;
+file_identifier "EPRB";
+file_extension "eprefab";
