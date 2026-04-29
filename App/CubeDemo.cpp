@@ -1,12 +1,9 @@
 ﻿#include "CubeDemo.h"
+#include "Asset/ShaderAsset.h"
 #include "Renderer/Renderer.h"
 #include "Platform/Input.h"
 #include "Platform/Window.h"
 #include "Core/Log.h"
-
-#if EVO_RHI_DX12
-#include "RHI/DX12/DX12ShaderCompiler.h"
-#endif
 
 #include <cstring>
 #include <cmath>
@@ -76,28 +73,19 @@ static void GenerateCubeData(std::vector<StaticVertex>& outVertices, std::vector
 bool CubeDemo::Initialize(RHIDevice* pDevice, RHIFormat rtFormat)
 {
 #if EVO_RHI_DX12
-	// Compile shaders
-	auto vsBlob = CompileShaderFromFile("Assets/Shaders/StaticMesh.hlsl", "VSMain", "vs_5_1");
-	auto psBlob = CompileShaderFromFile("Assets/Shaders/StaticMesh.hlsl", "PSMain", "ps_5_1");
-	if (!vsBlob || !psBlob)
+	// ---- Initialize asset manager ----
+	m_AssetManager.Initialize(pDevice);
+	m_AssetManager.RegisterFactory(".hlsl",  [] { return std::make_unique<ShaderAsset>(); });
+	m_AssetManager.RegisterFactory(".emesh", [] { return std::make_unique<MeshAsset>(); });
+
+	// ---- Load shader via asset system ----
+	m_ShaderHandle = m_AssetManager.LoadSync("Assets/Shaders/StaticMesh.hlsl");
+	auto* pShader = m_AssetManager.Get<ShaderAsset>(m_ShaderHandle);
+	if (!pShader)
+	{
+		EVO_LOG_ERROR("CubeDemo: failed to load shader");
 		return false;
-
-	RHIShaderDesc vsDesc = {};
-	vsDesc.pBytecode     = vsBlob->GetBufferPointer();
-	vsDesc.uBytecodeSize = vsBlob->GetBufferSize();
-	vsDesc.stage         = RHIShaderStage::Vertex;
-	vsDesc.sDebugName    = "StaticMeshVS";
-	m_VS = pDevice->CreateShader(vsDesc);
-
-	RHIShaderDesc psDesc = {};
-	psDesc.pBytecode     = psBlob->GetBufferPointer();
-	psDesc.uBytecodeSize = psBlob->GetBufferSize();
-	psDesc.stage         = RHIShaderStage::Pixel;
-	psDesc.sDebugName    = "StaticMeshPS";
-	m_PS = pDevice->CreateShader(psDesc);
-
-	if (!m_VS.IsValid() || !m_PS.IsValid())
-		return false;
+	}
 
 	// Input layout matching StaticVertex
 	RHIInputElement inputElements[] = {
@@ -108,8 +96,8 @@ bool CubeDemo::Initialize(RHIDevice* pDevice, RHIFormat rtFormat)
 
 	// Pipeline with push constants for MVP matrix
 	RHIGraphicsPipelineDesc pipelineDesc = {};
-	pipelineDesc.vertexShader         = m_VS;
-	pipelineDesc.pixelShader          = m_PS;
+	pipelineDesc.vertexShader         = pShader->GetVertexShader();
+	pipelineDesc.pixelShader          = pShader->GetPixelShader();
 	pipelineDesc.pInputElements       = inputElements;
 	pipelineDesc.uInputElementCount   = 3;
 	pipelineDesc.rasterizer.cullMode  = RHICullMode::Back;
@@ -125,7 +113,7 @@ bool CubeDemo::Initialize(RHIDevice* pDevice, RHIFormat rtFormat)
 	if (!m_Pipeline.IsValid())
 		return false;
 
-	// Generate cube mesh data
+	// Generate cube mesh data (procedural — not from file)
 	std::vector<StaticVertex> vertices;
 	std::vector<uint32> indices;
 	GenerateCubeData(vertices, indices);
@@ -136,7 +124,7 @@ bool CubeDemo::Initialize(RHIDevice* pDevice, RHIFormat rtFormat)
 	for (const auto& v : vertices)
 		positions.emplace_back(v.position[0], v.position[1], v.position[2]);
 
-	// Create MeshAsset
+	// Create MeshAsset (procedural, bypasses Asset lifecycle)
 	m_pCubeMesh = MeshAsset::CreateFromMemory(
 		pDevice,
 		vertices.data(), static_cast<uint32>(vertices.size()), sizeof(StaticVertex),
@@ -191,13 +179,17 @@ void CubeDemo::Shutdown(RHIDevice* pDevice)
 {
 	if (m_pCubeMesh) m_pCubeMesh->Destroy(pDevice);
 	if (m_Pipeline.IsValid()) pDevice->DestroyPipeline(m_Pipeline);
-	if (m_VS.IsValid())       pDevice->DestroyShader(m_VS);
-	if (m_PS.IsValid())       pDevice->DestroyShader(m_PS);
+
+	// AssetManager shuts down all loaded assets (shaders, etc.)
+	m_AssetManager.Shutdown();
 }
 
 void CubeDemo::Update(float fDeltaTime, const Input& input, Window& window)
 {
 	m_fTime += fDeltaTime;
+
+	// Process async asset completions (for future async loads)
+	m_AssetManager.Update();
 
 	// Update camera
 	float w = static_cast<float>(window.GetWidth());

@@ -1,5 +1,6 @@
 ﻿#pragma once
 
+#include "Asset/AssetManager.h"
 #include "Scene/Scene.h"
 #include "Scene/MeshAsset.h"
 #include "Renderer/SceneRenderer.h"
@@ -22,9 +23,11 @@ public:
 	void Render(Renderer& renderer);
 
 private:
+	// Asset management
+	AssetManager  m_AssetManager;
+	AssetHandle   m_ShaderHandle;
+
 	// GPU resources
-	RHIShaderHandle   m_VS;
-	RHIShaderHandle   m_PS;
 	RHIPipelineHandle m_Pipeline;
 
 	// Scene

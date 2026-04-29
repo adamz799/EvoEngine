@@ -17,6 +17,11 @@ set(PLATFORM_SOURCES       Platform/Window.cpp
                            Platform/FileSystem.cpp
                            Platform/Input.cpp)
 
+file(GLOB ASSET_HEADERS    Asset/*.h)
+set(ASSET_SOURCES          Asset/AssetLoader.cpp
+                           Asset/AssetManager.cpp
+                           Asset/ShaderAsset.cpp)
+
 file(GLOB RHI_HEADERS     RHI/*.h)
 set(RHI_SOURCES           RHI/RHI.cpp)
 
@@ -56,6 +61,7 @@ add_library(EvoEngine STATIC
     ${CORE_HEADERS}     ${CORE_SOURCES}
     ${MATH_HEADERS}
     ${PLATFORM_HEADERS} ${PLATFORM_SOURCES}
+    ${ASSET_HEADERS}    ${ASSET_SOURCES}
     ${RHI_HEADERS}      ${RHI_SOURCES}
     ${RENDERER_HEADERS} ${RENDERER_SOURCES}
     ${SCENE_HEADERS}    ${SCENE_SOURCES}
@@ -71,6 +77,7 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES
     ${CORE_HEADERS}     ${CORE_SOURCES}
     ${MATH_HEADERS}
     ${PLATFORM_HEADERS} ${PLATFORM_SOURCES}
+    ${ASSET_HEADERS}    ${ASSET_SOURCES}
     ${RHI_HEADERS}      ${RHI_SOURCES}
     ${RENDERER_HEADERS} ${RENDERER_SOURCES}
     ${SCENE_HEADERS}    ${SCENE_SOURCES}
