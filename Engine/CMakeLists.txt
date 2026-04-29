@@ -21,7 +21,12 @@ set(RHI_SOURCES           RHI/RHI.cpp)
 
 file(GLOB RENDERER_HEADERS Renderer/*.h)
 set(RENDERER_SOURCES       Renderer/Renderer.cpp
-                           Renderer/RenderGraph.cpp)
+                           Renderer/RenderGraph.cpp
+                           Renderer/SceneRenderer.cpp)
+
+file(GLOB SCENE_HEADERS    Scene/*.h)
+set(SCENE_SOURCES          Scene/Scene.cpp
+                           Scene/MeshAsset.cpp)
 
 # ---- Backend sources ----
 if(EVO_RHI_DX12)
@@ -50,6 +55,7 @@ add_library(EvoEngine STATIC
     ${PLATFORM_HEADERS} ${PLATFORM_SOURCES}
     ${RHI_HEADERS}      ${RHI_SOURCES}
     ${RENDERER_HEADERS} ${RENDERER_SOURCES}
+    ${SCENE_HEADERS}    ${SCENE_SOURCES}
     ${DX12_HEADERS}     ${DX12_SOURCES}
     ${VULKAN_HEADERS}   ${VULKAN_SOURCES}
 )
@@ -64,6 +70,7 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR} FILES
     ${PLATFORM_HEADERS} ${PLATFORM_SOURCES}
     ${RHI_HEADERS}      ${RHI_SOURCES}
     ${RENDERER_HEADERS} ${RENDERER_SOURCES}
+    ${SCENE_HEADERS}    ${SCENE_SOURCES}
     ${DX12_HEADERS}     ${DX12_SOURCES}
     ${VULKAN_HEADERS}   ${VULKAN_SOURCES}
 )

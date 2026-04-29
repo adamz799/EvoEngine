@@ -12,6 +12,7 @@ struct DX12PipelineEntry {
 	ComPtr<ID3D12PipelineState>  pPso;
 	ComPtr<ID3D12RootSignature>  pRootSignature;
 	RHIPrimitiveTopology         topology = RHIPrimitiveTopology::TriangleList;
+	uint32                       uPushConstantSize = 0;
 	std::string                  sDebugName;
 	uint16                       uGeneration = 0;
 	bool                         bAlive      = false;
@@ -22,6 +23,7 @@ public:
 	RHIPipelineHandle Allocate(ComPtr<ID3D12PipelineState> pso,
 	                           ComPtr<ID3D12RootSignature> rootSig,
 	                           RHIPrimitiveTopology topology,
+	                           uint32 pushConstantSize,
 	                           const std::string& name)
 	{
 		std::unique_lock lock(m_Mutex);
@@ -39,6 +41,7 @@ public:
 		e.pPso           = std::move(pso);
 		e.pRootSignature = std::move(rootSig);
 		e.topology       = topology;
+		e.uPushConstantSize = pushConstantSize;
 		e.sDebugName     = name;
 		e.bAlive         = true;
 

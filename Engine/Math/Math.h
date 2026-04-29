@@ -10,3 +10,4 @@
 #include "Math/Mat4.h"
 #include "Math/Quat.h"
 #include "Math/Color.h"
+#include "Math/Bounds.h"

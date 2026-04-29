@@ -248,8 +248,23 @@ RHIPipelineHandle DX12Device::CreateGraphicsPipeline(const RHIGraphicsPipelineDe
         return {};
     }
 
-    // Build root signature (empty for now — extend with push constants / descriptors later)
+    // Build root signature
+    D3D12_ROOT_PARAMETER rootParam = {};
+    uint32 numParams = 0;
+
+    if (desc.uPushConstantSize > 0)
+    {
+        rootParam.ParameterType             = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+        rootParam.Constants.ShaderRegister  = 0;
+        rootParam.Constants.RegisterSpace   = 0;
+        rootParam.Constants.Num32BitValues  = (desc.uPushConstantSize + 3) / 4;  // Round up to DWORD
+        rootParam.ShaderVisibility          = D3D12_SHADER_VISIBILITY_ALL;
+        numParams = 1;
+    }
+
     D3D12_ROOT_SIGNATURE_DESC rootSigDesc = {};
+    rootSigDesc.NumParameters = numParams;
+    rootSigDesc.pParameters   = numParams > 0 ? &rootParam : nullptr;
     rootSigDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
     ComPtr<ID3DBlob> sigBlob, errorBlob;
@@ -345,7 +360,7 @@ RHIPipelineHandle DX12Device::CreateGraphicsPipeline(const RHIGraphicsPipelineDe
         return {};
     }
 
-    return m_PipelinePool.Allocate(std::move(pso), std::move(rootSig), desc.topology, desc.sDebugName);
+    return m_PipelinePool.Allocate(std::move(pso), std::move(rootSig), desc.topology, desc.uPushConstantSize, desc.sDebugName);
 }
 
 RHIPipelineHandle DX12Device::CreateComputePipeline(const RHIComputePipelineDesc& /*desc*/)

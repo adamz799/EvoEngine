@@ -204,9 +204,11 @@ void DX12CommandList::SetScissorRect(const RHIScissorRect& rect)
 
 // ---- Binding ----
 
-void DX12CommandList::SetPushConstants(const void* /*data*/, uint32 /*size*/)
+void DX12CommandList::SetPushConstants(const void* data, uint32 size)
 {
-	// TODO Phase 3: SetGraphicsRoot32BitConstants
+	// Root parameter 0 is always the push constants slot (32-bit constants)
+	uint32 num32BitValues = (size + 3) / 4;
+	m_pCmdList->SetGraphicsRoot32BitConstants(0, num32BitValues, data, 0);
 }
 
 void DX12CommandList::SetDescriptorSet(uint32 /*index*/, RHIDescriptorSetHandle /*set*/)
