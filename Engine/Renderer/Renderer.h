@@ -23,6 +23,9 @@ public:
 	void BeginFrame();
 	void EndFrame();
 
+	/// Resize swap chain to match current window size. Call when window resizes.
+	void HandleResize(uint32 uWidth, uint32 uHeight);
+
 	RHIDevice* GetDevice() const { return m_pRHIDevice.get(); }
 	RenderGraph& GetRenderGraph()        { return m_RenderGraph; }
 	RGHandle     GetBackBufferRG() const { return m_BackBufferRG; }

@@ -180,6 +180,9 @@ int main(int /*argc*/, char* /*argv*/[])
         if (window.IsMinimized())
             continue;
 
+        // Handle window resize
+        renderer.HandleResize(window.GetWidth(), window.GetHeight());
+
         // Delta time
         auto now = std::chrono::high_resolution_clock::now();
         float dt = std::chrono::duration<float>(now - lastTime).count();

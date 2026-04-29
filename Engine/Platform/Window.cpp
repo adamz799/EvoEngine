@@ -63,6 +63,9 @@ bool Window::PollEvents(Input* pInput)
             case SDL_EVENT_QUIT:
                 return false;
 
+            case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
+                return false;
+
             case SDL_EVENT_KEY_DOWN:
                 if (event.key.scancode == SDL_SCANCODE_ESCAPE)
                     return false;

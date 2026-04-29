@@ -259,6 +259,9 @@ int main(int /*argc*/, char* /*argv*/[])
         if (window.IsMinimized())
             continue;
 
+        // Handle window resize — swap chain must match window size
+        renderer.HandleResize(window.GetWidth(), window.GetHeight());
+
         // Delta time
         auto now = std::chrono::high_resolution_clock::now();
         float dt = std::chrono::duration<float>(now - lastTime).count();

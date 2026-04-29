@@ -71,6 +71,7 @@ private:
 
 	// Selection
 	EntityHandle m_SelectedEntity;
+	bool         m_bFirstFrame = true;
 
 	// Log sink for ImGui panel
 	std::shared_ptr<ImGuiLogSink> m_pLogSink;

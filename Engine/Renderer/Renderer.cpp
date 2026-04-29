@@ -62,6 +62,18 @@ void Renderer::Shutdown()
 	}
 }
 
+void Renderer::HandleResize(uint32 uWidth, uint32 uHeight)
+{
+	if (!m_pSwapChain || uWidth == 0 || uHeight == 0)
+		return;
+	if (uWidth == m_pSwapChain->GetWidth() && uHeight == m_pSwapChain->GetHeight())
+		return;
+
+	m_pRHIDevice->WaitIdle();
+	m_pSwapChain->Resize(uWidth, uHeight);
+	EVO_LOG_INFO("Swap chain resized: {}x{}", uWidth, uHeight);
+}
+
 void Renderer::BeginFrame()
 {
 	m_uFrameIndex = m_pSwapChain->GetCurrentBackBufferIndex();

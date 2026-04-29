@@ -7,6 +7,7 @@
 #include "Math/Math.h"
 
 #include <imgui.h>
+#include <imgui_internal.h>
 #include <cfloat>
 #include <cmath>
 
@@ -419,7 +420,43 @@ void Editor::BeginFrame()
 void Editor::Update(Scene& scene, const Camera& camera, float /*fDeltaTime*/)
 {
 	// Create a DockSpace over the entire window
-	ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
+	ImGuiID dockspaceId = ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
+
+	// Build initial dock layout on first frame (only when no saved layout exists)
+	if (m_bFirstFrame)
+	{
+		m_bFirstFrame = false;
+
+		// Only build layout if dockspace has no existing saved nodes
+		if (ImGui::DockBuilderGetNode(dockspaceId) == nullptr ||
+		    ImGui::DockBuilderGetNode(dockspaceId)->ChildNodes[0] == nullptr)
+		{
+			ImGui::DockBuilderRemoveNode(dockspaceId);
+			ImGui::DockBuilderAddNode(dockspaceId, ImGuiDockNodeFlags_DockSpace);
+			ImGui::DockBuilderSetNodeSize(dockspaceId, ImGui::GetMainViewport()->Size);
+
+			// Split: left 18% = Hierarchy, rest = main area
+			ImGuiID leftId, mainId;
+			ImGui::DockBuilderSplitNode(dockspaceId, ImGuiDir_Left, 0.18f, &leftId, &mainId);
+
+			// Split main: right 22% = right panel, rest = center area
+			ImGuiID rightId, centerId;
+			ImGui::DockBuilderSplitNode(mainId, ImGuiDir_Right, 0.22f, &rightId, &centerId);
+
+			// Split center: bottom 25% = Log, rest = viewport
+			ImGuiID bottomId, viewportId;
+			ImGui::DockBuilderSplitNode(centerId, ImGuiDir_Down, 0.25f, &bottomId, &viewportId);
+
+			// Dock windows into nodes
+			ImGui::DockBuilderDockWindow("Hierarchy", leftId);
+			ImGui::DockBuilderDockWindow("Scene Viewport", viewportId);
+			ImGui::DockBuilderDockWindow("Inspector", rightId);
+			ImGui::DockBuilderDockWindow("Material Editor", rightId);  // tabs with Inspector
+			ImGui::DockBuilderDockWindow("Log", bottomId);
+
+			ImGui::DockBuilderFinish(dockspaceId);
+		}
+	}
 
 	// Main menu bar
 	if (ImGui::BeginMainMenuBar())
