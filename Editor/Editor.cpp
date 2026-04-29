@@ -3,6 +3,7 @@
 #include "Platform/Window.h"
 #include "RHI/RHICommandList.h"
 #include "Scene/Components.h"
+#include "Scene/MaterialWriter.h"
 #include "Math/Math.h"
 
 #include <imgui.h>
@@ -427,6 +428,7 @@ void Editor::Update(Scene& scene, const Camera& camera, float /*fDeltaTime*/)
 		{
 			ImGui::MenuItem("Hierarchy", nullptr, &m_bShowHierarchy);
 			ImGui::MenuItem("Inspector", nullptr, &m_bShowInspector);
+			ImGui::MenuItem("Material Editor", nullptr, &m_bShowMaterialEditor);
 			ImGui::MenuItem("Log",       nullptr, &m_bShowLog);
 			ImGui::EndMenu();
 		}
@@ -483,6 +485,14 @@ void Editor::Update(Scene& scene, const Camera& camera, float /*fDeltaTime*/)
 	{
 		ImGui::Begin("Inspector", &m_bShowInspector);
 		DrawInspectorPanel(scene);
+		ImGui::End();
+	}
+
+	// Material Editor panel
+	if (m_bShowMaterialEditor)
+	{
+		ImGui::Begin("Material Editor", &m_bShowMaterialEditor);
+		DrawMaterialEditorPanel(scene);
 		ImGui::End();
 	}
 
@@ -591,15 +601,67 @@ void Editor::DrawInspectorPanel(Scene& scene)
 		{
 			if (ImGui::CollapsingHeader("Material", ImGuiTreeNodeFlags_DefaultOpen))
 			{
+				const auto& sMatPath = scene.GetEntityMaterial(m_SelectedEntity);
+				if (!sMatPath.empty())
+					ImGui::Text("Path: %s", sMatPath.c_str());
 				ImGui::ColorEdit3("Albedo", &pMaterial->vAlbedoColor.x);
 				ImGui::SliderFloat("Roughness", &pMaterial->fRoughness, 0.0f, 1.0f);
 				ImGui::SliderFloat("Metallic", &pMaterial->fMetallic, 0.0f, 1.0f);
+				ImGui::SliderFloat("Alpha", &pMaterial->fAlpha, 0.0f, 1.0f);
 			}
 		}
 	}
 	else
 	{
 		ImGui::TextDisabled("No entity selected");
+	}
+}
+
+void Editor::DrawMaterialEditorPanel(Scene& scene)
+{
+	if (!m_SelectedEntity.IsValid() || !scene.IsAlive(m_SelectedEntity))
+	{
+		ImGui::TextDisabled("Select an entity to edit material");
+		return;
+	}
+
+	auto* pMaterial = scene.Materials().Get(m_SelectedEntity);
+	if (!pMaterial)
+	{
+		ImGui::TextDisabled("Selected entity has no material");
+		if (ImGui::Button("Add Material"))
+			scene.Materials().Add(m_SelectedEntity);
+		return;
+	}
+
+	ImGui::Text("Entity: %s", scene.GetEntityName(m_SelectedEntity).c_str());
+	const auto& sMatPath = scene.GetEntityMaterial(m_SelectedEntity);
+	if (!sMatPath.empty())
+		ImGui::Text("File: %s", sMatPath.c_str());
+	else
+		ImGui::TextDisabled("(no file assigned)");
+	ImGui::Separator();
+
+	ImGui::ColorEdit3("Albedo Color", &pMaterial->vAlbedoColor.x);
+	ImGui::SliderFloat("Roughness", &pMaterial->fRoughness, 0.0f, 1.0f);
+	ImGui::SliderFloat("Metallic",  &pMaterial->fMetallic,  0.0f, 1.0f);
+	ImGui::SliderFloat("Alpha",     &pMaterial->fAlpha,     0.0f, 1.0f);
+
+	ImGui::Separator();
+	if (ImGui::Button("Reset to Defaults"))
+		*pMaterial = MaterialComponent{};
+
+	if (!sMatPath.empty())
+	{
+		ImGui::SameLine();
+		if (ImGui::Button("Save Material"))
+		{
+			if (WriteMaterial(sMatPath, pMaterial->vAlbedoColor,
+			                  pMaterial->fRoughness, pMaterial->fMetallic, pMaterial->fAlpha))
+			{
+				EVO_LOG_INFO("Material saved to '{}'", sMatPath);
+			}
+		}
 	}
 }
 

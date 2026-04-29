@@ -53,6 +53,7 @@ public:
 private:
 	void DrawHierarchyPanel(Scene& scene);
 	void DrawInspectorPanel(Scene& scene);
+	void DrawMaterialEditorPanel(Scene& scene);
 	void DrawLogPanel();
 	void DoViewportPicking(Scene& scene, const Camera& camera, float u, float v);
 
@@ -65,6 +66,7 @@ private:
 	// Panel visibility
 	bool m_bShowHierarchy = true;
 	bool m_bShowInspector = true;
+	bool m_bShowMaterialEditor = true;
 	bool m_bShowLog       = true;
 
 	// Selection

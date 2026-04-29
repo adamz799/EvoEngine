@@ -1,0 +1,17 @@
+// Material.fbs — EvoEngine PBR material schema.
+// Generated header: Material_generated.h
+
+include "Common.fbs";
+
+namespace Evo.Schema;
+
+table Material {
+	albedo:    Vec3;
+	roughness: float = 0.5;
+	metallic:  float = 0.0;
+	alpha:     float = 1.0;
+}
+
+root_type Material;
+file_identifier "EMAT";
+file_extension "ematerial";

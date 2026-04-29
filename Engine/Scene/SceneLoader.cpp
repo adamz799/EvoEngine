@@ -2,6 +2,7 @@
 #include "Scene/Scene.h"
 #include "Scene/MeshAsset.h"
 #include "Scene/PrefabAsset.h"
+#include "Scene/MaterialAsset.h"
 #include "Asset/AssetManager.h"
 #include "Platform/FileSystem.h"
 #include "Core/Log.h"
@@ -84,6 +85,31 @@ bool LoadScene(const std::string& sPath, Scene& scene, AssetManager& assetManage
 			{
 				EVO_LOG_WARN("LoadScene: failed to load prefab '{}' for entity '{}'",
 				             sPrefabPath, pName ? pName : "<unnamed>");
+			}
+		}
+
+		// Load material
+		if (pEntity->material_path() && pEntity->material_path()->size() > 0)
+		{
+			std::string sMaterialPath = pEntity->material_path()->str();
+			scene.SetEntityMaterial(entity, sMaterialPath);
+
+			auto matHandle = assetManager.LoadSync(sMaterialPath);
+			auto* pMatAsset = assetManager.Get<MaterialAsset>(matHandle);
+
+			if (pMatAsset)
+			{
+				MaterialComponent mat;
+				mat.vAlbedoColor = pMatAsset->GetAlbedo();
+				mat.fRoughness   = pMatAsset->GetRoughness();
+				mat.fMetallic    = pMatAsset->GetMetallic();
+				mat.fAlpha       = pMatAsset->GetAlpha();
+				scene.Materials().Add(entity, mat);
+			}
+			else
+			{
+				EVO_LOG_WARN("LoadScene: failed to load material '{}' for entity '{}'",
+				             sMaterialPath, pName ? pName : "<unnamed>");
 			}
 		}
 	}

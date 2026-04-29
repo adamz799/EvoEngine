@@ -43,6 +43,12 @@ bool WriteScene(const std::string& sPath, Scene& scene)
 		if (!sPrefabPath.empty())
 			prefabPathOffset = builder.CreateString(sPrefabPath);
 
+		// Material reference
+		flatbuffers::Offset<flatbuffers::String> materialPathOffset;
+		const std::string& sMaterialPath = scene.GetEntityMaterial(entity);
+		if (!sMaterialPath.empty())
+			materialPathOffset = builder.CreateString(sMaterialPath);
+
 		// Per-instance rendering properties
 		uint32 uLODIndex = 0;
 		bool bVisible = true;
@@ -62,6 +68,8 @@ bool WriteScene(const std::string& sPath, Scene& scene)
 			entityBuilder.add_prefab_path(prefabPathOffset);
 		entityBuilder.add_lod_index(uLODIndex);
 		entityBuilder.add_visible(bVisible);
+		if (!materialPathOffset.IsNull())
+			entityBuilder.add_material_path(materialPathOffset);
 
 		entityOffsets.push_back(entityBuilder.Finish());
 	});

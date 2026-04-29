@@ -20,6 +20,9 @@ public:
 	const std::string& GetEntityPrefab(EntityHandle entity) const;
 	void               SetEntityPrefab(EntityHandle entity, const std::string& sPath);
 
+	const std::string& GetEntityMaterial(EntityHandle entity) const;
+	void               SetEntityMaterial(EntityHandle entity, const std::string& sPath);
+
 	uint32 GetEntityCount() const { return m_uEntityCount; }
 
 	/// Iterate all alive entities. Fn signature: void(EntityHandle)
@@ -49,6 +52,7 @@ private:
 	std::vector<bool>        m_vAlive;
 	std::vector<std::string> m_vNames;
 	std::vector<std::string> m_vPrefabPaths;
+	std::vector<std::string> m_vMaterialPaths;
 	std::vector<uint32>      m_vFreeList;
 	uint32                   m_uEntityCount = 0;
 

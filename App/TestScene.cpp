@@ -2,6 +2,8 @@
 #include "Asset/ShaderAsset.h"
 #include "Asset/TextureAsset.h"
 #include "Scene/MeshWriter.h"
+#include "Scene/MaterialAsset.h"
+#include "Scene/MaterialWriter.h"
 #include "Scene/PrefabAsset.h"
 #include "Scene/PrefabWriter.h"
 #include "Scene/SceneWriter.h"
@@ -72,7 +74,8 @@ bool TestScene::Initialize(RHIDevice* pDevice, RHIFormat rtFormat)
 	m_AssetManager.Initialize(pDevice);
 	m_AssetManager.RegisterFactory(".hlsl",    [] { return std::make_unique<ShaderAsset>(); });
 	m_AssetManager.RegisterFactory(".emesh",   [] { return std::make_unique<MeshAsset>(); });
-	m_AssetManager.RegisterFactory(".eprefab", [] { return std::make_unique<PrefabAsset>(); });
+	m_AssetManager.RegisterFactory(".eprefab",   [] { return std::make_unique<PrefabAsset>(); });
+	m_AssetManager.RegisterFactory(".ematerial", [] { return std::make_unique<MaterialAsset>(); });
 	m_AssetManager.RegisterFactory(".png",     [] { return std::make_unique<TextureAsset>(); });
 	m_AssetManager.RegisterFactory(".jpg",     [] { return std::make_unique<TextureAsset>(); });
 	m_AssetManager.RegisterFactory(".tga",     [] { return std::make_unique<TextureAsset>(); });
@@ -368,6 +371,36 @@ bool TestScene::Initialize(RHIDevice* pDevice, RHIFormat rtFormat)
 		return false;
 	}
 
+	// ---- Write material files ----
+	{
+		struct MaterialSetup {
+			const char* pName;
+			Vec3 vAlbedo;
+			float fRoughness;
+			float fMetallic;
+			float fAlpha;
+		};
+
+		MaterialSetup materials[] = {
+			{ "CenterCube", Vec3(0.9f, 0.2f, 0.2f), 0.3f, 0.0f, 1.0f },
+			{ "RightCube",  Vec3(0.2f, 0.9f, 0.2f), 0.5f, 0.0f, 1.0f },
+			{ "LeftCube",   Vec3(0.2f, 0.2f, 0.9f), 0.5f, 0.0f, 1.0f },
+			{ "TopCube",    Vec3(0.9f, 0.9f, 0.2f), 0.1f, 0.9f, 1.0f },
+			{ "BottomCube", Vec3(0.9f, 0.5f, 0.2f), 0.8f, 0.0f, 1.0f },
+		};
+
+		std::filesystem::create_directories("Assets/Materials");
+		for (const auto& m : materials)
+		{
+			std::string path = std::string("Assets/Materials/") + m.pName + ".ematerial";
+			if (!WriteMaterial(path, m.vAlbedo, m.fRoughness, m.fMetallic, m.fAlpha))
+			{
+				EVO_LOG_ERROR("TestScene: failed to write '{}'", path);
+				return false;
+			}
+		}
+	}
+
 	// ---- Build a temporary scene and write .escene file ----
 	{
 		Scene tempScene;
@@ -396,6 +429,8 @@ bool TestScene::Initialize(RHIDevice* pDevice, RHIFormat rtFormat)
 			tempScene.Transforms().Add(entity, transform);
 
 			tempScene.SetEntityPrefab(entity, "Assets/Prefabs/CubePrefab.eprefab");
+			tempScene.SetEntityMaterial(entity,
+				std::string("Assets/Materials/") + setup.pName + ".ematerial");
 		}
 
 		std::filesystem::create_directories("Assets/Scenes");
@@ -407,47 +442,21 @@ bool TestScene::Initialize(RHIDevice* pDevice, RHIFormat rtFormat)
 	}
 
 	// ---- Load scene from .escene file ----
+	// Materials are now loaded automatically from .ematerial files via material_path
 	if (!LoadScene("Assets/Scenes/CubeScene.escene", m_Scene, m_AssetManager))
 	{
 		EVO_LOG_ERROR("TestScene: failed to load CubeScene.escene");
 		return false;
 	}
 
-	// ---- Assign materials to entities ----
-	{
-		struct MaterialSetup {
-			const char* pName;
-			Vec3 vAlbedo;
-			float fRoughness;
-			float fMetallic;
-			float fAlpha;
-		};
-
-		MaterialSetup materials[] = {
-			{ "CenterCube", Vec3(0.9f, 0.2f, 0.2f), 0.3f, 0.0f, 1.0f },
-			{ "RightCube",  Vec3(0.2f, 0.9f, 0.2f), 0.5f, 0.0f, 1.0f },
-			{ "LeftCube",   Vec3(0.2f, 0.2f, 0.9f), 0.5f, 0.0f, 1.0f },
-			{ "TopCube",    Vec3(0.9f, 0.9f, 0.2f), 0.1f, 0.9f, 1.0f },
-			{ "BottomCube", Vec3(0.9f, 0.5f, 0.2f), 0.8f, 0.0f, 1.0f },
-		};
-
-		int matIdx = 0;
-		m_Scene.ForEachEntity([&](EntityHandle entity) {
-			if (matIdx < 5)
-			{
-				MaterialComponent mat;
-				mat.vAlbedoColor = materials[matIdx].vAlbedo;
-				mat.fRoughness   = materials[matIdx].fRoughness;
-				mat.fMetallic    = materials[matIdx].fMetallic;
-				mat.fAlpha       = materials[matIdx].fAlpha;
-				m_Scene.Materials().Add(entity, mat);
-				matIdx++;
-			}
-		});
-	}
-
 	// ---- Add transparent cubes ----
 	{
+		// Write transparent material files
+		WriteMaterial("Assets/Materials/GlassCube.ematerial",
+		              Vec3(0.4f, 0.8f, 0.9f), 0.1f, 0.0f, 0.4f);
+		WriteMaterial("Assets/Materials/TintedCube.ematerial",
+		              Vec3(0.9f, 0.3f, 0.6f), 0.3f, 0.0f, 0.6f);
+
 		auto prefabHandle = m_AssetManager.LoadSync("Assets/Prefabs/CubePrefab.eprefab");
 		auto* pPrefab = m_AssetManager.Get<PrefabAsset>(prefabHandle);
 		MeshAsset* pMeshAsset = nullptr;
@@ -456,6 +465,12 @@ bool TestScene::Initialize(RHIDevice* pDevice, RHIFormat rtFormat)
 			auto meshHandle = m_AssetManager.LoadSync(pPrefab->GetMeshPath());
 			pMeshAsset = m_AssetManager.Get<MeshAsset>(meshHandle);
 		}
+
+		// Load transparent materials from asset files
+		auto glassMatHandle = m_AssetManager.LoadSync("Assets/Materials/GlassCube.ematerial");
+		auto* pGlassMat = m_AssetManager.Get<MaterialAsset>(glassMatHandle);
+		auto tintMatHandle = m_AssetManager.LoadSync("Assets/Materials/TintedCube.ematerial");
+		auto* pTintMat = m_AssetManager.Get<MaterialAsset>(tintMatHandle);
 
 		auto transCube1 = m_Scene.CreateEntity("GlassCube");
 		TransformComponent t1;
@@ -468,12 +483,16 @@ bool TestScene::Initialize(RHIDevice* pDevice, RHIFormat rtFormat)
 			mesh1.pMesh = pMeshAsset;
 			m_Scene.Meshes().Add(transCube1, mesh1);
 		}
-		MaterialComponent glassMat;
-		glassMat.vAlbedoColor = Vec3(0.4f, 0.8f, 0.9f);
-		glassMat.fRoughness   = 0.1f;
-		glassMat.fMetallic    = 0.0f;
-		glassMat.fAlpha       = 0.4f;
-		m_Scene.Materials().Add(transCube1, glassMat);
+		m_Scene.SetEntityMaterial(transCube1, "Assets/Materials/GlassCube.ematerial");
+		if (pGlassMat)
+		{
+			MaterialComponent glassMat;
+			glassMat.vAlbedoColor = pGlassMat->GetAlbedo();
+			glassMat.fRoughness   = pGlassMat->GetRoughness();
+			glassMat.fMetallic    = pGlassMat->GetMetallic();
+			glassMat.fAlpha       = pGlassMat->GetAlpha();
+			m_Scene.Materials().Add(transCube1, glassMat);
+		}
 
 		auto transCube2 = m_Scene.CreateEntity("TintedCube");
 		TransformComponent t2;
@@ -486,12 +505,16 @@ bool TestScene::Initialize(RHIDevice* pDevice, RHIFormat rtFormat)
 			mesh2.pMesh = pMeshAsset;
 			m_Scene.Meshes().Add(transCube2, mesh2);
 		}
-		MaterialComponent tintMat;
-		tintMat.vAlbedoColor = Vec3(0.9f, 0.3f, 0.6f);
-		tintMat.fRoughness   = 0.3f;
-		tintMat.fMetallic    = 0.0f;
-		tintMat.fAlpha       = 0.6f;
-		m_Scene.Materials().Add(transCube2, tintMat);
+		m_Scene.SetEntityMaterial(transCube2, "Assets/Materials/TintedCube.ematerial");
+		if (pTintMat)
+		{
+			MaterialComponent tintMat;
+			tintMat.vAlbedoColor = pTintMat->GetAlbedo();
+			tintMat.fRoughness   = pTintMat->GetRoughness();
+			tintMat.fMetallic    = pTintMat->GetMetallic();
+			tintMat.fAlpha       = pTintMat->GetAlpha();
+			m_Scene.Materials().Add(transCube2, tintMat);
+		}
 	}
 
 	// Initialize game camera (fixed position)

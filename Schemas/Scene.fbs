@@ -17,6 +17,9 @@ table SceneEntity {
 	prefab_path: string;    // 资产路径，如 "Assets/Prefabs/CubePrefab.eprefab"
 	lod_index:   uint = 0;
 
+	// Material 引用
+	material_path: string;  // 资产路径，如 "Assets/Materials/CenterCube.ematerial"
+
 	// 渲染标志
 	visible:    bool = true;
 }

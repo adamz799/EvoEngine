@@ -21,6 +21,7 @@ EntityHandle Scene::CreateEntity(const char* pName)
 		m_vAlive.push_back(false);
 		m_vNames.emplace_back();
 		m_vPrefabPaths.emplace_back();
+		m_vMaterialPaths.emplace_back();
 		handle.uGeneration = 0;
 	}
 
@@ -43,6 +44,7 @@ void Scene::DestroyEntity(EntityHandle entity)
 	// Clear name/prefab and mark dead
 	m_vNames[entity.uIndex].clear();
 	m_vPrefabPaths[entity.uIndex].clear();
+	m_vMaterialPaths[entity.uIndex].clear();
 	m_vAlive[entity.uIndex] = false;
 
 	// Increment generation and add to free list
@@ -84,6 +86,20 @@ void Scene::SetEntityPrefab(EntityHandle entity, const std::string& sPath)
 	if (!IsAlive(entity))
 		return;
 	m_vPrefabPaths[entity.uIndex] = sPath;
+}
+
+const std::string& Scene::GetEntityMaterial(EntityHandle entity) const
+{
+	if (!IsAlive(entity))
+		return s_EmptyName;
+	return m_vMaterialPaths[entity.uIndex];
+}
+
+void Scene::SetEntityMaterial(EntityHandle entity, const std::string& sPath)
+{
+	if (!IsAlive(entity))
+		return;
+	m_vMaterialPaths[entity.uIndex] = sPath;
 }
 
 } // namespace Evo
