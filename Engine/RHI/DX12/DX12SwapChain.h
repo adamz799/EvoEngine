@@ -21,8 +21,8 @@ public:
 	uint32              GetCurrentBackBufferIndex() const override;
 	RHITextureHandle GetCurrentBackBuffer() override;
 	RHIRenderTargetView GetCurrentBackBufferRTV() override;
-	uint32              GetWidth()  const override { return m_Width; }
-	uint32              GetHeight() const override { return m_Height; }
+	uint32              GetWidth()  const override { return m_uWidth; }
+	uint32              GetHeight() const override { return m_uHeight; }
 	RHIFormat        GetFormat() const override { return m_Format; }
 
 	// Native accessors
@@ -36,15 +36,15 @@ private:
 	DX12Device* m_pDevice = nullptr;   // non-owning
 
 	ComPtr<IDXGISwapChain3> m_pSwapChain;
-	uint32       m_Width       = 0;
-	uint32       m_Height      = 0;
-	uint32       m_BufferCount = NUM_BACK_FRAMES;
+	uint32       m_uWidth       = 0;
+	uint32       m_uHeight      = 0;
+	uint32       m_uBufferCount = NUM_BACK_FRAMES;
 	RHIFormat m_Format      = RHIFormat::R8G8B8A8_UNORM;
-	bool      m_Vsync       = true;
+	bool      m_bVsync       = true;
 
-	 ComPtr<ID3D12Resource>       m_BackBuffers[NUM_BACK_FRAMES];
-	 RHITextureHandle            m_BackBufferHandles[NUM_BACK_FRAMES] = {};
-	 RHIRenderTargetView         m_BackBufferRTVs[NUM_BACK_FRAMES] = {};
+	 ComPtr<ID3D12Resource>       m_vBackBuffers[NUM_BACK_FRAMES];
+	 RHITextureHandle            m_vBackBufferHandles[NUM_BACK_FRAMES] = {};
+	 RHIRenderTargetView         m_vBackBufferRTVs[NUM_BACK_FRAMES] = {};
 };
 
 } // namespace Evo

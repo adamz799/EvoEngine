@@ -21,10 +21,10 @@ public:
     RHIBufferHandle      GetHandle() const { return m_Handle; }
     bool                 IsValid()   const { return m_Handle.IsValid(); }
 
-    uint64                  GetSize()   const { return m_Desc.size; }
+    uint64                  GetSize()   const { return m_Desc.uSize; }
     RHIBufferUsage       GetUsage()  const { return m_Desc.usage; }
     RHIMemoryUsage       GetMemory() const { return m_Desc.memory; }
-    const std::string&   GetName()   const { return m_Desc.debugName; }
+    const std::string&   GetName()   const { return m_Desc.sDebugName; }
     const RHIBufferDesc& GetDesc()   const { return m_Desc; }
 
 private:

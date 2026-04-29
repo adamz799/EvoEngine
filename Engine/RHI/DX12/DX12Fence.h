@@ -18,10 +18,10 @@ public:
     void CpuSignal(uint64 value) override;
 
     // Native accessor
-    ID3D12Fence* GetD3D12Fence() const { return m_Fence.Get(); }
+    ID3D12Fence* GetD3D12Fence() const { return m_pFence.Get(); }
 
 private:
-    ComPtr<ID3D12Fence> m_Fence;
+    ComPtr<ID3D12Fence> m_pFence;
     HANDLE              m_Event = nullptr;
 };
 

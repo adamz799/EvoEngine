@@ -13,7 +13,7 @@ bool DX12CommandList::Initialize(DX12Device* device, RHIQueueType type)
 	if (!device || !device->GetD3D12Device())
 		return false;
 
-	HRESULT hr = device->GetD3D12Device()->CreateCommandAllocator(MapQueueType(type), IID_PPV_ARGS(&m_Allocator));
+	HRESULT hr = device->GetD3D12Device()->CreateCommandAllocator(MapQueueType(type), IID_PPV_ARGS(&m_pAllocator));
 	if (FAILED(hr))
 	{
 		EVO_LOG_ERROR("Failed to create command allocator: {}", GetHResultString(hr));
@@ -22,14 +22,14 @@ bool DX12CommandList::Initialize(DX12Device* device, RHIQueueType type)
 
 	// Create as base CommandList, then QI for CommandList7 (Enhanced Barriers)
 	ComPtr<ID3D12GraphicsCommandList> baseCmdList;
-	hr = device->GetD3D12Device()->CreateCommandList(0, MapQueueType(type), m_Allocator.Get(), nullptr, IID_PPV_ARGS(&baseCmdList));
+	hr = device->GetD3D12Device()->CreateCommandList(0, MapQueueType(type), m_pAllocator.Get(), nullptr, IID_PPV_ARGS(&baseCmdList));
 	if (FAILED(hr))
 	{
 		EVO_LOG_ERROR("Failed to create command list: {}", GetHResultString(hr));
 		return false;
 	}
 
-	hr = baseCmdList.As(&m_CmdList);
+	hr = baseCmdList.As(&m_pCmdList);
 	if (FAILED(hr))
 	{
 		EVO_LOG_ERROR("Failed to query ID3D12GraphicsCommandList7 (Enhanced Barriers require Agility SDK): {}",
@@ -37,25 +37,25 @@ bool DX12CommandList::Initialize(DX12Device* device, RHIQueueType type)
 		return false;
 	}
 
-	m_CmdList->Close();
+	m_pCmdList->Close();
 	return true;
 }
 
 void DX12CommandList::ShutdownCommandList()
 {
-	m_CmdList.Reset();
-	m_Allocator.Reset();
+	m_pCmdList.Reset();
+	m_pAllocator.Reset();
 }
 
 void DX12CommandList::Begin()
 {
-	m_Allocator->Reset(); 
-	m_CmdList->Reset(m_Allocator.Get(), nullptr);
+	m_pAllocator->Reset(); 
+	m_pCmdList->Reset(m_pAllocator.Get(), nullptr);
 }
 
 void DX12CommandList::End()
 {
-	m_CmdList->Close();
+	m_pCmdList->Close();
 }
 
 // ---- Barriers (Enhanced Barrier API via ID3D12GraphicsCommandList7) ----
@@ -70,15 +70,15 @@ void DX12CommandList::TextureBarrier(const RHITextureBarrier* barriers, uint32 c
 		if (!entry)
 		{
 			EVO_LOG_WARN("TextureBarrier: invalid texture handle (idx={}, gen={})",
-			             b.texture.Handle, b.texture.generation);
+			             b.texture.uHandle, b.texture.uGeneration);
 			continue;
 		}
 
-		ID3D12Resource* resource = entry->resource.Get();
+		ID3D12Resource* resource = entry->pResource.Get();
 		if (!resource)
 		{
 			EVO_LOG_WARN("TextureBarrier: texture '{}' has null ID3D12Resource",
-			             entry->debugName);
+			             entry->sDebugName);
 			continue;
 		}
 
@@ -115,8 +115,8 @@ void DX12CommandList::ClearRenderTarget(RHIRenderTargetView rtv, const RHIColor&
 		return;
 	}
 
-	const float clearColor[4] = { color.r, color.g, color.b, color.a };
-	m_CmdList->ClearRenderTargetView(UnwrapRTV(rtv), clearColor, 0, nullptr);
+	const float clearColor[4] = { color.fR, color.fG, color.fB, color.fA };
+	m_pCmdList->ClearRenderTargetView(UnwrapRTV(rtv), clearColor, 0, nullptr);
 }
 
 void DX12CommandList::NativeTextureBarrier(
@@ -141,7 +141,7 @@ void DX12CommandList::NativeTextureBarrier(
 	group.NumBarriers         = 1;
 	group.pTextureBarriers    = &texBarrier;
 
-	m_CmdList->Barrier(1, &group);
+	m_pCmdList->Barrier(1, &group);
 }
 
 // ---- Render pass ----
@@ -158,7 +158,7 @@ void DX12CommandList::SetRenderTargets(const RHIRenderTargetView* rtvs, uint32 c
 	if (hasDsv)
 		dsvHandle = UnwrapDSV(*dsv);
 
-	m_CmdList->OMSetRenderTargets(count, rtvHandles, FALSE, hasDsv ? &dsvHandle : nullptr);
+	m_pCmdList->OMSetRenderTargets(count, rtvHandles, FALSE, hasDsv ? &dsvHandle : nullptr);
 }
 
 void DX12CommandList::BeginRenderPass(const RHIRenderPassDesc& /*desc*/)
@@ -184,22 +184,22 @@ void DX12CommandList::SetPipeline(RHIPipelineHandle pipeline)
 		EVO_LOG_WARN("SetPipeline: invalid pipeline handle");
 		return;
 	}
-	m_CmdList->SetPipelineState(entry->pso.Get());
-	m_CmdList->SetGraphicsRootSignature(entry->rootSignature.Get());
-	m_CmdList->IASetPrimitiveTopology(MapPrimitiveTopology(entry->topology));
+	m_pCmdList->SetPipelineState(entry->pPso.Get());
+	m_pCmdList->SetGraphicsRootSignature(entry->pRootSignature.Get());
+	m_pCmdList->IASetPrimitiveTopology(MapPrimitiveTopology(entry->topology));
 }
 
 void DX12CommandList::SetViewport(const RHIViewport& viewport)
 {
-	D3D12_VIEWPORT vp = { viewport.x, viewport.y, viewport.width, viewport.height,
-						  viewport.minDepth, viewport.maxDepth };
-	m_CmdList->RSSetViewports(1, &vp);
+	D3D12_VIEWPORT vp = { viewport.fX, viewport.fY, viewport.fWidth, viewport.fHeight,
+						  viewport.fMinDepth, viewport.fMaxDepth };
+	m_pCmdList->RSSetViewports(1, &vp);
 }
 
 void DX12CommandList::SetScissorRect(const RHIScissorRect& rect)
 {
 	D3D12_RECT r = { rect.left, rect.top, rect.right, rect.bottom };
-	m_CmdList->RSSetScissorRects(1, &r);
+	m_pCmdList->RSSetScissorRects(1, &r);
 }
 
 // ---- Binding ----
@@ -225,10 +225,10 @@ void DX12CommandList::SetVertexBuffer(uint32 slot, const RHIVertexBufferView& vi
 		return;
 	}
 	D3D12_VERTEX_BUFFER_VIEW vbv = {};
-	vbv.BufferLocation = entry->gpuAddress + view.offset;
-	vbv.SizeInBytes    = view.size ? view.size : static_cast<UINT>(entry->size - view.offset);
-	vbv.StrideInBytes  = view.stride;
-	m_CmdList->IASetVertexBuffers(slot, 1, &vbv);
+	vbv.BufferLocation = entry->uGpuAddress + view.uOffset;
+	vbv.SizeInBytes    = view.uSize ? view.uSize : static_cast<UINT>(entry->uSize - view.uOffset);
+	vbv.StrideInBytes  = view.uStride;
+	m_pCmdList->IASetVertexBuffers(slot, 1, &vbv);
 }
 
 void DX12CommandList::SetIndexBuffer(const RHIIndexBufferView& view)
@@ -240,10 +240,10 @@ void DX12CommandList::SetIndexBuffer(const RHIIndexBufferView& view)
 		return;
 	}
 	D3D12_INDEX_BUFFER_VIEW ibv = {};
-	ibv.BufferLocation = entry->gpuAddress + view.offset;
-	ibv.SizeInBytes    = view.size ? view.size : static_cast<UINT>(entry->size - view.offset);
+	ibv.BufferLocation = entry->uGpuAddress + view.uOffset;
+	ibv.SizeInBytes    = view.uSize ? view.uSize : static_cast<UINT>(entry->uSize - view.uOffset);
 	ibv.Format         = MapIndexFormat(view.format);
-	m_CmdList->IASetIndexBuffer(&ibv);
+	m_pCmdList->IASetIndexBuffer(&ibv);
 }
 
 // ---- Draw ----
@@ -251,20 +251,20 @@ void DX12CommandList::SetIndexBuffer(const RHIIndexBufferView& view)
 void DX12CommandList::Draw(uint32 vertexCount, uint32 instanceCount,
 	uint32 firstVertex, uint32 firstInstance)
 {
-	m_CmdList->DrawInstanced(vertexCount, instanceCount, firstVertex, firstInstance);
+	m_pCmdList->DrawInstanced(vertexCount, instanceCount, firstVertex, firstInstance);
 }
 
 void DX12CommandList::DrawIndexed(uint32 indexCount, uint32 instanceCount,
 	uint32 firstIndex, int32 vertexOffset, uint32 firstInstance)
 {
-	m_CmdList->DrawIndexedInstanced(indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
+	m_pCmdList->DrawIndexedInstanced(indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 }
 
 // ---- Compute ----
 
 void DX12CommandList::Dispatch(uint32 /*groupCountX*/, uint32 /*groupCountY*/, uint32 /*groupCountZ*/)
 {
-	// TODO: m_CmdList->Dispatch(...)
+	// TODO: m_pCmdList->Dispatch(...)
 }
 
 // ---- Copy ----
@@ -272,7 +272,7 @@ void DX12CommandList::Dispatch(uint32 /*groupCountX*/, uint32 /*groupCountY*/, u
 void DX12CommandList::CopyBuffer(RHIBufferHandle /*src*/, uint64 /*srcOffset*/,
 	RHIBufferHandle /*dst*/, uint64 /*dstOffset*/, uint64 /*size*/)
 {
-	// TODO: m_CmdList->CopyBufferRegion(...)
+	// TODO: m_pCmdList->CopyBufferRegion(...)
 }
 
 void DX12CommandList::CopyBufferToTexture(RHIBufferHandle /*src*/, RHITextureHandle /*dst*/)

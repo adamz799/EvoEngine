@@ -21,7 +21,7 @@ public:
     void Shutdown() override;
 
     RHIBackendType     GetBackendType() const override { return RHIBackendType::DX12; }
-    const std::string& GetAdapterName() const override { return m_AdapterName; }
+    const std::string& GetAdapterName() const override { return m_sAdapterName; }
 
     // ---- Queue access ----
     RHIQueue* GetGraphicsQueue() override;
@@ -71,7 +71,7 @@ public:
 
     // ---- Native handle accessors (for ImGui and other integrations) ----
     ID3D12Device*        GetD3D12Device()   const { return m_pDevice.Get(); }
-    IDXGIFactory4*       GetDXGIFactory()   const { return m_DxgiFactory.Get(); }
+    IDXGIFactory4*       GetDXGIFactory()   const { return m_pDxgiFactory.Get(); }
 
     // Return the native DX12 graphics command queue (needed by SwapChain creation, ImGui, etc.)
     ID3D12CommandQueue*  GetGraphicsCommandQueue() const;
@@ -95,15 +95,15 @@ public:
     const DX12PipelineEntry* ResolvePipeline(RHIPipelineHandle handle) const;
 
 private:
-    std::string m_AdapterName;
+    std::string m_sAdapterName;
 
-    ComPtr<IDXGIFactory4>   m_DxgiFactory;
+    ComPtr<IDXGIFactory4>   m_pDxgiFactory;
     ComPtr<ID3D12Device>    m_pDevice;
     D3D12MA::Allocator*     m_pAllocator = nullptr;
 
-    std::unique_ptr<DX12Queue> m_GraphicsQueue;
-    std::unique_ptr<DX12Queue> m_ComputeQueue;
-    std::unique_ptr<DX12Queue> m_CopyQueue;
+    std::unique_ptr<DX12Queue> m_pGraphicsQueue;
+    std::unique_ptr<DX12Queue> m_pComputeQueue;
+    std::unique_ptr<DX12Queue> m_pCopyQueue;
 
     HWND m_HWND = nullptr;
 

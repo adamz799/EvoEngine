@@ -8,8 +8,8 @@
 namespace Evo {
 
 struct RendererDesc {
-	RHIBackendType backend = RHIBackendType::DX12;
-	bool enableDebug       = true;
+	RHIBackendType backend      = RHIBackendType::DX12;
+	bool           bEnableDebug = true;
 };
 
 class Renderer {

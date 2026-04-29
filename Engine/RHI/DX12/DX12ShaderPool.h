@@ -8,11 +8,11 @@
 namespace Evo {
 
 struct DX12ShaderEntry {
-	std::vector<uint8> bytecode;
+	std::vector<uint8> vBytecode;
 	RHIShaderStage     stage = RHIShaderStage::Vertex;
-	std::string        debugName;
-	uint16             generation = 0;
-	bool               alive      = false;
+	std::string        sDebugName;
+	uint16             uGeneration = 0;
+	bool               bAlive      = false;
 };
 
 class DX12ShaderPool {
@@ -23,24 +23,24 @@ public:
 		std::unique_lock lock(m_Mutex);
 
 		uint64 index;
-		if (!m_FreeList.empty()) {
-			index = m_FreeList.back();
-			m_FreeList.pop_back();
+		if (!m_vFreeList.empty()) {
+			index = m_vFreeList.back();
+			m_vFreeList.pop_back();
 		} else {
-			index = m_Entries.size();
-			m_Entries.emplace_back();
+			index = m_vEntries.size();
+			m_vEntries.emplace_back();
 		}
 
-		auto& e     = m_Entries[index];
+		auto& e     = m_vEntries[index];
 		auto* src   = static_cast<const uint8*>(bytecodeData);
-		e.bytecode.assign(src, src + bytecodeSize);
+		e.vBytecode.assign(src, src + bytecodeSize);
 		e.stage     = stage;
-		e.debugName = name;
-		e.alive     = true;
+		e.sDebugName = name;
+		e.bAlive    = true;
 
 		RHIShaderHandle h;
-		h.Handle     = index;
-		h.generation = e.generation;
+		h.uHandle     = index;
+		h.uGeneration = e.uGeneration;
 		return h;
 	}
 
@@ -50,11 +50,11 @@ public:
 		auto* e = LookupUnlocked(handle);
 		if (!e) return;
 
-		e->alive = false;
-		e->generation++;
-		e->bytecode.clear();
-		e->debugName.clear();
-		m_FreeList.push_back(handle.Handle);
+		e->bAlive = false;
+		e->uGeneration++;
+		e->vBytecode.clear();
+		e->sDebugName.clear();
+		m_vFreeList.push_back(handle.uHandle);
 	}
 
 	DX12ShaderEntry* GetEntry(RHIShaderHandle handle)
@@ -78,17 +78,17 @@ public:
 private:
 	DX12ShaderEntry* LookupUnlocked(RHIShaderHandle handle) const
 	{
-		if (handle.Handle >= m_Entries.size())
+		if (handle.uHandle >= m_vEntries.size())
 			return nullptr;
-		auto& e = m_Entries[handle.Handle];
-		if (!e.alive || e.generation != handle.generation)
+		auto& e = m_vEntries[handle.uHandle];
+		if (!e.bAlive || e.uGeneration != handle.uGeneration)
 			return nullptr;
 		return const_cast<DX12ShaderEntry*>(&e);
 	}
 
 	mutable std::shared_mutex              m_Mutex;
-	mutable std::vector<DX12ShaderEntry>   m_Entries;
-	std::vector<uint64>                    m_FreeList;
+	mutable std::vector<DX12ShaderEntry>   m_vEntries;
+	std::vector<uint64>                    m_vFreeList;
 };
 
 } // namespace Evo

@@ -70,9 +70,9 @@ int main(int /*argc*/, char* /*argv*/[])
     // ---- Create window ----
     Evo::Window window;
     Evo::WindowDesc winDesc{};
-    winDesc.title  = "EvoEngine";
-    winDesc.width  = 1280;
-    winDesc.height = 720;
+    winDesc.sTitle  = "EvoEngine";
+    winDesc.uWidth  = 1280;
+    winDesc.uHeight = 720;
 
     if (!window.Initialize(winDesc)) {
         EVO_LOG_CRITICAL("Failed to create window");
@@ -88,7 +88,7 @@ int main(int /*argc*/, char* /*argv*/[])
 #elif EVO_RHI_VULKAN
     renderDesc.backend = Evo::RHIBackendType::Vulkan;
 #endif
-    renderDesc.enableDebug = true;
+    renderDesc.bEnableDebug = true;
 
     if (!renderer.Initialize(renderDesc, window)) {
         EVO_LOG_ERROR("Failed to initialize renderer (continuing with window only)");

@@ -21,7 +21,7 @@ bool Renderer::Initialize(const RendererDesc& desc, Window& window)
 
 	RHIDeviceDesc deviceDesc{};
 	deviceDesc.backend     = desc.backend;
-	deviceDesc.enableDebug = desc.enableDebug;
+	deviceDesc.bEnableDebug = desc.bEnableDebug;
 
 	if (!m_pRHIDevice->Initialize(deviceDesc)) {
 		EVO_LOG_CRITICAL("Failed to initialize RHI device");
@@ -30,10 +30,10 @@ bool Renderer::Initialize(const RendererDesc& desc, Window& window)
 
 	// Create swap chain
 	RHISwapChainDesc scDesc{};
-	scDesc.windowHandle = window.GetNativeHandle();
-	scDesc.width        = window.GetWidth();
-	scDesc.height       = window.GetHeight();
-	scDesc.bufferCount  = 2;
+	scDesc.pWindowHandle = window.GetNativeHandle();
+	scDesc.uWidth        = window.GetWidth();
+	scDesc.uHeight       = window.GetHeight();
+	scDesc.uBufferCount  = 2;
 	scDesc.format       = RHIFormat::R8G8B8A8_UNORM;
 
 	m_pSwapChain = m_pRHIDevice->CreateSwapChain(scDesc);

@@ -18,7 +18,7 @@ public:
 		desc.Flags          = D3D12_DESCRIPTOR_HEAP_FLAG_NONE;
 		desc.NodeMask       = 0;
 
-		HRESULT hr = device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_Heap));
+		HRESULT hr = device->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_pHeap));
 		if (FAILED(hr))
 		{
 			EVO_LOG_ERROR("DX12CpuDescriptorAllocator: failed to create heap: {}",
@@ -26,58 +26,58 @@ public:
 			return false;
 		}
 
-		m_HeapStart      = m_Heap->GetCPUDescriptorHandleForHeapStart().ptr;
-		m_DescriptorSize = device->GetDescriptorHandleIncrementSize(type);
-		m_Capacity       = capacity;
-		m_NextIndex      = 0;
+		m_uHeapStart      = m_pHeap->GetCPUDescriptorHandleForHeapStart().ptr;
+		m_uDescriptorSize = device->GetDescriptorHandleIncrementSize(type);
+		m_uCapacity       = capacity;
+		m_uNextIndex      = 0;
 
 		return true;
 	}
 
 	void Shutdown()
 	{
-		m_Heap.Reset();
-		m_FreeList.clear();
-		m_NextIndex = 0;
+		m_pHeap.Reset();
+		m_vFreeList.clear();
+		m_uNextIndex = 0;
 	}
 
 	D3D12_CPU_DESCRIPTOR_HANDLE Allocate()
 	{
 		uint32 index;
-		if (!m_FreeList.empty())
+		if (!m_vFreeList.empty())
 		{
-			index = m_FreeList.back();
-			m_FreeList.pop_back();
+			index = m_vFreeList.back();
+			m_vFreeList.pop_back();
 		}
 		else
 		{
-			if (m_NextIndex >= m_Capacity)
+			if (m_uNextIndex >= m_uCapacity)
 			{
-				EVO_LOG_ERROR("DX12CpuDescriptorAllocator: heap full (capacity={})", m_Capacity);
+				EVO_LOG_ERROR("DX12CpuDescriptorAllocator: heap full (capacity={})", m_uCapacity);
 				return { 0 };
 			}
-			index = m_NextIndex++;
+			index = m_uNextIndex++;
 		}
 
-		return { m_HeapStart + static_cast<SIZE_T>(index) * m_DescriptorSize };
+		return { m_uHeapStart + static_cast<SIZE_T>(index) * m_uDescriptorSize };
 	}
 
 	void Free(D3D12_CPU_DESCRIPTOR_HANDLE handle)
 	{
-		if (handle.ptr == 0 || m_DescriptorSize == 0)
+		if (handle.ptr == 0 || m_uDescriptorSize == 0)
 			return;
 
-		uint32 index = static_cast<uint32>((handle.ptr - m_HeapStart) / m_DescriptorSize);
-		m_FreeList.push_back(index);
+		uint32 index = static_cast<uint32>((handle.ptr - m_uHeapStart) / m_uDescriptorSize);
+		m_vFreeList.push_back(index);
 	}
 
 private:
-	ComPtr<ID3D12DescriptorHeap> m_Heap;
-	SIZE_T                       m_HeapStart      = 0;
-	uint32                       m_DescriptorSize = 0;
-	uint32                       m_Capacity       = 0;
-	uint32                       m_NextIndex      = 0;
-	std::vector<uint32>          m_FreeList;
+	ComPtr<ID3D12DescriptorHeap> m_pHeap;
+	SIZE_T                       m_uHeapStart      = 0;
+	uint32                       m_uDescriptorSize = 0;
+	uint32                       m_uCapacity       = 0;
+	uint32                       m_uNextIndex      = 0;
+	std::vector<uint32>          m_vFreeList;
 };
 
 } // namespace Evo

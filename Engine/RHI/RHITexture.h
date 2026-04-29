@@ -19,13 +19,13 @@ public:
     RHITextureHandle      GetHandle()    const { return m_Handle; }
     bool                  IsValid()      const { return m_Handle.IsValid(); }
 
-    uint32                   GetWidth()     const { return m_Desc.width; }
-    uint32                   GetHeight()    const { return m_Desc.height; }
-    uint32                   GetMipLevels() const { return m_Desc.mipLevels; }
+    uint32                   GetWidth()     const { return m_Desc.uWidth; }
+    uint32                   GetHeight()    const { return m_Desc.uHeight; }
+    uint32                   GetMipLevels() const { return m_Desc.uMipLevels; }
     RHIFormat             GetFormat()    const { return m_Desc.format; }
     RHITextureUsage       GetUsage()     const { return m_Desc.usage; }
     RHITextureDimension   GetDimension() const { return m_Desc.dimension; }
-    const std::string&    GetName()      const { return m_Desc.debugName; }
+    const std::string&    GetName()      const { return m_Desc.sDebugName; }
     const RHITextureDesc& GetDesc()      const { return m_Desc; }
 
 private:

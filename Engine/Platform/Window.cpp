@@ -19,27 +19,27 @@ bool Window::Initialize(const WindowDesc& desc)
     }
 
     Uint64 flags = 0;
-    if (desc.resizable)
+    if (desc.bResizable)
         flags |= SDL_WINDOW_RESIZABLE;
 
-    m_Window = SDL_CreateWindow(desc.title.c_str(), desc.width, desc.height, flags);
-    if (!m_Window) {
+    m_pWindow = SDL_CreateWindow(desc.sTitle.c_str(), desc.uWidth, desc.uHeight, flags);
+    if (!m_pWindow) {
         EVO_LOG_CRITICAL("Failed to create SDL window: {}", SDL_GetError());
         return false;
     }
 
-    m_Width  = desc.width;
-    m_Height = desc.height;
+    m_uWidth  = desc.uWidth;
+    m_uHeight = desc.uHeight;
 
-    EVO_LOG_INFO("Window created: {}x{} \"{}\"", m_Width, m_Height, desc.title);
+    EVO_LOG_INFO("Window created: {}x{} \"{}\"", m_uWidth, m_uHeight, desc.sTitle);
     return true;
 }
 
 void Window::Shutdown()
 {
-    if (m_Window) {
-        SDL_DestroyWindow(m_Window);
-        m_Window = nullptr;
+    if (m_pWindow) {
+        SDL_DestroyWindow(m_pWindow);
+        m_pWindow = nullptr;
         EVO_LOG_INFO("Window destroyed");
     }
     SDL_Quit();
@@ -59,17 +59,17 @@ bool Window::PollEvents()
                 break;
 
             case SDL_EVENT_WINDOW_RESIZED:
-                m_Width  = static_cast<uint32>(event.window.data1);
-                m_Height = static_cast<uint32>(event.window.data2);
-                EVO_LOG_DEBUG("Window resized: {}x{}", m_Width, m_Height);
+                m_uWidth  = static_cast<uint32>(event.window.data1);
+                m_uHeight = static_cast<uint32>(event.window.data2);
+                EVO_LOG_DEBUG("Window resized: {}x{}", m_uWidth, m_uHeight);
                 break;
 
             case SDL_EVENT_WINDOW_MINIMIZED:
-                m_Minimized = true;
+                m_bMinimized = true;
                 break;
 
             case SDL_EVENT_WINDOW_RESTORED:
-                m_Minimized = false;
+                m_bMinimized = false;
                 break;
         }
     }
@@ -80,17 +80,17 @@ void* Window::GetNativeHandle() const
 {
 #ifdef EVO_PLATFORM_WINDOWS
     return SDL_GetPointerProperty(
-        SDL_GetWindowProperties(m_Window),
+        SDL_GetWindowProperties(m_pWindow),
         SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr);
 #elif defined(EVO_PLATFORM_LINUX)
     // Try Wayland first, fall back to X11
     void* handle = SDL_GetPointerProperty(
-        SDL_GetWindowProperties(m_Window),
+        SDL_GetWindowProperties(m_pWindow),
         SDL_PROP_WINDOW_WAYLAND_SURFACE_POINTER, nullptr);
     if (!handle) {
         // X11 window is a uint32 ID, cast through uintptr
         auto xwin = SDL_GetNumberProperty(
-            SDL_GetWindowProperties(m_Window),
+            SDL_GetWindowProperties(m_pWindow),
             SDL_PROP_WINDOW_X11_WINDOW_NUMBER, 0);
         handle = reinterpret_cast<void*>(static_cast<uintptr_t>(xwin));
     }

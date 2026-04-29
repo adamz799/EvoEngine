@@ -11,10 +11,10 @@ namespace Evo {
 
 /// One slot in the texture pool.
 struct DX12TextureEntry {
-    ComPtr<ID3D12Resource> resource;
-    std::string            debugName;
-    uint16                 generation = 0;
-    bool                   alive      = false;
+    ComPtr<ID3D12Resource> pResource;
+    std::string            sDebugName;
+    uint16                 uGeneration = 0;
+    bool                   bAlive      = false;
     RHIBarrierState        barrierState;
 };
 
@@ -33,23 +33,23 @@ public:
         std::unique_lock lock(m_Mutex);
 
         uint64 index;
-        if (!m_FreeList.empty()) {
-            index = m_FreeList.back();
-            m_FreeList.pop_back();
+        if (!m_vFreeList.empty()) {
+            index = m_vFreeList.back();
+            m_vFreeList.pop_back();
         } else {
-            index = m_Entries.size();
-            m_Entries.emplace_back();
+            index = m_vEntries.size();
+            m_vEntries.emplace_back();
         }
 
-        auto& e        = m_Entries[index];
-        e.resource     = std::move(resource);
-        e.debugName    = name;
-        e.alive        = true;
+        auto& e        = m_vEntries[index];
+        e.pResource    = std::move(resource);
+        e.sDebugName   = name;
+        e.bAlive       = true;
         e.barrierState = initialBarrier;
 
         RHITextureHandle h;
-        h.Handle     = index;
-        h.generation = e.generation;
+        h.uHandle     = index;
+        h.uGeneration = e.uGeneration;
         return h;
     }
 
@@ -60,12 +60,12 @@ public:
         auto* e = LookupUnlocked(handle);
         if (!e) return;
 
-        e->alive = false;
-        e->generation++;
-        e->resource.Reset();
-        e->debugName.clear();
+        e->bAlive = false;
+        e->uGeneration++;
+        e->pResource.Reset();
+        e->sDebugName.clear();
         e->barrierState = {};
-        m_FreeList.push_back(handle.Handle);
+        m_vFreeList.push_back(handle.uHandle);
     }
 
     /// Get the native resource pointer directly. Returns nullptr if invalid.
@@ -73,7 +73,7 @@ public:
     {
         std::shared_lock lock(m_Mutex);
         auto* e = LookupUnlocked(handle);
-        return e ? e->resource.Get() : nullptr;
+        return e ? e->pResource.Get() : nullptr;
     }
 
     /// Get the full entry (for barrier state, debug name, etc.). Returns nullptr if invalid.
@@ -98,17 +98,17 @@ public:
 private:
     DX12TextureEntry* LookupUnlocked(RHITextureHandle handle) const
     {
-        if (handle.Handle >= m_Entries.size())
+        if (handle.uHandle >= m_vEntries.size())
             return nullptr;
-        auto& e = m_Entries[handle.Handle];
-        if (!e.alive || e.generation != handle.generation)
+        auto& e = m_vEntries[handle.uHandle];
+        if (!e.bAlive || e.uGeneration != handle.uGeneration)
             return nullptr;
         return const_cast<DX12TextureEntry*>(&e);
     }
 
     mutable std::shared_mutex         m_Mutex;
-    mutable std::vector<DX12TextureEntry> m_Entries;
-    std::vector<uint64>               m_FreeList;
+    mutable std::vector<DX12TextureEntry> m_vEntries;
+    std::vector<uint64>               m_vFreeList;
 };
 
 } // namespace Evo

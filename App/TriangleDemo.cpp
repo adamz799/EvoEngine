@@ -25,17 +25,17 @@ bool TriangleDemo::Initialize(RHIDevice* pDevice, RHIFormat rtFormat)
 		return false;
 
 	RHIShaderDesc vsDesc = {};
-	vsDesc.bytecode     = vsBlob->GetBufferPointer();
-	vsDesc.bytecodeSize = vsBlob->GetBufferSize();
-	vsDesc.stage        = RHIShaderStage::Vertex;
-	vsDesc.debugName    = "TriangleVS";
+	vsDesc.pBytecode     = vsBlob->GetBufferPointer();
+	vsDesc.uBytecodeSize = vsBlob->GetBufferSize();
+	vsDesc.stage         = RHIShaderStage::Vertex;
+	vsDesc.sDebugName    = "TriangleVS";
 	m_TriangleVS = pDevice->CreateShader(vsDesc);
 
 	RHIShaderDesc psDesc = {};
-	psDesc.bytecode     = psBlob->GetBufferPointer();
-	psDesc.bytecodeSize = psBlob->GetBufferSize();
-	psDesc.stage        = RHIShaderStage::Pixel;
-	psDesc.debugName    = "TrianglePS";
+	psDesc.pBytecode     = psBlob->GetBufferPointer();
+	psDesc.uBytecodeSize = psBlob->GetBufferSize();
+	psDesc.stage         = RHIShaderStage::Pixel;
+	psDesc.sDebugName    = "TrianglePS";
 	m_TrianglePS = pDevice->CreateShader(psDesc);
 
 	if (!m_TriangleVS.IsValid() || !m_TrianglePS.IsValid())
@@ -49,16 +49,16 @@ bool TriangleDemo::Initialize(RHIDevice* pDevice, RHIFormat rtFormat)
 
 	// Pipeline
 	RHIGraphicsPipelineDesc pipelineDesc = {};
-	pipelineDesc.vertexShader      = m_TriangleVS;
-	pipelineDesc.pixelShader       = m_TrianglePS;
-	pipelineDesc.inputElements     = inputElements;
-	pipelineDesc.inputElementCount = 2;
-	pipelineDesc.rasterizer.cullMode = RHICullMode::None;
-	pipelineDesc.depthStencil.depthTestEnable = false;
-	pipelineDesc.renderTargetCount = 1;
+	pipelineDesc.vertexShader         = m_TriangleVS;
+	pipelineDesc.pixelShader          = m_TrianglePS;
+	pipelineDesc.pInputElements       = inputElements;
+	pipelineDesc.uInputElementCount   = 2;
+	pipelineDesc.rasterizer.cullMode  = RHICullMode::None;
+	pipelineDesc.depthStencil.bDepthTestEnable = false;
+	pipelineDesc.uRenderTargetCount   = 1;
 	pipelineDesc.renderTargetFormats[0] = rtFormat;
-	pipelineDesc.topology          = RHIPrimitiveTopology::TriangleList;
-	pipelineDesc.debugName         = "TrianglePSO";
+	pipelineDesc.topology             = RHIPrimitiveTopology::TriangleList;
+	pipelineDesc.sDebugName           = "TrianglePSO";
 	m_TrianglePipeline = pDevice->CreateGraphicsPipeline(pipelineDesc);
 
 	if (!m_TrianglePipeline.IsValid())
@@ -72,10 +72,10 @@ bool TriangleDemo::Initialize(RHIDevice* pDevice, RHIFormat rtFormat)
 	};
 
 	RHIBufferDesc vbDesc = {};
-	vbDesc.size      = sizeof(vertices);
-	vbDesc.usage     = RHIBufferUsage::Vertex;
-	vbDesc.memory    = RHIMemoryUsage::CpuToGpu;
-	vbDesc.debugName = "TriangleVB";
+	vbDesc.uSize      = sizeof(vertices);
+	vbDesc.usage      = RHIBufferUsage::Vertex;
+	vbDesc.memory     = RHIMemoryUsage::CpuToGpu;
+	vbDesc.sDebugName = "TriangleVB";
 	m_TriangleVB = pDevice->CreateBuffer(vbDesc);
 
 	if (!m_TriangleVB.IsValid())
@@ -123,7 +123,7 @@ void TriangleDemo::AddPasses(Renderer& renderer)
 
 			RHIVertexBufferView vbView = {};
 			vbView.buffer = m_TriangleVB;
-			vbView.stride = sizeof(TriangleVertex);
+			vbView.uStride = sizeof(TriangleVertex);
 			pCmdList->SetVertexBuffer(0, vbView);
 
 			pCmdList->Draw(3, 1, 0, 0);

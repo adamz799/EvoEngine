@@ -23,17 +23,17 @@ public:
     RHIQueueType GetType() const override { return m_Type; }
 
     // Native accessor
-    ID3D12CommandQueue* GetD3D12Queue() const { return m_Queue.Get(); }
+    ID3D12CommandQueue* GetD3D12Queue() const { return m_pQueue.Get(); }
 
 private:
-    ComPtr<ID3D12CommandQueue> m_Queue;
+    ComPtr<ID3D12CommandQueue> m_pQueue;
     RHIQueueType               m_Type = RHIQueueType::Graphics;
 
     // Internal fence for WaitIdle
     ID3D12Device*       m_pDevice         = nullptr;
-    ComPtr<ID3D12Fence> m_IdleFence;
+    ComPtr<ID3D12Fence> m_pIdleFence;
     HANDLE              m_IdleEvent      = nullptr;
-    uint64              m_IdleFenceValue = 0;
+    uint64              m_uIdleFenceValue = 0;
 };
 
 } // namespace Evo

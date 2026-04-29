@@ -19,7 +19,7 @@ bool DX12Queue::Initialize(ID3D12Device* device, RHIQueueType type)
     queueDesc.Priority = D3D12_COMMAND_QUEUE_PRIORITY_NORMAL;
     queueDesc.NodeMask = 0;
 
-    HRESULT hr = device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_Queue));
+    HRESULT hr = device->CreateCommandQueue(&queueDesc, IID_PPV_ARGS(&m_pQueue));
     if (FAILED(hr))
     {
         EVO_LOG_ERROR("Failed to create D3D12 command queue: {}", GetHResultString(hr));
@@ -27,14 +27,14 @@ bool DX12Queue::Initialize(ID3D12Device* device, RHIQueueType type)
     }
 
     // Create internal fence for WaitIdle
-    hr = device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_IdleFence));
+    hr = device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_pIdleFence));
     if (FAILED(hr))
     {
         EVO_LOG_ERROR("Failed to create idle fence: {}", GetHResultString(hr));
         return false;
     }
     m_IdleEvent = CreateEventW(nullptr, FALSE, FALSE, nullptr);
-    m_IdleFenceValue = 0;
+    m_uIdleFenceValue = 0;
 
     EVO_LOG_INFO("DX12Queue created (type={})", static_cast<int>(type));
     return true;
@@ -46,8 +46,8 @@ void DX12Queue::ShutdownQueue()
         CloseHandle(m_IdleEvent);
         m_IdleEvent = nullptr;
     }
-    m_IdleFence.Reset();
-    m_Queue.Reset();
+    m_pIdleFence.Reset();
+    m_pQueue.Reset();
     m_pDevice = nullptr;
 }
 
@@ -66,25 +66,25 @@ void DX12Queue::Submit(
     }
 
     if (waitFence)
-        m_Queue->Wait(static_cast<DX12Fence*>(waitFence)->GetD3D12Fence(), waitValue);
+        m_pQueue->Wait(static_cast<DX12Fence*>(waitFence)->GetD3D12Fence(), waitValue);
 
-    m_Queue->ExecuteCommandLists(cmdListCount, dx12CmdLists.data());
+    m_pQueue->ExecuteCommandLists(cmdListCount, dx12CmdLists.data());
 
     if (signalFence)
-        m_Queue->Signal(static_cast<DX12Fence*>(signalFence)->GetD3D12Fence(), signalValue);
+        m_pQueue->Signal(static_cast<DX12Fence*>(signalFence)->GetD3D12Fence(), signalValue);
 }
 
 void DX12Queue::WaitIdle()
 {
-    if (!m_Queue || !m_IdleFence)
+    if (!m_pQueue || !m_pIdleFence)
         return;
 
-    m_IdleFenceValue++;
-    m_Queue->Signal(m_IdleFence.Get(), m_IdleFenceValue);
+    m_uIdleFenceValue++;
+    m_pQueue->Signal(m_pIdleFence.Get(), m_uIdleFenceValue);
 
-    if (m_IdleFence->GetCompletedValue() < m_IdleFenceValue)
+    if (m_pIdleFence->GetCompletedValue() < m_uIdleFenceValue)
     {
-        m_IdleFence->SetEventOnCompletion(m_IdleFenceValue, m_IdleEvent);
+        m_pIdleFence->SetEventOnCompletion(m_uIdleFenceValue, m_IdleEvent);
         WaitForSingleObject(m_IdleEvent, INFINITE);
     }
 }

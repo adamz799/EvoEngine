@@ -221,7 +221,7 @@ inline RHIRenderTargetView WrapRTV(D3D12_CPU_DESCRIPTOR_HANDLE h)
 
 inline D3D12_CPU_DESCRIPTOR_HANDLE UnwrapRTV(RHIRenderTargetView v)
 {
-	return { static_cast<SIZE_T>(v._opaque) };
+	return { static_cast<SIZE_T>(v.uOpaque) };
 }
 
 inline RHIDepthStencilView WrapDSV(D3D12_CPU_DESCRIPTOR_HANDLE h)
@@ -231,7 +231,7 @@ inline RHIDepthStencilView WrapDSV(D3D12_CPU_DESCRIPTOR_HANDLE h)
 
 inline D3D12_CPU_DESCRIPTOR_HANDLE UnwrapDSV(RHIDepthStencilView v)
 {
-	return { static_cast<SIZE_T>(v._opaque) };
+	return { static_cast<SIZE_T>(v.uOpaque) };
 }
 
 } // namespace Evo

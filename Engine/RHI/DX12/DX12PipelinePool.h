@@ -9,12 +9,12 @@
 namespace Evo {
 
 struct DX12PipelineEntry {
-	ComPtr<ID3D12PipelineState>  pso;
-	ComPtr<ID3D12RootSignature>  rootSignature;
+	ComPtr<ID3D12PipelineState>  pPso;
+	ComPtr<ID3D12RootSignature>  pRootSignature;
 	RHIPrimitiveTopology         topology = RHIPrimitiveTopology::TriangleList;
-	std::string                  debugName;
-	uint16                       generation = 0;
-	bool                         alive      = false;
+	std::string                  sDebugName;
+	uint16                       uGeneration = 0;
+	bool                         bAlive      = false;
 };
 
 class DX12PipelinePool {
@@ -27,24 +27,24 @@ public:
 		std::unique_lock lock(m_Mutex);
 
 		uint64 index;
-		if (!m_FreeList.empty()) {
-			index = m_FreeList.back();
-			m_FreeList.pop_back();
+		if (!m_vFreeList.empty()) {
+			index = m_vFreeList.back();
+			m_vFreeList.pop_back();
 		} else {
-			index = m_Entries.size();
-			m_Entries.emplace_back();
+			index = m_vEntries.size();
+			m_vEntries.emplace_back();
 		}
 
-		auto& e         = m_Entries[index];
-		e.pso           = std::move(pso);
-		e.rootSignature = std::move(rootSig);
-		e.topology      = topology;
-		e.debugName     = name;
-		e.alive         = true;
+		auto& e          = m_vEntries[index];
+		e.pPso           = std::move(pso);
+		e.pRootSignature = std::move(rootSig);
+		e.topology       = topology;
+		e.sDebugName     = name;
+		e.bAlive         = true;
 
 		RHIPipelineHandle h;
-		h.Handle     = index;
-		h.generation = e.generation;
+		h.uHandle     = index;
+		h.uGeneration = e.uGeneration;
 		return h;
 	}
 
@@ -54,12 +54,12 @@ public:
 		auto* e = LookupUnlocked(handle);
 		if (!e) return;
 
-		e->alive = false;
-		e->generation++;
-		e->pso.Reset();
-		e->rootSignature.Reset();
-		e->debugName.clear();
-		m_FreeList.push_back(handle.Handle);
+		e->bAlive = false;
+		e->uGeneration++;
+		e->pPso.Reset();
+		e->pRootSignature.Reset();
+		e->sDebugName.clear();
+		m_vFreeList.push_back(handle.uHandle);
 	}
 
 	DX12PipelineEntry* GetEntry(RHIPipelineHandle handle)
@@ -83,17 +83,17 @@ public:
 private:
 	DX12PipelineEntry* LookupUnlocked(RHIPipelineHandle handle) const
 	{
-		if (handle.Handle >= m_Entries.size())
+		if (handle.uHandle >= m_vEntries.size())
 			return nullptr;
-		auto& e = m_Entries[handle.Handle];
-		if (!e.alive || e.generation != handle.generation)
+		auto& e = m_vEntries[handle.uHandle];
+		if (!e.bAlive || e.uGeneration != handle.uGeneration)
 			return nullptr;
 		return const_cast<DX12PipelineEntry*>(&e);
 	}
 
 	mutable std::shared_mutex                m_Mutex;
-	mutable std::vector<DX12PipelineEntry>   m_Entries;
-	std::vector<uint64>                      m_FreeList;
+	mutable std::vector<DX12PipelineEntry>   m_vEntries;
+	std::vector<uint64>                      m_vFreeList;
 };
 
 } // namespace Evo

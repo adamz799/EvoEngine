@@ -21,10 +21,10 @@ constexpr uint32 NUM_BACK_FRAMES = 3;
 /// so stale handles fail validation.
 template<typename Tag>
 struct RHIHandle {
-	uint64 Handle       = UINT64_MAX;
-	uint16 generation   = 0;
+	uint64 uHandle       = UINT64_MAX;
+	uint16 uGeneration   = 0;
 
-	bool IsValid() const { return Handle != UINT64_MAX; }
+	bool IsValid() const { return uHandle != UINT64_MAX; }
 	bool operator==(const RHIHandle&) const = default;
 	bool operator!=(const RHIHandle&) const = default;
 };
@@ -44,14 +44,14 @@ using RHIDescriptorSetHandle       = RHIHandle<struct DescriptorSetTag>;
 
 /// Render target view. DX12: wraps D3D12_CPU_DESCRIPTOR_HANDLE. Vulkan: wraps VkImageView.
 struct RHIRenderTargetView {
-	uint64 _opaque = 0;
-	bool IsValid() const { return _opaque != 0; }
+	uint64 uOpaque = 0;
+	bool IsValid() const { return uOpaque != 0; }
 };
 
 /// Depth/stencil view.
 struct RHIDepthStencilView {
-	uint64 _opaque = 0;
-	bool IsValid() const { return _opaque != 0; }
+	uint64 uOpaque = 0;
+	bool IsValid() const { return uOpaque != 0; }
 };
 
 // ============================================================================
@@ -209,17 +209,17 @@ enum class RHIIndexFormat : uint8 {
 /// Vertex buffer view — describes how to interpret a buffer as vertex data.
 struct RHIVertexBufferView {
 	RHIBufferHandle buffer;
-	uint64          offset = 0;
-	uint32          size   = 0;    // 0 = whole buffer from offset
-	uint32          stride = 0;
+	uint64          uOffset = 0;
+	uint32          uSize   = 0;    // 0 = whole buffer from offset
+	uint32          uStride = 0;
 };
 
 /// Index buffer view — describes how to interpret a buffer as index data.
 struct RHIIndexBufferView {
 	RHIBufferHandle buffer;
-	uint64          offset = 0;
-	uint32          size   = 0;
-	RHIIndexFormat  format = RHIIndexFormat::U32;
+	uint64          uOffset = 0;
+	uint32          uSize   = 0;
+	RHIIndexFormat  format  = RHIIndexFormat::U32;
 };
 
 // ---- Primitive topology ----
@@ -287,12 +287,12 @@ enum class RHIDescriptorType : uint8 {
 
 // ---- Common small structs ----
 struct RHIViewport {
-	float32 x      = 0.0f;
-	float32 y      = 0.0f;
-	float32 width  = 0.0f;
-	float32 height = 0.0f;
-	float32 minDepth = 0.0f;
-	float32 maxDepth = 1.0f;
+	float32 fX      = 0.0f;
+	float32 fY      = 0.0f;
+	float32 fWidth  = 0.0f;
+	float32 fHeight = 0.0f;
+	float32 fMinDepth = 0.0f;
+	float32 fMaxDepth = 1.0f;
 };
 
 struct RHIScissorRect {
@@ -303,82 +303,82 @@ struct RHIScissorRect {
 };
 
 struct RHIColor {
-	float32 r = 0.0f;
-	float32 g = 0.0f;
-	float32 b = 0.0f;
-	float32 a = 1.0f;
+	float32 fR = 0.0f;
+	float32 fG = 0.0f;
+	float32 fB = 0.0f;
+	float32 fA = 1.0f;
 };
 
 // ---- Device ----
 struct RHIDeviceDesc {
 	RHIBackendType backend     = RHIBackendType::DX12;
-	bool           enableDebug = true;
+	bool           bEnableDebug = true;
 };
 
 // ---- Buffer ----
 struct RHIBufferDesc {
-	uint64            size       = 0;
+	uint64            uSize      = 0;
 	RHIBufferUsage usage      = RHIBufferUsage::Vertex;
 	RHIMemoryUsage memory     = RHIMemoryUsage::GpuOnly;
-	std::string    debugName;
+	std::string    sDebugName;
 };
 
 // ---- Texture ----
 struct RHITextureDesc {
-	uint32                 width            = 1;
-	uint32                 height           = 1;
-	uint32                 depthOrArraySize = 1;
-	uint32                 mipLevels        = 1;
+	uint32                 uWidth           = 1;
+	uint32                 uHeight          = 1;
+	uint32                 uDepthOrArraySize = 1;
+	uint32                 uMipLevels       = 1;
 	RHIFormat           format           = RHIFormat::R8G8B8A8_UNORM;
 	RHITextureUsage     usage            = RHITextureUsage::ShaderResource;
 	RHITextureDimension dimension        = RHITextureDimension::Tex2D;
-	std::string         debugName;
+	std::string         sDebugName;
 };
 
 // ---- Shader ----
 struct RHIShaderDesc {
-	const void*    bytecode     = nullptr;
-	uint64            bytecodeSize = 0;
+	const void*    pBytecode     = nullptr;
+	uint64            uBytecodeSize = 0;
 	RHIShaderStage stage        = RHIShaderStage::Vertex;
-	std::string    entryPoint   = "main";
-	std::string    debugName;
+	std::string    sEntryPoint  = "main";
+	std::string    sDebugName;
 };
 
 // ---- Input layout element (vertex attribute) ----
 struct RHIInputElement {
-	const char* semanticName  = nullptr;   // "POSITION", "TEXCOORD", etc.
-	uint32         semanticIndex = 0;
-	RHIFormat   format        = RHIFormat::Unknown;
-	uint32         byteOffset    = 0;         // offset within vertex
-	uint32         bufferSlot    = 0;         // vertex buffer slot
+	const char* pSemanticName  = nullptr;   // "POSITION", "TEXCOORD", etc.
+	uint32         uSemanticIndex = 0;
+	RHIFormat   format         = RHIFormat::Unknown;
+	uint32         uByteOffset    = 0;         // offset within vertex
+	uint32         uBufferSlot    = 0;         // vertex buffer slot
 };
 
 // ---- Rasterizer state ----
 struct RHIRasterizerDesc {
-	RHIFillMode fillMode              = RHIFillMode::Solid;
-	RHICullMode cullMode              = RHICullMode::Back;
-	bool        frontCounterClockwise = false;
-	int32         depthBias             = 0;
-	float32         slopeScaledDepthBias  = 0.0f;
+	RHIFillMode fillMode               = RHIFillMode::Solid;
+	RHICullMode cullMode               = RHICullMode::Back;
+	bool        bFrontCounterClockwise = false;
+	int32         depthBias              = 0;
+	float32         fSlopeScaledDepthBias  = 0.0f;
 };
 
 // ---- Blend state (per render target) ----
 struct RHIBlendTargetDesc {
-	bool           blendEnable = false;
-	RHIBlendFactor srcColor    = RHIBlendFactor::One;
-	RHIBlendFactor dstColor    = RHIBlendFactor::Zero;
-	RHIBlendOp     colorOp     = RHIBlendOp::Add;
-	RHIBlendFactor srcAlpha    = RHIBlendFactor::One;
-	RHIBlendFactor dstAlpha    = RHIBlendFactor::Zero;
-	RHIBlendOp     alphaOp     = RHIBlendOp::Add;
-	uint8             writeMask   = 0xF;   // R|G|B|A
+	bool           bBlendEnable = false;
+	RHIBlendFactor srcColor     = RHIBlendFactor::One;
+	RHIBlendFactor dstColor     = RHIBlendFactor::Zero;
+	RHIBlendOp     colorOp      = RHIBlendOp::Add;
+	RHIBlendFactor srcAlpha     = RHIBlendFactor::One;
+	RHIBlendFactor dstAlpha     = RHIBlendFactor::Zero;
+	RHIBlendOp     alphaOp      = RHIBlendOp::Add;
+	uint8             uWriteMask   = 0xF;   // R|G|B|A
 };
 
 // ---- Depth/stencil state ----
 struct RHIDepthStencilDesc {
-	bool         depthTestEnable  = true;
-	bool         depthWriteEnable = true;
-	RHICompareOp depthCompareOp   = RHICompareOp::Less;
+	bool         bDepthTestEnable  = true;
+	bool         bDepthWriteEnable = true;
+	RHICompareOp depthCompareOp    = RHICompareOp::Less;
 };
 
 // ---- Graphics pipeline ----
@@ -386,24 +386,24 @@ struct RHIGraphicsPipelineDesc {
 	RHIShaderHandle vertexShader;
 	RHIShaderHandle pixelShader;
 
-	const RHIInputElement* inputElements    = nullptr;
-	uint32                    inputElementCount = 0;
+	const RHIInputElement* pInputElements     = nullptr;
+	uint32                    uInputElementCount = 0;
 
 	RHIRasterizerDesc   rasterizer;
 	RHIDepthStencilDesc depthStencil;
 	RHIBlendTargetDesc  blendTargets[8] = {};
 
-	uint32       renderTargetCount      = 1;
+	uint32       uRenderTargetCount      = 1;
 	RHIFormat renderTargetFormats[8] = { RHIFormat::R8G8B8A8_UNORM };
 	RHIFormat depthStencilFormat     = RHIFormat::Unknown;
 
 	RHIPrimitiveTopology topology    = RHIPrimitiveTopology::TriangleList;
 
 	RHIDescriptorSetLayoutHandle descriptorSetLayouts[4] = {};
-	uint32                          descriptorSetLayoutCount = 0;
-	uint32                          pushConstantSize         = 0;
+	uint32                          uDescriptorSetLayoutCount = 0;
+	uint32                          uPushConstantSize         = 0;
 
-	std::string debugName;
+	std::string sDebugName;
 };
 
 // ---- Compute pipeline ----
@@ -411,10 +411,10 @@ struct RHIComputePipelineDesc {
 	RHIShaderHandle computeShader;
 
 	RHIDescriptorSetLayoutHandle descriptorSetLayouts[4] = {};
-	uint32                          descriptorSetLayoutCount = 0;
-	uint32                          pushConstantSize         = 0;
+	uint32                          uDescriptorSetLayoutCount = 0;
+	uint32                          uPushConstantSize         = 0;
 
-	std::string debugName;
+	std::string sDebugName;
 };
 
 // ---- Render pass ----
@@ -429,15 +429,15 @@ struct RHIDepthAttachment {
 	RHITextureHandle texture;
 	RHILoadAction    loadAction   = RHILoadAction::Clear;
 	RHIStoreAction   storeAction  = RHIStoreAction::Store;
-	float32              clearDepth   = 1.0f;
-	uint8               clearStencil = 0;
+	float32              fClearDepth  = 1.0f;
+	uint8               uClearStencil = 0;
 };
 
 struct RHIRenderPassDesc {
 	RHIColorAttachment colorAttachments[8] = {};
-	uint32                colorAttachmentCount = 0;
+	uint32                uColorAttachmentCount = 0;
 	RHIDepthAttachment depthAttachment;
-	bool               hasDepthAttachment = false;
+	bool               bHasDepthAttachment = false;
 };
 
 // ---- Barrier ----
@@ -461,12 +461,12 @@ struct RHIBufferBarrier {
 
 // ---- Swap chain ----
 struct RHISwapChainDesc {
-	void*     windowHandle = nullptr;
-	uint32       width        = 1280;
-	uint32       height       = 720;
-	uint32       bufferCount  = 2;
-	RHIFormat format       = RHIFormat::R8G8B8A8_UNORM;
-	bool      vsync        = true;
+	void*     pWindowHandle = nullptr;
+	uint32       uWidth        = 1280;
+	uint32       uHeight       = 720;
+	uint32       uBufferCount  = 2;
+	RHIFormat format        = RHIFormat::R8G8B8A8_UNORM;
+	bool      bVsync        = true;
 };
 
 } // namespace Evo

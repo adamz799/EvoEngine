@@ -21,7 +21,7 @@ bool DX12Device::Initialize(const RHIDeviceDesc& desc)
     EVO_LOG_INFO("DX12Device::Initialize");
 
     // 1. Enable debug layer
-    if (desc.enableDebug)
+    if (desc.bEnableDebug)
     {
         ComPtr<ID3D12Debug> debug;
         if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debug))))
@@ -39,10 +39,10 @@ bool DX12Device::Initialize(const RHIDeviceDesc& desc)
 
     // 2. Create DXGI factory
     UINT factoryFlags = 0;
-    if (desc.enableDebug)
+    if (desc.bEnableDebug)
         factoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
 
-    HRESULT hr = CreateDXGIFactory2(factoryFlags, IID_PPV_ARGS(&m_DxgiFactory));
+    HRESULT hr = CreateDXGIFactory2(factoryFlags, IID_PPV_ARGS(&m_pDxgiFactory));
     if (FAILED(hr))
     {
         EVO_LOG_ERROR("Failed to create DXGI factory: {}", GetHResultString(hr));
@@ -52,14 +52,14 @@ bool DX12Device::Initialize(const RHIDeviceDesc& desc)
     // 3. Enumerate adapter (prefer high-performance GPU)
     ComPtr<IDXGIAdapter1> adapter;
     ComPtr<IDXGIFactory6> dxgiFactory6;
-    if (SUCCEEDED(m_DxgiFactory.As(&dxgiFactory6)))
+    if (SUCCEEDED(m_pDxgiFactory.As(&dxgiFactory6)))
     {
         dxgiFactory6->EnumAdapterByGpuPreference(
             0, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&adapter));
     }
     else
     {
-        m_DxgiFactory->EnumAdapters1(0, &adapter);
+        m_pDxgiFactory->EnumAdapters1(0, &adapter);
     }
 
     DXGI_ADAPTER_DESC1 adapterDesc;
@@ -70,12 +70,12 @@ bool DX12Device::Initialize(const RHIDeviceDesc& desc)
         int len = WideCharToMultiByte(CP_UTF8, 0, adapterDesc.Description, -1,
                                       nullptr, 0, nullptr, nullptr);
         if (len > 0) {
-            m_AdapterName.resize(static_cast<size_t>(len - 1));
+            m_sAdapterName.resize(static_cast<size_t>(len - 1));
             WideCharToMultiByte(CP_UTF8, 0, adapterDesc.Description, -1,
-                                m_AdapterName.data(), len, nullptr, nullptr);
+                                m_sAdapterName.data(), len, nullptr, nullptr);
         }
     }
-    EVO_LOG_INFO("GPU: {}", m_AdapterName);
+    EVO_LOG_INFO("GPU: {}", m_sAdapterName);
 
     // 4. Create D3D12 device
     hr = D3D12CreateDevice(adapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_pDevice));
@@ -99,8 +99,8 @@ bool DX12Device::Initialize(const RHIDeviceDesc& desc)
     }
 
     // 6. Create graphics queue
-    m_GraphicsQueue = std::make_unique<DX12Queue>();
-    if (!m_GraphicsQueue->Initialize(m_pDevice.Get(), RHIQueueType::Graphics))
+    m_pGraphicsQueue = std::make_unique<DX12Queue>();
+    if (!m_pGraphicsQueue->Initialize(m_pDevice.Get(), RHIQueueType::Graphics))
     {
         EVO_LOG_ERROR("Failed to create graphics queue");
         return false;
@@ -126,23 +126,23 @@ void DX12Device::Shutdown()
     WaitIdle();
 
     m_RTVAllocator.Shutdown();
-    m_CopyQueue.reset();
-    m_ComputeQueue.reset();
-    m_GraphicsQueue.reset();
+    m_pCopyQueue.reset();
+    m_pComputeQueue.reset();
+    m_pGraphicsQueue.reset();
     if (m_pAllocator) { m_pAllocator->Release(); m_pAllocator = nullptr; }
     m_pDevice.Reset();
-    m_DxgiFactory.Reset();
+    m_pDxgiFactory.Reset();
 }
 
 // ---- Queue access ----
 
-RHIQueue* DX12Device::GetGraphicsQueue() { return m_GraphicsQueue.get(); }
-RHIQueue* DX12Device::GetComputeQueue()  { return m_ComputeQueue.get(); }
-RHIQueue* DX12Device::GetCopyQueue()     { return m_CopyQueue.get(); }
+RHIQueue* DX12Device::GetGraphicsQueue() { return m_pGraphicsQueue.get(); }
+RHIQueue* DX12Device::GetComputeQueue()  { return m_pComputeQueue.get(); }
+RHIQueue* DX12Device::GetCopyQueue()     { return m_pCopyQueue.get(); }
 
 ID3D12CommandQueue* DX12Device::GetGraphicsCommandQueue() const
 {
-    return m_GraphicsQueue ? m_GraphicsQueue->GetD3D12Queue() : nullptr;
+    return m_pGraphicsQueue ? m_pGraphicsQueue->GetD3D12Queue() : nullptr;
 }
 
 // ---- Direct object creation ----
@@ -178,7 +178,7 @@ RHIBufferHandle DX12Device::CreateBuffer(const RHIBufferDesc& desc)
 {
     D3D12_RESOURCE_DESC resourceDesc = {};
     resourceDesc.Dimension          = D3D12_RESOURCE_DIMENSION_BUFFER;
-    resourceDesc.Width              = desc.size;
+    resourceDesc.Width              = desc.uSize;
     resourceDesc.Height             = 1;
     resourceDesc.DepthOrArraySize   = 1;
     resourceDesc.MipLevels          = 1;
@@ -200,14 +200,14 @@ RHIBufferHandle DX12Device::CreateBuffer(const RHIBufferDesc& desc)
         IID_PPV_ARGS(&resource));
     if (FAILED(hr))
     {
-        EVO_LOG_ERROR("Failed to create buffer '{}': {}", desc.debugName, GetHResultString(hr));
+        EVO_LOG_ERROR("Failed to create buffer '{}': {}", desc.sDebugName, GetHResultString(hr));
         return {};
     }
 
-    if (!desc.debugName.empty())
+    if (!desc.sDebugName.empty())
     {
         wchar_t wname[256];
-        MultiByteToWideChar(CP_UTF8, 0, desc.debugName.c_str(), -1, wname, 256);
+        MultiByteToWideChar(CP_UTF8, 0, desc.sDebugName.c_str(), -1, wname, 256);
         resource->SetName(wname);
     }
 
@@ -218,7 +218,7 @@ RHIBufferHandle DX12Device::CreateBuffer(const RHIBufferDesc& desc)
     }
 
     D3D12_GPU_VIRTUAL_ADDRESS gpuAddress = resource->GetGPUVirtualAddress();
-    return m_BufferPool.Allocate(std::move(resource), allocation, gpuAddress, desc.size, mappedPtr, desc.debugName);
+    return m_BufferPool.Allocate(std::move(resource), allocation, gpuAddress, desc.uSize, mappedPtr, desc.sDebugName);
 }
 
 RHITextureHandle DX12Device::CreateTexture(const RHITextureDesc& /*desc*/)
@@ -229,12 +229,12 @@ RHITextureHandle DX12Device::CreateTexture(const RHITextureDesc& /*desc*/)
 
 RHIShaderHandle DX12Device::CreateShader(const RHIShaderDesc& desc)
 {
-    if (!desc.bytecode || desc.bytecodeSize == 0)
+    if (!desc.pBytecode || desc.uBytecodeSize == 0)
     {
         EVO_LOG_ERROR("CreateShader: null or empty bytecode");
         return {};
     }
-    return m_ShaderPool.Allocate(desc.bytecode, desc.bytecodeSize, desc.stage, desc.debugName);
+    return m_ShaderPool.Allocate(desc.pBytecode, desc.uBytecodeSize, desc.stage, desc.sDebugName);
 }
 
 RHIPipelineHandle DX12Device::CreateGraphicsPipeline(const RHIGraphicsPipelineDesc& desc)
@@ -272,16 +272,16 @@ RHIPipelineHandle DX12Device::CreateGraphicsPipeline(const RHIGraphicsPipelineDe
     }
 
     // Input layout
-    std::vector<D3D12_INPUT_ELEMENT_DESC> inputElements(desc.inputElementCount);
-    for (uint32 i = 0; i < desc.inputElementCount; ++i)
+    std::vector<D3D12_INPUT_ELEMENT_DESC> inputElements(desc.uInputElementCount);
+    for (uint32 i = 0; i < desc.uInputElementCount; ++i)
     {
-        auto& src = desc.inputElements[i];
+        auto& src = desc.pInputElements[i];
         auto& dst = inputElements[i];
-        dst.SemanticName         = src.semanticName;
-        dst.SemanticIndex        = src.semanticIndex;
+        dst.SemanticName         = src.pSemanticName;
+        dst.SemanticIndex        = src.uSemanticIndex;
         dst.Format               = MapFormat(src.format);
-        dst.InputSlot            = src.bufferSlot;
-        dst.AlignedByteOffset    = src.byteOffset;
+        dst.InputSlot            = src.uBufferSlot;
+        dst.AlignedByteOffset    = src.uByteOffset;
         dst.InputSlotClass       = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
         dst.InstanceDataStepRate = 0;
     }
@@ -290,44 +290,44 @@ RHIPipelineHandle DX12Device::CreateGraphicsPipeline(const RHIGraphicsPipelineDe
     D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = {};
     psoDesc.pRootSignature = rootSig.Get();
 
-    psoDesc.VS = { vsEntry->bytecode.data(), vsEntry->bytecode.size() };
-    psoDesc.PS = { psEntry->bytecode.data(), psEntry->bytecode.size() };
+    psoDesc.VS = { vsEntry->vBytecode.data(), vsEntry->vBytecode.size() };
+    psoDesc.PS = { psEntry->vBytecode.data(), psEntry->vBytecode.size() };
 
     psoDesc.InputLayout = { inputElements.data(), static_cast<UINT>(inputElements.size()) };
 
     // Rasterizer
     psoDesc.RasterizerState.FillMode              = MapFillMode(desc.rasterizer.fillMode);
     psoDesc.RasterizerState.CullMode              = MapCullMode(desc.rasterizer.cullMode);
-    psoDesc.RasterizerState.FrontCounterClockwise = desc.rasterizer.frontCounterClockwise;
+    psoDesc.RasterizerState.FrontCounterClockwise = desc.rasterizer.bFrontCounterClockwise;
     psoDesc.RasterizerState.DepthBias             = desc.rasterizer.depthBias;
-    psoDesc.RasterizerState.SlopeScaledDepthBias  = desc.rasterizer.slopeScaledDepthBias;
+    psoDesc.RasterizerState.SlopeScaledDepthBias  = desc.rasterizer.fSlopeScaledDepthBias;
     psoDesc.RasterizerState.DepthClipEnable       = TRUE;
 
     // Blend
-    for (uint32 i = 0; i < desc.renderTargetCount; ++i)
+    for (uint32 i = 0; i < desc.uRenderTargetCount; ++i)
     {
         auto& src = desc.blendTargets[i];
         auto& dst = psoDesc.BlendState.RenderTarget[i];
-        dst.BlendEnable    = src.blendEnable;
+        dst.BlendEnable    = src.bBlendEnable;
         dst.SrcBlend       = MapBlendFactor(src.srcColor);
         dst.DestBlend      = MapBlendFactor(src.dstColor);
         dst.BlendOp        = MapBlendOp(src.colorOp);
         dst.SrcBlendAlpha  = MapBlendFactor(src.srcAlpha);
         dst.DestBlendAlpha = MapBlendFactor(src.dstAlpha);
         dst.BlendOpAlpha   = MapBlendOp(src.alphaOp);
-        dst.RenderTargetWriteMask = src.writeMask;
+        dst.RenderTargetWriteMask = src.uWriteMask;
     }
 
     // Depth stencil
-    psoDesc.DepthStencilState.DepthEnable    = desc.depthStencil.depthTestEnable;
-    psoDesc.DepthStencilState.DepthWriteMask = desc.depthStencil.depthWriteEnable
+    psoDesc.DepthStencilState.DepthEnable    = desc.depthStencil.bDepthTestEnable;
+    psoDesc.DepthStencilState.DepthWriteMask = desc.depthStencil.bDepthWriteEnable
                                                ? D3D12_DEPTH_WRITE_MASK_ALL
                                                : D3D12_DEPTH_WRITE_MASK_ZERO;
     psoDesc.DepthStencilState.DepthFunc      = MapCompareOp(desc.depthStencil.depthCompareOp);
 
     // Render targets
-    psoDesc.NumRenderTargets = desc.renderTargetCount;
-    for (uint32 i = 0; i < desc.renderTargetCount; ++i)
+    psoDesc.NumRenderTargets = desc.uRenderTargetCount;
+    for (uint32 i = 0; i < desc.uRenderTargetCount; ++i)
         psoDesc.RTVFormats[i] = MapFormat(desc.renderTargetFormats[i]);
 
     if (desc.depthStencilFormat != RHIFormat::Unknown)
@@ -341,11 +341,11 @@ RHIPipelineHandle DX12Device::CreateGraphicsPipeline(const RHIGraphicsPipelineDe
     hr = m_pDevice->CreateGraphicsPipelineState(&psoDesc, IID_PPV_ARGS(&pso));
     if (FAILED(hr))
     {
-        EVO_LOG_ERROR("Failed to create graphics pipeline '{}': {}", desc.debugName, GetHResultString(hr));
+        EVO_LOG_ERROR("Failed to create graphics pipeline '{}': {}", desc.sDebugName, GetHResultString(hr));
         return {};
     }
 
-    return m_PipelinePool.Allocate(std::move(pso), std::move(rootSig), desc.topology, desc.debugName);
+    return m_PipelinePool.Allocate(std::move(pso), std::move(rootSig), desc.topology, desc.sDebugName);
 }
 
 RHIPipelineHandle DX12Device::CreateComputePipeline(const RHIComputePipelineDesc& /*desc*/)
@@ -364,7 +364,7 @@ void DX12Device::DestroyPipeline(RHIPipelineHandle handle) { m_PipelinePool.Free
 RHIRenderTargetView DX12Device::CreateRenderTargetView(RHITextureHandle texture)
 {
     auto* entry = m_TexturePool.GetEntry(texture);
-    if (!entry || !entry->resource)
+    if (!entry || !entry->pResource)
     {
         EVO_LOG_WARN("CreateRenderTargetView: invalid texture handle");
         return {};
@@ -374,7 +374,7 @@ RHIRenderTargetView DX12Device::CreateRenderTargetView(RHITextureHandle texture)
     if (slot.ptr == 0)
         return {};
 
-    m_pDevice->CreateRenderTargetView(entry->resource.Get(), nullptr, slot);
+    m_pDevice->CreateRenderTargetView(entry->pResource.Get(), nullptr, slot);
     return WrapRTV(slot);
 }
 
@@ -388,7 +388,7 @@ void DX12Device::DestroyRenderTargetView(RHIRenderTargetView rtv)
 void* DX12Device::MapBuffer(RHIBufferHandle handle)
 {
     auto* entry = m_BufferPool.GetEntry(handle);
-    return entry ? entry->mappedPtr : nullptr;
+    return entry ? entry->pMappedPtr : nullptr;
 }
 
 void DX12Device::UnmapBuffer(RHIBufferHandle /*handle*/)
@@ -468,9 +468,9 @@ void DX12Device::EndFrame()
 
 void DX12Device::WaitIdle()
 {
-    if (m_GraphicsQueue) m_GraphicsQueue->WaitIdle();
-    if (m_ComputeQueue)  m_ComputeQueue->WaitIdle();
-    if (m_CopyQueue)     m_CopyQueue->WaitIdle();
+    if (m_pGraphicsQueue) m_pGraphicsQueue->WaitIdle();
+    if (m_pComputeQueue)  m_pComputeQueue->WaitIdle();
+    if (m_pCopyQueue)     m_pCopyQueue->WaitIdle();
 }
 
 } // namespace Evo
