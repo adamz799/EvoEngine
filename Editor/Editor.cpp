@@ -98,7 +98,7 @@ void Editor::CreateViewportResources(uint32 uWidth, uint32 uHeight)
 	texDesc.uHeight    = uHeight;
 	texDesc.format     = m_RTFormat;
 	texDesc.usage      = RHITextureUsage::RenderTarget | RHITextureUsage::ShaderResource;
-	texDesc.clearColor = { 0.2f, 0.3f, 0.4f, 1.0f };
+	texDesc.clearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
 	texDesc.sDebugName = "EditorViewport";
 
 	m_ViewportTexture = m_pDevice->CreateTexture(texDesc);
@@ -125,6 +125,7 @@ void Editor::CreateViewportResources(uint32 uWidth, uint32 uHeight)
 	gbAlbedoDesc.format     = RHIFormat::R8G8B8A8_UNORM;
 	gbAlbedoDesc.usage      = RHITextureUsage::RenderTarget | RHITextureUsage::ShaderResource;
 	gbAlbedoDesc.sDebugName = "EditorGBuffer_Albedo";
+	gbAlbedoDesc.clearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
 	m_GBAlbedoTexture = m_pDevice->CreateTexture(gbAlbedoDesc);
 	m_GBAlbedoRTV     = m_pDevice->CreateRenderTargetView(m_GBAlbedoTexture);
 
@@ -134,6 +135,7 @@ void Editor::CreateViewportResources(uint32 uWidth, uint32 uHeight)
 	gbNormalDesc.format     = RHIFormat::R16G16B16A16_FLOAT;
 	gbNormalDesc.usage      = RHITextureUsage::RenderTarget | RHITextureUsage::ShaderResource;
 	gbNormalDesc.sDebugName = "EditorGBuffer_Normal";
+	gbNormalDesc.clearColor = { 0.5f, 0.5f, 1.0f, 0.0f };
 	m_GBNormalTexture = m_pDevice->CreateTexture(gbNormalDesc);
 	m_GBNormalRTV     = m_pDevice->CreateRenderTargetView(m_GBNormalTexture);
 
@@ -143,6 +145,7 @@ void Editor::CreateViewportResources(uint32 uWidth, uint32 uHeight)
 	gbRoughMetDesc.format     = RHIFormat::R8G8B8A8_UNORM;
 	gbRoughMetDesc.usage      = RHITextureUsage::RenderTarget | RHITextureUsage::ShaderResource;
 	gbRoughMetDesc.sDebugName = "EditorGBuffer_RoughMet";
+	gbRoughMetDesc.clearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
 	m_GBRoughMetTexture = m_pDevice->CreateTexture(gbRoughMetDesc);
 	m_GBRoughMetRTV     = m_pDevice->CreateRenderTargetView(m_GBRoughMetTexture);
 
@@ -153,6 +156,7 @@ void Editor::CreateViewportResources(uint32 uWidth, uint32 uHeight)
 	hdrDesc.format     = RHIFormat::R16G16B16A16_FLOAT;
 	hdrDesc.usage      = RHITextureUsage::RenderTarget | RHITextureUsage::ShaderResource;
 	hdrDesc.sDebugName = "EditorHDRIntermediate";
+	hdrDesc.clearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
 	m_HDRTexture = m_pDevice->CreateTexture(hdrDesc);
 	m_HDRRTV     = m_pDevice->CreateRenderTargetView(m_HDRTexture);
 

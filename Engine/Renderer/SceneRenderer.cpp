@@ -320,9 +320,10 @@ void SceneRenderer::AddPostProcessPass(Renderer& renderer,
 	RHIPipelineHandle pipeline = postPipeline;
 	RHIDescriptorSetHandle descSet = postDescSet;
 
+	RHIColor clearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
 	graph.AddPass("PostProcessPass",
-		[targetTexture, targetRTV, hdrTexture](RGPassBuilder& builder) {
-			builder.WriteRenderTarget(targetTexture, targetRTV);
+		[targetTexture, targetRTV, hdrTexture, clearColor](RGPassBuilder& builder) {
+			builder.WriteRenderTarget(targetTexture, targetRTV, &clearColor);
 			builder.ReadTexture(hdrTexture);
 		},
 		[pipeline, descSet, w, h](RHICommandList* pCmdList) {

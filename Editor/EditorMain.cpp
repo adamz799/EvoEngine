@@ -104,6 +104,7 @@ int main(int /*argc*/, char* /*argv*/[])
         albedoDesc.format     = Evo::RHIFormat::R8G8B8A8_UNORM;
         albedoDesc.usage      = Evo::RHITextureUsage::RenderTarget | Evo::RHITextureUsage::ShaderResource;
         albedoDesc.sDebugName = "RuntimeGBuffer_Albedo";
+        albedoDesc.clearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
         rtGBAlbedoTex = pDev->CreateTexture(albedoDesc);
         rtGBAlbedoRTV = pDev->CreateRenderTargetView(rtGBAlbedoTex);
 
@@ -113,6 +114,7 @@ int main(int /*argc*/, char* /*argv*/[])
         normalDesc.format     = Evo::RHIFormat::R16G16B16A16_FLOAT;
         normalDesc.usage      = Evo::RHITextureUsage::RenderTarget | Evo::RHITextureUsage::ShaderResource;
         normalDesc.sDebugName = "RuntimeGBuffer_Normal";
+        normalDesc.clearColor = { 0.5f, 0.5f, 1.0f, 0.0f };
         rtGBNormalTex = pDev->CreateTexture(normalDesc);
         rtGBNormalRTV = pDev->CreateRenderTargetView(rtGBNormalTex);
 
@@ -122,6 +124,7 @@ int main(int /*argc*/, char* /*argv*/[])
         roughMetDesc.format     = Evo::RHIFormat::R8G8B8A8_UNORM;
         roughMetDesc.usage      = Evo::RHITextureUsage::RenderTarget | Evo::RHITextureUsage::ShaderResource;
         roughMetDesc.sDebugName = "RuntimeGBuffer_RoughMet";
+        roughMetDesc.clearColor = { 0.0f, 0.0f, 0.0f, 0.0f };
         rtGBRoughMetTex = pDev->CreateTexture(roughMetDesc);
         rtGBRoughMetRTV = pDev->CreateRenderTargetView(rtGBRoughMetTex);
 #endif
@@ -181,6 +184,7 @@ int main(int /*argc*/, char* /*argv*/[])
         hdrDesc.format     = Evo::RHIFormat::R16G16B16A16_FLOAT;
         hdrDesc.usage      = Evo::RHITextureUsage::RenderTarget | Evo::RHITextureUsage::ShaderResource;
         hdrDesc.sDebugName = "RuntimeHDRIntermediate";
+        hdrDesc.clearColor = { 0.0f, 0.0f, 0.0f, 1.0f };
         rtHDRTex = pDevice->CreateTexture(hdrDesc);
         rtHDRRTV = pDevice->CreateRenderTargetView(rtHDRTex);
     }
@@ -302,8 +306,8 @@ int main(int /*argc*/, char* /*argv*/[])
 
         // Import shadow map
         Evo::RGHandle shadowRG = rg.ImportTexture("ShadowMap", shadowTex,
-            Evo::RHITextureLayout::DepthStencilWrite,
-            Evo::RHITextureLayout::DepthStencilWrite);
+            Evo::RHITextureLayout::Common,
+            Evo::RHITextureLayout::Common);
 
         // Shadow pass (once for all viewports)
         testScene.RenderShadowMap(renderer, shadowRG, shadowDSV,
@@ -318,8 +322,8 @@ int main(int /*argc*/, char* /*argv*/[])
         // Import editor depth texture
         Evo::RGHandle vpDepthRG = rg.ImportTexture("EditorViewportDepth",
             editor.GetDepthTexture(),
-            Evo::RHITextureLayout::DepthStencilWrite,
-            Evo::RHITextureLayout::DepthStencilWrite);
+            Evo::RHITextureLayout::Common,
+            Evo::RHITextureLayout::Common);
 
         // Import editor G-Buffer textures
         Evo::RGHandle vpGBAlbedoRG = rg.ImportTexture("EditorGBuffer_Albedo",
@@ -381,8 +385,8 @@ int main(int /*argc*/, char* /*argv*/[])
 
             Evo::RGHandle rtDepthRG = rg.ImportTexture("RuntimeDepthBuffer",
                 runtimeDepthTex,
-                Evo::RHITextureLayout::DepthStencilWrite,
-                Evo::RHITextureLayout::DepthStencilWrite);
+                Evo::RHITextureLayout::Common,
+                Evo::RHITextureLayout::Common);
 
             float rtW = static_cast<float>(pRuntimeSC->GetWidth());
             float rtH = static_cast<float>(pRuntimeSC->GetHeight());
