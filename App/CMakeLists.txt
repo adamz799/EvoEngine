@@ -1,6 +1,6 @@
 add_executable(EvoApp
     Main.cpp
-    CubeDemo.cpp
+    TestScene.cpp
 )
 
 evo_set_compiler_flags(EvoApp)

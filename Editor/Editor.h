@@ -29,7 +29,7 @@ public:
 
 	EntityHandle GetSelectedEntity() const { return m_SelectedEntity; }
 
-	// Viewport texture accessors
+	// Scene viewport texture accessors
 	RHITextureHandle    GetViewportTexture() const { return m_ViewportTexture; }
 	RHIRenderTargetView GetViewportRTV()     const { return m_ViewportRTV; }
 	uint32              GetViewportWidth()   const { return m_uViewportWidth; }
@@ -58,7 +58,7 @@ private:
 	// Log sink for ImGui panel
 	std::shared_ptr<ImGuiLogSink> m_pLogSink;
 
-	// Off-screen viewport texture
+	// Off-screen scene viewport texture
 	RHITextureHandle    m_ViewportTexture;
 	RHIRenderTargetView m_ViewportRTV;
 	uint32              m_uViewportWidth  = 0;

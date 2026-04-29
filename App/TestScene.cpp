@@ -1,4 +1,4 @@
-﻿#include "CubeDemo.h"
+#include "TestScene.h"
 #include "Asset/ShaderAsset.h"
 #include "Scene/MeshWriter.h"
 #include "Scene/PrefabAsset.h"
@@ -6,8 +6,6 @@
 #include "Scene/SceneWriter.h"
 #include "Scene/SceneLoader.h"
 #include "Renderer/Renderer.h"
-#include "Platform/Input.h"
-#include "Platform/Window.h"
 #include "Core/Log.h"
 
 #include <cstring>
@@ -24,29 +22,20 @@ struct StaticVertex {
 
 static void GenerateCubeData(std::vector<StaticVertex>& outVertices, std::vector<uint32>& outIndices)
 {
-	// 24 vertices (4 per face, each with unique normal)
-	// 36 indices (6 per face)
-
 	struct FaceData {
-		float nx, ny, nz;        // Normal
-		float verts[4][3];       // 4 corner positions
-		float uvs[4][2];        // 4 corner UVs
+		float nx, ny, nz;
+		float verts[4][3];
+		float uvs[4][2];
 	};
 
 	const float s = 0.5f;
 
 	FaceData faces[] = {
-		// +Z front
 		{ 0, 0, 1, {{ -s,-s, s }, {  s,-s, s }, {  s, s, s }, { -s, s, s }}, {{ 0,1 }, { 1,1 }, { 1,0 }, { 0,0 }} },
-		// -Z back
 		{ 0, 0,-1, {{  s,-s,-s }, { -s,-s,-s }, { -s, s,-s }, {  s, s,-s }}, {{ 0,1 }, { 1,1 }, { 1,0 }, { 0,0 }} },
-		// +X right
 		{ 1, 0, 0, {{  s,-s, s }, {  s,-s,-s }, {  s, s,-s }, {  s, s, s }}, {{ 0,1 }, { 1,1 }, { 1,0 }, { 0,0 }} },
-		// -X left
 		{-1, 0, 0, {{ -s,-s,-s }, { -s,-s, s }, { -s, s, s }, { -s, s,-s }}, {{ 0,1 }, { 1,1 }, { 1,0 }, { 0,0 }} },
-		// +Y top
 		{ 0, 1, 0, {{ -s, s, s }, {  s, s, s }, {  s, s,-s }, { -s, s,-s }}, {{ 0,1 }, { 1,1 }, { 1,0 }, { 0,0 }} },
-		// -Y bottom
 		{ 0,-1, 0, {{ -s,-s,-s }, {  s,-s,-s }, {  s,-s, s }, { -s,-s, s }}, {{ 0,1 }, { 1,1 }, { 1,0 }, { 0,0 }} },
 	};
 
@@ -66,7 +55,6 @@ static void GenerateCubeData(std::vector<StaticVertex>& outVertices, std::vector
 			vert.uv[1]       = faces[f].uvs[v][1];
 			outVertices.push_back(vert);
 		}
-		// Two triangles per face
 		outIndices.push_back(baseVertex + 0);
 		outIndices.push_back(baseVertex + 1);
 		outIndices.push_back(baseVertex + 2);
@@ -76,7 +64,7 @@ static void GenerateCubeData(std::vector<StaticVertex>& outVertices, std::vector
 	}
 }
 
-bool CubeDemo::Initialize(RHIDevice* pDevice, RHIFormat rtFormat)
+bool TestScene::Initialize(RHIDevice* pDevice, RHIFormat rtFormat)
 {
 #if EVO_RHI_DX12
 	// ---- Initialize asset manager ----
@@ -90,7 +78,7 @@ bool CubeDemo::Initialize(RHIDevice* pDevice, RHIFormat rtFormat)
 	auto* pShader = m_AssetManager.Get<ShaderAsset>(m_ShaderHandle);
 	if (!pShader)
 	{
-		EVO_LOG_ERROR("CubeDemo: failed to load shader");
+		EVO_LOG_ERROR("TestScene: failed to load shader");
 		return false;
 	}
 
@@ -125,7 +113,6 @@ bool CubeDemo::Initialize(RHIDevice* pDevice, RHIFormat rtFormat)
 	std::vector<uint32> indices;
 	GenerateCubeData(vertices, indices);
 
-	// Extract SoA arrays for MeshWriter
 	std::vector<Vec3> positions;
 	std::vector<Vec3> normals;
 	std::vector<Vec2> uvs;
@@ -139,7 +126,6 @@ bool CubeDemo::Initialize(RHIDevice* pDevice, RHIFormat rtFormat)
 		uvs.emplace_back(v.uv[0], v.uv[1]);
 	}
 
-	// Write .emesh file (FlatBuffers format)
 	std::filesystem::create_directories("Assets/Meshes");
 	if (!WriteMeshFromArrays(
 		"Assets/Meshes/Cube.emesh",
@@ -148,14 +134,14 @@ bool CubeDemo::Initialize(RHIDevice* pDevice, RHIFormat rtFormat)
 		indices.data(), static_cast<uint32>(indices.size()),
 		RHIIndexFormat::U32))
 	{
-		EVO_LOG_ERROR("CubeDemo: failed to write Cube.emesh");
+		EVO_LOG_ERROR("TestScene: failed to write Cube.emesh");
 		return false;
 	}
 
 	// ---- Write prefab file ----
 	if (!WritePrefab("Assets/Prefabs/CubePrefab.eprefab", "Assets/Meshes/Cube.emesh"))
 	{
-		EVO_LOG_ERROR("CubeDemo: failed to write CubePrefab.eprefab");
+		EVO_LOG_ERROR("TestScene: failed to write CubePrefab.eprefab");
 		return false;
 	}
 
@@ -189,56 +175,43 @@ bool CubeDemo::Initialize(RHIDevice* pDevice, RHIFormat rtFormat)
 			tempScene.SetEntityPrefab(entity, "Assets/Prefabs/CubePrefab.eprefab");
 		}
 
-		// Write scene to file
 		std::filesystem::create_directories("Assets/Scenes");
 		if (!WriteScene("Assets/Scenes/CubeScene.escene", tempScene))
 		{
-			EVO_LOG_ERROR("CubeDemo: failed to write CubeScene.escene");
+			EVO_LOG_ERROR("TestScene: failed to write CubeScene.escene");
 			return false;
 		}
 	}
 
-	// ---- Load scene from .escene file (validates the full round-trip) ----
+	// ---- Load scene from .escene file ----
 	if (!LoadScene("Assets/Scenes/CubeScene.escene", m_Scene, m_AssetManager))
 	{
-		EVO_LOG_ERROR("CubeDemo: failed to load CubeScene.escene");
+		EVO_LOG_ERROR("TestScene: failed to load CubeScene.escene");
 		return false;
 	}
 
-	// Initialize camera
-	m_Camera.SetPerspective(DegToRad(60.0f), 16.0f / 9.0f, 0.1f, 100.0f);
-	m_Camera.SetPosition(Vec3(0.0f, 3.0f, -8.0f));
-	m_Camera.LookAt(Vec3::Zero);
+	// Initialize game camera (fixed position)
+	m_GameCamera.SetPerspective(DegToRad(60.0f), 16.0f / 9.0f, 0.1f, 100.0f);
+	m_GameCamera.SetPosition(Vec3(0.0f, 3.0f, -8.0f));
+	m_GameCamera.LookAt(Vec3::Zero);
 
-	EVO_LOG_INFO("CubeDemo initialized: {} entities (loaded from .escene)", m_Scene.GetEntityCount());
+	EVO_LOG_INFO("TestScene initialized: {} entities (loaded from .escene)", m_Scene.GetEntityCount());
 	return true;
 #else
 	return false;
 #endif
 }
 
-void CubeDemo::Shutdown(RHIDevice* pDevice)
+void TestScene::Shutdown(RHIDevice* pDevice)
 {
 	if (m_Pipeline.IsValid()) pDevice->DestroyPipeline(m_Pipeline);
-
-	// AssetManager shuts down all loaded assets (shaders, meshes, etc.)
 	m_AssetManager.Shutdown();
 }
 
-void CubeDemo::Update(float fDeltaTime, const Input& input, Window& window,
-                      uint32 uViewportWidth, uint32 uViewportHeight)
+void TestScene::Update(float fDeltaTime)
 {
 	m_fTime += fDeltaTime;
-
-	// Process async asset completions (for future async loads)
 	m_AssetManager.Update();
-
-	// Update camera with viewport aspect ratio
-	float w = static_cast<float>(uViewportWidth);
-	float h = static_cast<float>(uViewportHeight);
-	if (h > 0.0f)
-		m_Camera.SetAspect(w / h);
-	m_CameraController.Update(m_Camera, input, window, fDeltaTime);
 
 	// Rotate each cube differently
 	int index = 0;
@@ -252,11 +225,11 @@ void CubeDemo::Update(float fDeltaTime, const Input& input, Window& window,
 	});
 }
 
-void CubeDemo::Render(Renderer& renderer,
-                      RGHandle targetTexture, RHIRenderTargetView targetRTV,
-                      float fViewportWidth, float fViewportHeight)
+void TestScene::Render(Renderer& renderer,
+                       RGHandle targetTexture, RHIRenderTargetView targetRTV,
+                       const Mat4& viewProj,
+                       float fViewportWidth, float fViewportHeight)
 {
-	Mat4 viewProj = m_Camera.GetViewProjectionMatrix();
 	m_SceneRenderer.RenderScene(m_Scene, renderer, m_Pipeline, viewProj,
 	                            targetTexture, targetRTV,
 	                            fViewportWidth, fViewportHeight);

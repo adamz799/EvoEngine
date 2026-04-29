@@ -4,7 +4,7 @@
 #include "Platform/Input.h"
 #include "Renderer/Renderer.h"
 #include "Renderer/RenderGraph.h"
-#include "CubeDemo.h"
+#include "TestScene.h"
 #include <chrono>
 
 // ---- D3D12 Agility SDK runtime selection ----
@@ -48,12 +48,19 @@ int main(int /*argc*/, char* /*argv*/[])
         EVO_LOG_ERROR("Failed to initialize renderer (continuing with window only)");
     }
 
-    // ---- Initialize demo ----
-    Evo::CubeDemo cubeDemo;
-    if (!cubeDemo.Initialize(renderer.GetDevice(), renderer.GetSwapChain()->GetFormat()))
+    // ---- Initialize test scene ----
+    Evo::TestScene testScene;
+    if (!testScene.Initialize(renderer.GetDevice(), renderer.GetSwapChain()->GetFormat()))
     {
-        EVO_LOG_ERROR("Failed to initialize cube demo");
+        EVO_LOG_ERROR("Failed to initialize test scene");
     }
+
+    // ---- Own camera + controller for runtime play ----
+    Evo::Camera camera;
+    Evo::FreeCameraController cameraController;
+    camera.SetPerspective(Evo::DegToRad(60.0f), 16.0f / 9.0f, 0.1f, 100.0f);
+    camera.SetPosition(Evo::Vec3(0.0f, 3.0f, -8.0f));
+    camera.LookAt(Evo::Vec3::Zero);
 
     // ---- Main loop ----
     EVO_LOG_INFO("Entering main loop");
@@ -69,16 +76,24 @@ int main(int /*argc*/, char* /*argv*/[])
         float dt = std::chrono::duration<float>(now - lastTime).count();
         lastTime = now;
 
-        cubeDemo.Update(dt, input, window, window.GetWidth(), window.GetHeight());
+        // Update camera
+        float w = static_cast<float>(window.GetWidth());
+        float h = static_cast<float>(window.GetHeight());
+        if (h > 0.0f)
+            camera.SetAspect(w / h);
+        cameraController.Update(camera, input, window, dt);
+
+        // Update scene
+        testScene.Update(dt);
 
         renderer.BeginFrame();
 
         auto bbRG = renderer.GetBackBufferRG();
         auto* swapChain = renderer.GetSwapChain();
 
-        cubeDemo.Render(renderer, bbRG, swapChain->GetCurrentBackBufferRTV(),
-            static_cast<float>(window.GetWidth()),
-            static_cast<float>(window.GetHeight()));
+        Evo::Mat4 vp = camera.GetViewProjectionMatrix();
+        testScene.Render(renderer, bbRG, swapChain->GetCurrentBackBufferRTV(),
+            vp, w, h);
 
         renderer.EndFrame();
     }
@@ -86,7 +101,7 @@ int main(int /*argc*/, char* /*argv*/[])
     // ---- Shutdown (reverse order) ----
     EVO_LOG_INFO("Shutting down...");
     renderer.GetDevice()->WaitIdle();
-    cubeDemo.Shutdown(renderer.GetDevice());
+    testScene.Shutdown(renderer.GetDevice());
     renderer.Shutdown();
     window.Shutdown();
     Evo::Log::Shutdown();

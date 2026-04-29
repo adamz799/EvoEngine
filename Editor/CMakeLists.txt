@@ -1,14 +1,15 @@
 add_executable(EvoEditor
     EditorMain.cpp
     Editor.cpp
-    ${CMAKE_SOURCE_DIR}/App/CubeDemo.cpp
+    DebugRenderer.cpp
+    ${CMAKE_SOURCE_DIR}/App/TestScene.cpp
 )
 
 evo_set_compiler_flags(EvoEditor)
 
 target_include_directories(EvoEditor PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}    # Editor.h, ImGuiLogSink.h
-    ${CMAKE_SOURCE_DIR}/App        # CubeDemo.h
+    ${CMAKE_SOURCE_DIR}/App        # TestScene.h
 )
 
 target_link_libraries(EvoEditor PRIVATE EvoEngine)

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "Asset/AssetManager.h"
 #include "Scene/Scene.h"
@@ -9,23 +9,25 @@
 namespace Evo {
 
 class Renderer;
-class Input;
-class Window;
 
-/// CubeDemo — renders multiple cubes using the Scene/Mesh/SceneRenderer system.
-class CubeDemo {
+/// TestScene -- five rotating cubes, with a fixed game camera.
+class TestScene {
 public:
 	bool Initialize(RHIDevice* pDevice, RHIFormat rtFormat);
 	void Shutdown(RHIDevice* pDevice);
 
-	void Update(float fDeltaTime, const Input& input, Window& window,
-	            uint32 uViewportWidth, uint32 uViewportHeight);
+	/// Update cube rotations (no input, no camera controller).
+	void Update(float fDeltaTime);
+
+	/// Render the scene from an externally-supplied view-projection matrix.
 	void Render(Renderer& renderer,
 	            RGHandle targetTexture, RHIRenderTargetView targetRTV,
+	            const Mat4& viewProj,
 	            float fViewportWidth, float fViewportHeight);
 
 	Scene& GetScene() { return m_Scene; }
-	const Camera& GetCamera() const { return m_Camera; }
+	Camera& GetGameCamera() { return m_GameCamera; }
+	const Camera& GetGameCamera() const { return m_GameCamera; }
 
 private:
 	// Asset management
@@ -36,12 +38,11 @@ private:
 	RHIPipelineHandle m_Pipeline;
 
 	// Scene
-	Scene                        m_Scene;
-	SceneRenderer                m_SceneRenderer;
+	Scene         m_Scene;
+	SceneRenderer m_SceneRenderer;
 
-	// Camera
-	Camera               m_Camera;
-	FreeCameraController m_CameraController;
+	// Game camera (fixed viewpoint, no controller)
+	Camera m_GameCamera;
 
 	float m_fTime = 0.0f;
 };
