@@ -1,6 +1,7 @@
 ﻿#include "Core/Log.h"
 #include "Math/Math.h"
 #include "Platform/Window.h"
+#include "Platform/Input.h"
 #include "Renderer/Renderer.h"
 #include "CubeDemo.h"
 #include <chrono>
@@ -56,8 +57,9 @@ int main(int /*argc*/, char* /*argv*/[])
     // ---- Main loop ----
     EVO_LOG_INFO("Entering main loop");
     auto lastTime = std::chrono::high_resolution_clock::now();
+    Evo::Input input;
 
-    while (window.PollEvents()) {
+    while (window.PollEvents(&input)) {
         if (window.IsMinimized())
             continue;
 
@@ -66,7 +68,7 @@ int main(int /*argc*/, char* /*argv*/[])
         float dt = std::chrono::duration<float>(now - lastTime).count();
         lastTime = now;
 
-        cubeDemo.Update(dt);
+        cubeDemo.Update(dt, input, window);
 
         renderer.BeginFrame();
         cubeDemo.Render(renderer);

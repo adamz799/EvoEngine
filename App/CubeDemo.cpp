@@ -1,5 +1,7 @@
 ﻿#include "CubeDemo.h"
 #include "Renderer/Renderer.h"
+#include "Platform/Input.h"
+#include "Platform/Window.h"
 #include "Core/Log.h"
 
 #if EVO_RHI_DX12
@@ -173,6 +175,11 @@ bool CubeDemo::Initialize(RHIDevice* pDevice, RHIFormat rtFormat)
 		m_Scene.Meshes().Add(entity, mesh);
 	}
 
+	// Initialize camera
+	m_Camera.SetPerspective(DegToRad(60.0f), 16.0f / 9.0f, 0.1f, 100.0f);
+	m_Camera.SetPosition(Vec3(0.0f, 3.0f, -8.0f));
+	m_Camera.LookAt(Vec3::Zero);
+
 	EVO_LOG_INFO("CubeDemo initialized: {} entities", 5);
 	return true;
 #else
@@ -188,9 +195,16 @@ void CubeDemo::Shutdown(RHIDevice* pDevice)
 	if (m_PS.IsValid())       pDevice->DestroyShader(m_PS);
 }
 
-void CubeDemo::Update(float fDeltaTime)
+void CubeDemo::Update(float fDeltaTime, const Input& input, Window& window)
 {
 	m_fTime += fDeltaTime;
+
+	// Update camera
+	float w = static_cast<float>(window.GetWidth());
+	float h = static_cast<float>(window.GetHeight());
+	if (h > 0.0f)
+		m_Camera.SetAspect(w / h);
+	m_CameraController.Update(m_Camera, input, window, fDeltaTime);
 
 	// Rotate each cube differently
 	int index = 0;
@@ -206,24 +220,7 @@ void CubeDemo::Update(float fDeltaTime)
 
 void CubeDemo::Render(Renderer& renderer)
 {
-	// Build view-projection matrix (simple orbiting camera)
-	float camDist  = 8.0f;
-	float camAngle = m_fTime * 0.2f;
-	Vec3 eye(
-		std::cos(camAngle) * camDist,
-		3.0f,
-		std::sin(camAngle) * camDist);
-	Vec3 target = Vec3::Zero;
-	Vec3 up     = Vec3::Up;
-
-	Mat4 view = Mat4::LookAtLH(eye, target, up);
-
-	float w = static_cast<float>(renderer.GetSwapChain()->GetWidth());
-	float h = static_cast<float>(renderer.GetSwapChain()->GetHeight());
-	Mat4 proj = Mat4::PerspectiveFovLH(DegToRad(60.0f), w / h, 0.1f, 100.0f);
-
-	Mat4 viewProj = view * proj;
-
+	Mat4 viewProj = m_Camera.GetViewProjectionMatrix();
 	m_SceneRenderer.RenderScene(m_Scene, renderer, m_Pipeline, viewProj);
 }
 

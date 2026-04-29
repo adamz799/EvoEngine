@@ -1,4 +1,5 @@
 #include "Platform/Window.h"
+#include "Platform/Input.h"
 #include "Core/Log.h"
 
 #define SDL_MAIN_HANDLED
@@ -45,10 +46,16 @@ void Window::Shutdown()
     SDL_Quit();
 }
 
-bool Window::PollEvents()
+bool Window::PollEvents(Input* pInput)
 {
+    if (pInput)
+        pInput->NewFrame();
+
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
+        if (pInput)
+            pInput->ProcessEvent(event);
+
         switch (event.type) {
             case SDL_EVENT_QUIT:
                 return false;
@@ -98,6 +105,12 @@ void* Window::GetNativeHandle() const
 #else
     return nullptr;
 #endif
+}
+
+void Window::SetRelativeMouseMode(bool bEnable)
+{
+    if (m_pWindow)
+        SDL_SetWindowRelativeMouseMode(m_pWindow, bEnable);
 }
 
 } // namespace Evo

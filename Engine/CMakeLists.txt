@@ -14,7 +14,8 @@ file(GLOB MATH_HEADERS    Math/*.h)
 
 file(GLOB PLATFORM_HEADERS Platform/*.h)
 set(PLATFORM_SOURCES       Platform/Window.cpp
-                           Platform/FileSystem.cpp)
+                           Platform/FileSystem.cpp
+                           Platform/Input.cpp)
 
 file(GLOB RHI_HEADERS     RHI/*.h)
 set(RHI_SOURCES           RHI/RHI.cpp)
@@ -22,7 +23,8 @@ set(RHI_SOURCES           RHI/RHI.cpp)
 file(GLOB RENDERER_HEADERS Renderer/*.h)
 set(RENDERER_SOURCES       Renderer/Renderer.cpp
                            Renderer/RenderGraph.cpp
-                           Renderer/SceneRenderer.cpp)
+                           Renderer/SceneRenderer.cpp
+                           Renderer/Camera.cpp)
 
 file(GLOB SCENE_HEADERS    Scene/*.h)
 set(SCENE_SOURCES          Scene/Scene.cpp

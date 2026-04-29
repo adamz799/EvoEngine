@@ -7,6 +7,8 @@ struct SDL_Window;
 
 namespace Evo {
 
+class Input;
+
 struct WindowDesc {
     std::string sTitle  = "EvoEngine";
     uint32         uWidth  = 1280;
@@ -23,7 +25,11 @@ public:
     void Shutdown();
 
     /// Poll events. Returns false if quit was requested.
-    bool PollEvents();
+    /// If pInput is provided, events are forwarded for input tracking.
+    bool PollEvents(Input* pInput = nullptr);
+
+    /// Toggle relative mouse mode (cursor hidden, raw delta).
+    void SetRelativeMouseMode(bool bEnable);
 
     uint32  GetWidth()  const { return m_uWidth; }
     uint32  GetHeight() const { return m_uHeight; }
