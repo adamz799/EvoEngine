@@ -76,11 +76,19 @@ if(EVO_RHI_DX12)
     endif()
 endif()
 
-# ---- FlatBuffers (header-only runtime) ----
+# ---- FlatBuffers (runtime headers + flatc compiler) ----
+# Uses add_subdirectory so flatc can be built on-demand for schema generation.
+# The FlatBuffers CMakeLists.txt creates a "FlatBuffers" INTERFACE target (line 728)
+# providing the same include path as the old manual library.
 set(FLATBUFFERS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/flatbuffers)
-if(EXISTS ${FLATBUFFERS_DIR}/include/flatbuffers/flatbuffers.h)
-    add_library(FlatBuffers INTERFACE)
-    target_include_directories(FlatBuffers INTERFACE ${FLATBUFFERS_DIR}/include)
+if(EXISTS ${FLATBUFFERS_DIR}/CMakeLists.txt)
+    set(FLATBUFFERS_BUILD_FLATC      ON  CACHE BOOL "" FORCE)
+    set(FLATBUFFERS_BUILD_TESTS      OFF CACHE BOOL "" FORCE)
+    set(FLATBUFFERS_BUILD_BENCHMARKS OFF CACHE BOOL "" FORCE)
+    set(FLATBUFFERS_BUILD_FLATHASH   OFF CACHE BOOL "" FORCE)
+    set(FLATBUFFERS_INSTALL          OFF CACHE BOOL "" FORCE)
+    set(FLATBUFFERS_BUILD_FLATLIB    OFF CACHE BOOL "" FORCE)
+    add_subdirectory(flatbuffers EXCLUDE_FROM_ALL)
 else()
     message(WARNING "FlatBuffers not found at ThirdParty/flatbuffers")
 endif()

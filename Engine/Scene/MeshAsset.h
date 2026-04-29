@@ -28,22 +28,10 @@ struct MeshLOD {
 	uint32                   uVertexStride = 0;
 };
 
-/// Binary mesh format header (.emesh).
-struct EvoMeshHeader {
-	char   magic[4];       // "EMSH"
-	uint32 uVersion;       // 1
-	uint32 uVertexCount;
-	uint32 uIndexCount;
-	uint32 uVertexStride;
-	uint32 uIndexFormat;   // 0 = U16, 1 = U32
-	float  boundsMin[3];
-	float  boundsMax[3];
-};
-
 /// MeshAsset — GPU-resident mesh data with bounds and LOD support.
 ///
 /// Supports two creation paths:
-///   1. File-based (via AssetManager): OnLoad parses .emesh binary → OnFinalize creates GPU buffers
+///   1. File-based (via AssetManager): OnLoad parses FlatBuffers .emesh → OnFinalize creates GPU buffers
 ///   2. Procedural (CreateFromMemory): direct GPU upload, bypasses Asset lifecycle
 class MeshAsset : public Asset {
 public:
@@ -86,6 +74,7 @@ private:
 		RHIIndexFormat     indexFormat   = RHIIndexFormat::U32;
 		Vec3               vBoundsMin;
 		Vec3               vBoundsMax;
+		std::vector<SubMesh> vSubMeshes;
 	};
 	std::unique_ptr<PendingData> m_pPending;
 

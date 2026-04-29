@@ -1,6 +1,7 @@
 ﻿#include "Scene/MeshAsset.h"
 #include "RHI/RHIDevice.h"
 #include "Core/Log.h"
+#include "Mesh_generated.h"
 #include <cstring>
 
 namespace Evo {
@@ -70,58 +71,226 @@ bool MeshAsset::CreateGPUBuffers(RHIDevice* pDevice,
 }
 
 // ============================================================================
-// Asset lifecycle — file-based loading (.emesh)
+// FlatBuffers format helpers
+// ============================================================================
+
+static float HalfToFloat(uint16 h)
+{
+	uint32 sign     = (h & 0x8000u) << 16;
+	uint32 exponent = (h >> 10) & 0x1F;
+	uint32 mantissa = h & 0x3FF;
+
+	uint32 result;
+	if (exponent == 0)
+	{
+		if (mantissa == 0)
+			result = sign;
+		else
+		{
+			exponent = 1;
+			while (!(mantissa & 0x400)) { mantissa <<= 1; exponent--; }
+			mantissa &= 0x3FF;
+			result = sign | ((exponent + 127 - 15) << 23) | (mantissa << 13);
+		}
+	}
+	else if (exponent == 31)
+		result = sign | 0x7F800000u | (mantissa << 13);
+	else
+		result = sign | ((exponent + 127 - 15) << 23) | (mantissa << 13);
+
+	float f;
+	std::memcpy(&f, &result, 4);
+	return f;
+}
+
+static uint32 GetFormatStride(Evo::Schema::AttributeFormat format)
+{
+	using enum Evo::Schema::AttributeFormat;
+	switch (format)
+	{
+	case AttributeFormat_Float16x2: return 4;
+	case AttributeFormat_Float16x3: return 6;
+	case AttributeFormat_Float16x4: return 8;
+	case AttributeFormat_Float32x2: return 8;
+	case AttributeFormat_Float32x3: return 12;
+	case AttributeFormat_Float32x4: return 16;
+	case AttributeFormat_UNorm8x4:  return 4;
+	case AttributeFormat_SNorm8x4:  return 4;
+	case AttributeFormat_UNorm16x2: return 4;
+	case AttributeFormat_UNorm16x4: return 8;
+	default: return 0;
+	}
+}
+
+/// Decode one vertex element into float32 components.
+/// Writes exactly uOutComponents floats to pOut.
+static void DecodeElement(const uint8* pElement, Evo::Schema::AttributeFormat format,
+                          float* pOut, uint32 uOutComponents)
+{
+	using enum Evo::Schema::AttributeFormat;
+	switch (format)
+	{
+	case AttributeFormat_Float32x2:
+	case AttributeFormat_Float32x3:
+	case AttributeFormat_Float32x4:
+		std::memcpy(pOut, pElement, uOutComponents * sizeof(float));
+		break;
+
+	case AttributeFormat_Float16x2:
+	case AttributeFormat_Float16x3:
+	case AttributeFormat_Float16x4:
+	{
+		auto* pHalf = reinterpret_cast<const uint16*>(pElement);
+		for (uint32 c = 0; c < uOutComponents; ++c)
+			pOut[c] = HalfToFloat(pHalf[c]);
+		break;
+	}
+
+	default:
+		for (uint32 c = 0; c < uOutComponents; ++c)
+			pOut[c] = 0.0f;
+		break;
+	}
+}
+
+static bool IsFloat3Format(Evo::Schema::AttributeFormat format)
+{
+	return format == Evo::Schema::AttributeFormat_Float32x3
+	    || format == Evo::Schema::AttributeFormat_Float16x3;
+}
+
+static bool IsFloat2Format(Evo::Schema::AttributeFormat format)
+{
+	return format == Evo::Schema::AttributeFormat_Float32x2
+	    || format == Evo::Schema::AttributeFormat_Float16x2;
+}
+
+// ============================================================================
+// Asset lifecycle — FlatBuffers-based loading (.emesh)
 // ============================================================================
 
 bool MeshAsset::OnLoad(const std::vector<uint8>& rawData)
 {
-	if (rawData.size() < sizeof(EvoMeshHeader))
+	// ---- Verify FlatBuffer ----
+	flatbuffers::Verifier verifier(rawData.data(), rawData.size());
+	if (!Evo::Schema::VerifyMeshBuffer(verifier))
 	{
-		EVO_LOG_ERROR("MeshAsset::OnLoad — file too small for header ({})", m_sPath);
+		EVO_LOG_ERROR("MeshAsset::OnLoad — FlatBuffer verification failed for '{}'", m_sPath);
 		return false;
 	}
 
-	EvoMeshHeader header;
-	std::memcpy(&header, rawData.data(), sizeof(header));
-
-	if (std::memcmp(header.magic, "EMSH", 4) != 0)
+	auto* pMesh = Evo::Schema::GetMesh(rawData.data());
+	if (!pMesh)
 	{
-		EVO_LOG_ERROR("MeshAsset::OnLoad — invalid magic in '{}'", m_sPath);
+		EVO_LOG_ERROR("MeshAsset::OnLoad — null root in '{}'", m_sPath);
 		return false;
 	}
 
-	if (header.uVersion != 1)
+	// ---- Validate attribute formats ----
+	auto* pPositions = pMesh->positions();
+	auto* pNormals   = pMesh->normals();
+	auto* pUVs       = pMesh->uvs();
+
+	if (!IsFloat3Format(pPositions->format()))
 	{
-		EVO_LOG_ERROR("MeshAsset::OnLoad — unsupported version {} in '{}'", header.uVersion, m_sPath);
+		EVO_LOG_ERROR("MeshAsset::OnLoad — positions must be Float32x3 or Float16x3 in '{}'", m_sPath);
+		return false;
+	}
+	if (!IsFloat3Format(pNormals->format()))
+	{
+		EVO_LOG_ERROR("MeshAsset::OnLoad — normals must be Float32x3 or Float16x3 in '{}'", m_sPath);
+		return false;
+	}
+	if (!IsFloat2Format(pUVs->format()))
+	{
+		EVO_LOG_ERROR("MeshAsset::OnLoad — uvs must be Float32x2 or Float16x2 in '{}'", m_sPath);
 		return false;
 	}
 
-	RHIIndexFormat indexFormat = (header.uIndexFormat == 0) ? RHIIndexFormat::U16 : RHIIndexFormat::U32;
-	uint32 indexStride = (indexFormat == RHIIndexFormat::U16) ? 2 : 4;
+	uint32 uPosStride = GetFormatStride(pPositions->format());
+	uint32 uNrmStride = GetFormatStride(pNormals->format());
+	uint32 uUvStride  = GetFormatStride(pUVs->format());
 
-	uint64 vertexDataSize = static_cast<uint64>(header.uVertexCount) * header.uVertexStride;
-	uint64 indexDataSize  = static_cast<uint64>(header.uIndexCount)  * indexStride;
-	uint64 expectedSize   = sizeof(EvoMeshHeader) + vertexDataSize + indexDataSize;
+	uint32 uVertexCount = static_cast<uint32>(pPositions->data()->size()) / uPosStride;
 
-	if (rawData.size() < expectedSize)
+	// Validate array sizes match
+	if (pNormals->data()->size() / uNrmStride != uVertexCount ||
+	    pUVs->data()->size() / uUvStride != uVertexCount)
 	{
-		EVO_LOG_ERROR("MeshAsset::OnLoad — file truncated in '{}' (expected {} bytes, got {})",
-		              m_sPath, expectedSize, rawData.size());
+		EVO_LOG_ERROR("MeshAsset::OnLoad — vertex attribute count mismatch in '{}'", m_sPath);
 		return false;
 	}
+
+	// ---- Interleave SoA → AoS (always output float32) ----
+	// Layout: float32[3] position + float32[3] normal + float32[2] uv = 32 bytes
+	constexpr uint32 kVertexStride = 32;
 
 	m_pPending = std::make_unique<PendingData>();
-	m_pPending->uVertexCount  = header.uVertexCount;
-	m_pPending->uIndexCount   = header.uIndexCount;
-	m_pPending->uVertexStride = header.uVertexStride;
-	m_pPending->indexFormat   = indexFormat;
-	m_pPending->vBoundsMin    = Vec3(header.boundsMin[0], header.boundsMin[1], header.boundsMin[2]);
-	m_pPending->vBoundsMax    = Vec3(header.boundsMax[0], header.boundsMax[1], header.boundsMax[2]);
+	m_pPending->uVertexCount  = uVertexCount;
+	m_pPending->uVertexStride = kVertexStride;
+	m_pPending->vVertexData.resize(static_cast<size_t>(uVertexCount) * kVertexStride);
 
-	const uint8* pData = rawData.data() + sizeof(EvoMeshHeader);
-	m_pPending->vVertexData.assign(pData, pData + vertexDataSize);
-	pData += vertexDataSize;
-	m_pPending->vIndexData.assign(pData, pData + indexDataSize);
+	const uint8* pPosData = pPositions->data()->data();
+	const uint8* pNrmData = pNormals->data()->data();
+	const uint8* pUvData  = pUVs->data()->data();
+	uint8* pDst = m_pPending->vVertexData.data();
+
+	for (uint32 i = 0; i < uVertexCount; ++i)
+	{
+		float* pVertex = reinterpret_cast<float*>(pDst + i * kVertexStride);
+		DecodeElement(pPosData + i * uPosStride, pPositions->format(), pVertex,     3);
+		DecodeElement(pNrmData + i * uNrmStride, pNormals->format(),   pVertex + 3, 3);
+		DecodeElement(pUvData  + i * uUvStride,  pUVs->format(),       pVertex + 6, 2);
+	}
+
+	// ---- Index data ----
+	auto* pIB = pMesh->indices();
+	uint32 uIndexStride = (pIB->format() == Evo::Schema::IndexFormat_UInt16) ? 2 : 4;
+	m_pPending->indexFormat = (pIB->format() == Evo::Schema::IndexFormat_UInt16)
+	                        ? RHIIndexFormat::U16 : RHIIndexFormat::U32;
+	m_pPending->uIndexCount = static_cast<uint32>(pIB->data()->size()) / uIndexStride;
+	m_pPending->vIndexData.assign(pIB->data()->data(),
+	                              pIB->data()->data() + pIB->data()->size());
+
+	// ---- Bounds ----
+	auto* pBounds = pMesh->bounds();
+	if (pBounds)
+	{
+		auto& bMin = pBounds->min();
+		auto& bMax = pBounds->max();
+		m_pPending->vBoundsMin = Vec3(bMin.x(), bMin.y(), bMin.z());
+		m_pPending->vBoundsMax = Vec3(bMax.x(), bMax.y(), bMax.z());
+	}
+	else
+	{
+		// Compute from decoded positions
+		Vec3 vMin(Infinity);
+		Vec3 vMax(-Infinity);
+		for (uint32 i = 0; i < uVertexCount; ++i)
+		{
+			float* pVertex = reinterpret_cast<float*>(pDst + i * kVertexStride);
+			Vec3 p(pVertex[0], pVertex[1], pVertex[2]);
+			vMin = Vec3::Min(vMin, p);
+			vMax = Vec3::Max(vMax, p);
+		}
+		m_pPending->vBoundsMin = vMin;
+		m_pPending->vBoundsMax = vMax;
+	}
+
+	// ---- Sub-meshes ----
+	auto* pSubMeshes = pMesh->sub_meshes();
+	if (pSubMeshes && pSubMeshes->size() > 0)
+	{
+		for (uint32 i = 0; i < pSubMeshes->size(); ++i)
+		{
+			auto* sm = pSubMeshes->Get(i);
+			SubMesh subMesh;
+			subMesh.uIndexOffset  = sm->index_offset();
+			subMesh.uIndexCount   = sm->index_count();
+			subMesh.uVertexOffset = sm->vertex_offset();
+			m_pPending->vSubMeshes.push_back(subMesh);
+		}
+	}
 
 	return true;
 }
@@ -141,6 +310,10 @@ bool MeshAsset::OnFinalize(RHIDevice* pDevice)
 	bool bSuccess = CreateGPUBuffers(pDevice,
 		m_pPending->vVertexData.data(), m_pPending->uVertexCount, m_pPending->uVertexStride,
 		m_pPending->vIndexData.data(),  m_pPending->uIndexCount,  m_pPending->indexFormat);
+
+	// Override auto-generated single sub-mesh if file specified explicit ranges
+	if (bSuccess && !m_pPending->vSubMeshes.empty())
+		m_vLODs.back().vSubMeshes = std::move(m_pPending->vSubMeshes);
 
 	// Release intermediate data
 	m_pPending.reset();

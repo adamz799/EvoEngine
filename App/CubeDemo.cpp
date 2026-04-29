@@ -1,5 +1,6 @@
 ﻿#include "CubeDemo.h"
 #include "Asset/ShaderAsset.h"
+#include "Scene/MeshWriter.h"
 #include "Renderer/Renderer.h"
 #include "Platform/Input.h"
 #include "Platform/Window.h"
@@ -7,6 +8,7 @@
 
 #include <cstring>
 #include <cmath>
+#include <filesystem>
 
 namespace Evo {
 
@@ -113,27 +115,46 @@ bool CubeDemo::Initialize(RHIDevice* pDevice, RHIFormat rtFormat)
 	if (!m_Pipeline.IsValid())
 		return false;
 
-	// Generate cube mesh data (procedural — not from file)
+	// ---- Generate cube mesh data and write to .emesh file ----
 	std::vector<StaticVertex> vertices;
 	std::vector<uint32> indices;
 	GenerateCubeData(vertices, indices);
 
-	// Extract positions for bounds computation
+	// Extract SoA arrays for MeshWriter
 	std::vector<Vec3> positions;
+	std::vector<Vec3> normals;
+	std::vector<Vec2> uvs;
 	positions.reserve(vertices.size());
+	normals.reserve(vertices.size());
+	uvs.reserve(vertices.size());
 	for (const auto& v : vertices)
+	{
 		positions.emplace_back(v.position[0], v.position[1], v.position[2]);
+		normals.emplace_back(v.normal[0], v.normal[1], v.normal[2]);
+		uvs.emplace_back(v.uv[0], v.uv[1]);
+	}
 
-	// Create MeshAsset (procedural, bypasses Asset lifecycle)
-	m_pCubeMesh = MeshAsset::CreateFromMemory(
-		pDevice,
-		vertices.data(), static_cast<uint32>(vertices.size()), sizeof(StaticVertex),
-		indices.data(),  static_cast<uint32>(indices.size()),  RHIIndexFormat::U32,
-		positions.data(), static_cast<uint32>(positions.size()),
-		"Cube");
-
-	if (!m_pCubeMesh)
+	// Write .emesh file (FlatBuffers format)
+	std::filesystem::create_directories("Assets/Meshes");
+	if (!WriteMeshFromArrays(
+		"Assets/Meshes/Cube.emesh",
+		positions.data(), normals.data(), uvs.data(),
+		static_cast<uint32>(vertices.size()),
+		indices.data(), static_cast<uint32>(indices.size()),
+		RHIIndexFormat::U32))
+	{
+		EVO_LOG_ERROR("CubeDemo: failed to write Cube.emesh");
 		return false;
+	}
+
+	// ---- Load cube mesh from .emesh file via asset system ----
+	m_MeshHandle = m_AssetManager.LoadSync("Assets/Meshes/Cube.emesh");
+	auto* pCubeMesh = m_AssetManager.Get<MeshAsset>(m_MeshHandle);
+	if (!pCubeMesh)
+	{
+		EVO_LOG_ERROR("CubeDemo: failed to load Cube.emesh");
+		return false;
+	}
 
 	// Create scene with multiple cubes at different positions
 	struct CubeSetup {
@@ -159,7 +180,7 @@ bool CubeDemo::Initialize(RHIDevice* pDevice, RHIFormat rtFormat)
 		m_Scene.Transforms().Add(entity, transform);
 
 		MeshComponent mesh;
-		mesh.pMesh = m_pCubeMesh.get();
+		mesh.pMesh = pCubeMesh;
 		m_Scene.Meshes().Add(entity, mesh);
 	}
 
@@ -168,7 +189,7 @@ bool CubeDemo::Initialize(RHIDevice* pDevice, RHIFormat rtFormat)
 	m_Camera.SetPosition(Vec3(0.0f, 3.0f, -8.0f));
 	m_Camera.LookAt(Vec3::Zero);
 
-	EVO_LOG_INFO("CubeDemo initialized: {} entities", 5);
+	EVO_LOG_INFO("CubeDemo initialized: {} entities (mesh loaded from .emesh)", 5);
 	return true;
 #else
 	return false;
@@ -177,10 +198,9 @@ bool CubeDemo::Initialize(RHIDevice* pDevice, RHIFormat rtFormat)
 
 void CubeDemo::Shutdown(RHIDevice* pDevice)
 {
-	if (m_pCubeMesh) m_pCubeMesh->Destroy(pDevice);
 	if (m_Pipeline.IsValid()) pDevice->DestroyPipeline(m_Pipeline);
 
-	// AssetManager shuts down all loaded assets (shaders, etc.)
+	// AssetManager shuts down all loaded assets (shaders, meshes, etc.)
 	m_AssetManager.Shutdown();
 }
 

@@ -21,5 +21,6 @@ include(cmake/EvoEngine.cmake)
 
 # --- Subdirectories ---
 add_subdirectory(ThirdParty)
+add_subdirectory(Schemas)
 add_subdirectory(Engine)
 add_subdirectory(App)

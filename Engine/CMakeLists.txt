@@ -33,7 +33,8 @@ set(RENDERER_SOURCES       Renderer/Renderer.cpp
 
 file(GLOB SCENE_HEADERS    Scene/*.h)
 set(SCENE_SOURCES          Scene/Scene.cpp
-                           Scene/MeshAsset.cpp)
+                           Scene/MeshAsset.cpp
+                           Scene/MeshWriter.cpp)
 
 # ---- Backend sources ----
 if(EVO_RHI_DX12)
@@ -100,7 +101,11 @@ target_link_libraries(EvoEngine
         DirectXMath
         ImGui
         FlatBuffers
+        EvoSchemas
 )
+
+# Ensure schema headers are generated before Engine compilation
+add_dependencies(EvoEngine EvoSchemasGen)
 
 # ---- Platform / backend specific linking ----
 if(EVO_RHI_DX12)

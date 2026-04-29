@@ -1,0 +1,83 @@
+// Mesh.fbs — EvoEngine mesh schema (one LOD per file).
+// Generated header: Mesh_generated.h
+
+namespace Evo.Schema;
+
+// ---- 顶点属性数据格式 ----
+enum AttributeFormat : ubyte {
+	Float16x2,
+	Float16x3,
+	Float16x4,
+	Float32x2,
+	Float32x3,
+	Float32x4,
+	UNorm8x4,
+	SNorm8x4,
+	UNorm16x2,
+	UNorm16x4,
+}
+
+// ---- 单个顶点属性流 ----
+table VertexAttribute {
+	format: AttributeFormat;
+	data:   [ubyte] (required);
+}
+
+// ---- 索引格式 ----
+enum IndexFormat : ubyte {
+	UInt16,
+	UInt32,
+}
+
+// ---- 索引缓冲 ----
+table IndexBuffer {
+	format: IndexFormat;
+	data:   [ubyte] (required);
+}
+
+// ---- Sub-mesh 绘制范围 ----
+struct SubMeshRange {
+	index_offset:  uint;
+	index_count:   uint;
+	vertex_offset: uint;
+}
+
+// ---- 包围盒 (metadata，始终 float32) ----
+struct Vec3 {
+	x: float;
+	y: float;
+	z: float;
+}
+
+struct AABB {
+	min: Vec3;
+	max: Vec3;
+}
+
+// ---- Root: 单个 mesh LOD ----
+table Mesh {
+	// 必选顶点属性
+	positions:    VertexAttribute (required);
+	normals:      VertexAttribute (required);
+	uvs:          VertexAttribute (required);
+
+	// 可选顶点属性
+	tangents:     VertexAttribute;
+	uvs2:         VertexAttribute;
+	colors:       VertexAttribute;
+
+	// 蒙皮 (可选)
+	bone_indices: VertexAttribute;
+	bone_weights: VertexAttribute;
+
+	// 索引
+	indices:      IndexBuffer (required);
+
+	// 元数据
+	bounds:       AABB;
+	sub_meshes:   [SubMeshRange];
+}
+
+root_type Mesh;
+file_identifier "EMSH";
+file_extension "emesh";

@@ -5,7 +5,6 @@
 #include "Scene/MeshAsset.h"
 #include "Renderer/SceneRenderer.h"
 #include "Renderer/Camera.h"
-#include <memory>
 
 namespace Evo {
 
@@ -26,13 +25,13 @@ private:
 	// Asset management
 	AssetManager  m_AssetManager;
 	AssetHandle   m_ShaderHandle;
+	AssetHandle   m_MeshHandle;
 
 	// GPU resources
 	RHIPipelineHandle m_Pipeline;
 
 	// Scene
 	Scene                        m_Scene;
-	std::unique_ptr<MeshAsset>   m_pCubeMesh;
 	SceneRenderer                m_SceneRenderer;
 
 	// Camera
