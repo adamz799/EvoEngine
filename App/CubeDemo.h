@@ -18,8 +18,14 @@ public:
 	bool Initialize(RHIDevice* pDevice, RHIFormat rtFormat);
 	void Shutdown(RHIDevice* pDevice);
 
-	void Update(float fDeltaTime, const Input& input, Window& window);
-	void Render(Renderer& renderer);
+	void Update(float fDeltaTime, const Input& input, Window& window,
+	            uint32 uViewportWidth, uint32 uViewportHeight);
+	void Render(Renderer& renderer,
+	            RGHandle targetTexture, RHIRenderTargetView targetRTV,
+	            float fViewportWidth, float fViewportHeight);
+
+	Scene& GetScene() { return m_Scene; }
+	const Camera& GetCamera() const { return m_Camera; }
 
 private:
 	// Asset management

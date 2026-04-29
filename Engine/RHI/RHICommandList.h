@@ -55,6 +55,10 @@ public:
     virtual void SetPushConstants(const void* data, uint32 size) = 0;
     virtual void SetDescriptorSet(uint32 index, RHIDescriptorSetHandle set) = 0;
 
+    /// Bind GPU-visible descriptor heaps (e.g. for ImGui SRV heap).
+    /// ppHeaps are backend-specific heap pointers (ID3D12DescriptorHeap* for DX12).
+    virtual void SetDescriptorHeaps(uint32 /*uCount*/, void* const* /*ppHeaps*/) {}
+
     // ---- Vertex / Index buffers ----
 
     virtual void SetVertexBuffer(uint32 slot, const RHIVertexBufferView& view) = 0;

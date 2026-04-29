@@ -46,6 +46,7 @@ public:
 	// ---- Binding ----
 	void SetPushConstants(const void* data, uint32 size) override;
 	void SetDescriptorSet(uint32 index, RHIDescriptorSetHandle set) override;
+	void SetDescriptorHeaps(uint32 uCount, void* const* ppHeaps) override;
 
 	// ---- Vertex / Index ----
 	void SetVertexBuffer(uint32 slot, const RHIVertexBufferView& view) override;

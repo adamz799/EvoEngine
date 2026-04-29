@@ -8,6 +8,7 @@
 #include "RHI/DX12/DX12ShaderPool.h"
 #include "RHI/DX12/DX12PipelinePool.h"
 #include "RHI/DX12/DX12DescriptorAllocator.h"
+#include "RHI/DX12/DX12GpuDescriptorAllocator.h"
 #include "RHI/DX12/DX12CommandListPool.h"
 #include <D3D12MemAlloc.h>
 
@@ -84,6 +85,14 @@ public:
     HWND                 GetHWND() const { return m_HWND; }
     void                 SetHWND(HWND hwnd) { m_HWND = hwnd; }
 
+    // ---- GPU-visible SRV descriptor heap (for ImGui, texture bindings) ----
+    DX12GpuDescriptorAllocator& GetSRVAllocator() { return m_SRVAllocator; }
+    ID3D12DescriptorHeap*       GetSRVHeap() const { return m_SRVAllocator.GetHeap(); }
+
+    /// Create a shader resource view and return its GPU descriptor allocation.
+    DX12GpuDescriptorAllocator::Allocation CreateShaderResourceView(RHITextureHandle texture);
+    void DestroyShaderResourceView(const DX12GpuDescriptorAllocator::Allocation& alloc);
+
     // ---- Texture pool access ----
     const DX12TextureEntry* ResolveTexture(RHITextureHandle handle) const;
     DX12TextureEntry*       ResolveTextureMutable(RHITextureHandle handle);
@@ -116,6 +125,7 @@ private:
     DX12ShaderPool  m_ShaderPool;
     DX12PipelinePool m_PipelinePool;
     DX12CpuDescriptorAllocator m_RTVAllocator;
+    DX12GpuDescriptorAllocator m_SRVAllocator;
     DX12CommandListPool        m_GraphicsCmdListPool;
 };
 

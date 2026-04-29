@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "RHI/RHITypes.h"
+#include "Renderer/RenderGraph.h"
 #include "Math/Mat4.h"
 #include <vector>
 
@@ -27,13 +28,18 @@ class SceneRenderer {
 public:
 	void RenderScene(Scene& scene, Renderer& renderer,
 	                 RHIPipelineHandle defaultPipeline,
-	                 const Mat4& viewProj);
+	                 const Mat4& viewProj,
+	                 RGHandle targetTexture,
+	                 RHIRenderTargetView targetRTV,
+	                 float fViewportWidth, float fViewportHeight);
 
 private:
 	std::vector<DrawItem> m_vDrawItems;
 
 	void CollectDrawItems(Scene& scene, RHIPipelineHandle defaultPipeline);
-	void AddOpaquePass(Renderer& renderer, const Mat4& viewProj);
+	void AddOpaquePass(Renderer& renderer, const Mat4& viewProj,
+	                   RGHandle targetTexture, RHIRenderTargetView targetRTV,
+	                   float fViewportWidth, float fViewportHeight);
 };
 
 } // namespace Evo

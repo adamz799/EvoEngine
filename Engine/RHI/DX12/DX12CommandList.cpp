@@ -249,6 +249,11 @@ void DX12CommandList::SetDescriptorSet(uint32 /*index*/, RHIDescriptorSetHandle 
 	// TODO Phase 4: SetGraphicsRootDescriptorTable
 }
 
+void DX12CommandList::SetDescriptorHeaps(uint32 uCount, void* const* ppHeaps)
+{
+	m_pCmdList->SetDescriptorHeaps(uCount, reinterpret_cast<ID3D12DescriptorHeap* const*>(ppHeaps));
+}
+
 // ---- Vertex / Index ----
 
 void DX12CommandList::SetVertexBuffer(uint32 slot, const RHIVertexBufferView& view)

@@ -113,7 +113,14 @@ bool DX12Device::Initialize(const RHIDeviceDesc& desc)
         return false;
     }
 
-    // 8. Create command list pool for graphics queue
+    // 8. Create GPU-visible SRV descriptor heap (for ImGui, texture bindings)
+    if (!m_SRVAllocator.Initialize(m_pDevice.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 64))
+    {
+        EVO_LOG_ERROR("Failed to create SRV descriptor allocator");
+        return false;
+    }
+
+    // 9. Create command list pool for graphics queue
     m_GraphicsCmdListPool.Initialize(this, D3D12_COMMAND_LIST_TYPE_DIRECT);
 
     return true;
@@ -129,6 +136,7 @@ void DX12Device::Shutdown()
     WaitIdle();
 
     m_GraphicsCmdListPool.Shutdown();
+    m_SRVAllocator.Shutdown();
     m_RTVAllocator.Shutdown();
     m_pCopyQueue.reset();
     m_pComputeQueue.reset();
@@ -225,10 +233,62 @@ RHIBufferHandle DX12Device::CreateBuffer(const RHIBufferDesc& desc)
     return m_BufferPool.Allocate(std::move(resource), allocation, gpuAddress, desc.uSize, mappedPtr, desc.sDebugName);
 }
 
-RHITextureHandle DX12Device::CreateTexture(const RHITextureDesc& /*desc*/)
+RHITextureHandle DX12Device::CreateTexture(const RHITextureDesc& desc)
 {
-    EVO_LOG_WARN("DX12Device::CreateTexture — not yet implemented");
-    return {};
+    D3D12_RESOURCE_DESC resourceDesc = {};
+    resourceDesc.Dimension        = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+    resourceDesc.Width            = desc.uWidth;
+    resourceDesc.Height           = desc.uHeight;
+    resourceDesc.DepthOrArraySize = static_cast<UINT16>(desc.uDepthOrArraySize);
+    resourceDesc.MipLevels        = static_cast<UINT16>(desc.uMipLevels);
+    resourceDesc.Format           = MapFormat(desc.format);
+    resourceDesc.SampleDesc.Count = 1;
+    resourceDesc.Layout           = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+
+    D3D12_RESOURCE_FLAGS flags = D3D12_RESOURCE_FLAG_NONE;
+    if ((desc.usage & RHITextureUsage::RenderTarget) != RHITextureUsage(0))
+        flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+    if ((desc.usage & RHITextureUsage::DepthStencil) != RHITextureUsage(0))
+        flags |= D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+    if ((desc.usage & RHITextureUsage::UnorderedAccess) != RHITextureUsage(0))
+        flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+    resourceDesc.Flags = flags;
+
+    D3D12MA::ALLOCATION_DESC allocDesc = {};
+    allocDesc.HeapType = D3D12_HEAP_TYPE_DEFAULT;
+
+    D3D12_CLEAR_VALUE* pClearValue = nullptr;
+    D3D12_CLEAR_VALUE clearValue = {};
+    if (flags & D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET)
+    {
+        clearValue.Format   = resourceDesc.Format;
+        clearValue.Color[0] = desc.clearColor.fR;
+        clearValue.Color[1] = desc.clearColor.fG;
+        clearValue.Color[2] = desc.clearColor.fB;
+        clearValue.Color[3] = desc.clearColor.fA;
+        pClearValue = &clearValue;
+    }
+
+    D3D12MA::Allocation* allocation = nullptr;
+    ComPtr<ID3D12Resource> resource;
+    HRESULT hr = m_pAllocator->CreateResource(
+        &allocDesc, &resourceDesc,
+        D3D12_RESOURCE_STATE_COMMON, pClearValue,
+        &allocation, IID_PPV_ARGS(&resource));
+    if (FAILED(hr))
+    {
+        EVO_LOG_ERROR("Failed to create texture '{}': {}", desc.sDebugName, GetHResultString(hr));
+        return {};
+    }
+
+    if (!desc.sDebugName.empty())
+    {
+        wchar_t wname[256];
+        MultiByteToWideChar(CP_UTF8, 0, desc.sDebugName.c_str(), -1, wname, 256);
+        resource->SetName(wname);
+    }
+
+    return m_TexturePool.Allocate(std::move(resource), desc.sDebugName);
 }
 
 RHIShaderHandle DX12Device::CreateShader(const RHIShaderDesc& desc)
@@ -374,7 +434,7 @@ RHIPipelineHandle DX12Device::CreateComputePipeline(const RHIComputePipelineDesc
 }
 
 void DX12Device::DestroyBuffer(RHIBufferHandle handle) { m_BufferPool.Free(handle); }
-void DX12Device::DestroyTexture(RHITextureHandle /*handle*/) {}
+void DX12Device::DestroyTexture(RHITextureHandle handle) { m_TexturePool.Free(handle); }
 void DX12Device::DestroyShader(RHIShaderHandle handle) { m_ShaderPool.Free(handle); }
 void DX12Device::DestroyPipeline(RHIPipelineHandle handle) { m_PipelinePool.Free(handle); }
 
@@ -402,6 +462,33 @@ void DX12Device::DestroyRenderTargetView(RHIRenderTargetView rtv)
     if (!rtv.IsValid())
         return;
     m_RTVAllocator.Free(UnwrapRTV(rtv));
+}
+
+DX12GpuDescriptorAllocator::Allocation DX12Device::CreateShaderResourceView(RHITextureHandle texture)
+{
+    auto* pEntry = m_TexturePool.GetEntry(texture);
+    if (!pEntry || !pEntry->pResource)
+    {
+        EVO_LOG_WARN("CreateShaderResourceView: invalid texture handle");
+        return {};
+    }
+
+    auto alloc = m_SRVAllocator.Allocate();
+    if (!alloc.IsValid())
+        return {};
+
+    D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+    srvDesc.Format                  = pEntry->pResource->GetDesc().Format;
+    srvDesc.ViewDimension           = D3D12_SRV_DIMENSION_TEXTURE2D;
+    srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    srvDesc.Texture2D.MipLevels    = 1;
+    m_pDevice->CreateShaderResourceView(pEntry->pResource.Get(), &srvDesc, alloc.cpuHandle);
+    return alloc;
+}
+
+void DX12Device::DestroyShaderResourceView(const DX12GpuDescriptorAllocator::Allocation& alloc)
+{
+    m_SRVAllocator.Free(alloc);
 }
 
 void* DX12Device::MapBuffer(RHIBufferHandle handle)

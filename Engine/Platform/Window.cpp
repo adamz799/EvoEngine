@@ -53,6 +53,9 @@ bool Window::PollEvents(Input* pInput)
 
     SDL_Event event;
     while (SDL_PollEvent(&event)) {
+        if (m_pEventCallback)
+            m_pEventCallback(event);
+
         if (pInput)
             pInput->ProcessEvent(event);
 

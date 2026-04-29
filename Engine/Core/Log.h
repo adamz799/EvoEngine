@@ -13,6 +13,9 @@ public:
     static std::shared_ptr<spdlog::logger>& GetEngineLogger()  { return s_EngineLogger; }
     static std::shared_ptr<spdlog::logger>& GetClientLogger()  { return s_ClientLogger; }
 
+    /// Register an additional sink (e.g. ImGui log panel) with all loggers.
+    static void AddSink(spdlog::sink_ptr pSink);
+
 private:
     static std::shared_ptr<spdlog::logger> s_EngineLogger;
     static std::shared_ptr<spdlog::logger> s_ClientLogger;

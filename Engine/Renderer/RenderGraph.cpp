@@ -3,6 +3,24 @@
 
 namespace Evo {
 
+/// Map a tracked texture layout to its corresponding barrier access flags.
+/// Enhanced Barriers require accessBefore to be compatible with layoutBefore.
+static RHIBarrierAccess AccessFromLayout(RHITextureLayout layout)
+{
+	switch (layout)
+	{
+		case RHITextureLayout::Common:            return RHIBarrierAccess::Common;
+		case RHITextureLayout::RenderTarget:      return RHIBarrierAccess::RenderTarget;
+		case RHITextureLayout::ShaderResource:    return RHIBarrierAccess::ShaderResource;
+		case RHITextureLayout::UnorderedAccess:   return RHIBarrierAccess::UnorderedAccess;
+		case RHITextureLayout::DepthStencilWrite: return RHIBarrierAccess::DepthStencilWrite;
+		case RHITextureLayout::DepthStencilRead:  return RHIBarrierAccess::DepthStencilRead;
+		case RHITextureLayout::CopySource:        return RHIBarrierAccess::CopySource;
+		case RHITextureLayout::CopyDest:          return RHIBarrierAccess::CopyDest;
+		default:                                  return RHIBarrierAccess::NoAccess;
+	}
+}
+
 // ============================================================================
 // RGPassBuilder
 // ============================================================================
@@ -91,7 +109,7 @@ void RenderGraph::Compile()
 				barrier.texture      = m_vTextures[texIdx].texture;
 				barrier.syncBefore   = RHIBarrierSync::All;
 				barrier.syncAfter    = RHIBarrierSync::RenderTarget;
-				barrier.accessBefore = RHIBarrierAccess::Common;
+				barrier.accessBefore = AccessFromLayout(trackingLayout[texIdx]);
 				barrier.accessAfter  = RHIBarrierAccess::RenderTarget;
 				barrier.layoutBefore = trackingLayout[texIdx];
 				barrier.layoutAfter  = RHITextureLayout::RenderTarget;
@@ -118,7 +136,7 @@ void RenderGraph::Compile()
 				barrier.texture      = m_vTextures[texIdx].texture;
 				barrier.syncBefore   = RHIBarrierSync::All;
 				barrier.syncAfter    = RHIBarrierSync::AllShading;
-				barrier.accessBefore = RHIBarrierAccess::Common;
+				barrier.accessBefore = AccessFromLayout(trackingLayout[texIdx]);
 				barrier.accessAfter  = RHIBarrierAccess::ShaderResource;
 				barrier.layoutBefore = trackingLayout[texIdx];
 				barrier.layoutAfter  = RHITextureLayout::ShaderResource;
@@ -137,9 +155,9 @@ void RenderGraph::Compile()
 		{
 			RHITextureBarrier barrier = {};
 			barrier.texture      = m_vTextures[i].texture;
-			barrier.syncBefore   = RHIBarrierSync::RenderTarget;
+			barrier.syncBefore   = RHIBarrierSync::All;
 			barrier.syncAfter    = RHIBarrierSync::All;
-			barrier.accessBefore = RHIBarrierAccess::RenderTarget;
+			barrier.accessBefore = AccessFromLayout(trackingLayout[i]);
 			barrier.accessAfter  = RHIBarrierAccess::Common;
 			barrier.layoutBefore = trackingLayout[i];
 			barrier.layoutAfter  = m_vTextures[i].finalLayout;

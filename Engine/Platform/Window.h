@@ -4,10 +4,13 @@
 #include <string>
 
 struct SDL_Window;
+union SDL_Event;
 
 namespace Evo {
 
 class Input;
+
+using EventCallbackFn = bool(*)(const SDL_Event&);
 
 struct WindowDesc {
     std::string sTitle  = "EvoEngine";
@@ -38,13 +41,17 @@ public:
     /// Get platform-native window handle (HWND on Windows).
     void* GetNativeHandle() const;
 
+    /// Set a callback to receive raw SDL events (e.g. for ImGui).
+    void SetEventCallback(EventCallbackFn fn) { m_pEventCallback = fn; }
+
     SDL_Window* GetSDLWindow() const { return m_pWindow; }
 
 private:
-    SDL_Window* m_pWindow    = nullptr;
-    uint32         m_uWidth     = 0;
-    uint32         m_uHeight    = 0;
-    bool        m_bMinimized = false;
+    SDL_Window*      m_pWindow         = nullptr;
+    uint32           m_uWidth          = 0;
+    uint32           m_uHeight         = 0;
+    bool             m_bMinimized      = false;
+    EventCallbackFn  m_pEventCallback  = nullptr;
 };
 
 } // namespace Evo

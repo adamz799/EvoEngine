@@ -332,6 +332,7 @@ struct RHITextureDesc {
 	RHIFormat           format           = RHIFormat::R8G8B8A8_UNORM;
 	RHITextureUsage     usage            = RHITextureUsage::ShaderResource;
 	RHITextureDimension dimension        = RHITextureDimension::Tex2D;
+	RHIColor            clearColor       = {};   // optimized clear value for RT/DS
 	std::string         sDebugName;
 };
 

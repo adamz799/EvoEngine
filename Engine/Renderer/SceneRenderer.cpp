@@ -8,11 +8,14 @@ namespace Evo {
 
 void SceneRenderer::RenderScene(Scene& scene, Renderer& renderer,
                                 RHIPipelineHandle defaultPipeline,
-                                const Mat4& viewProj)
+                                const Mat4& viewProj,
+                                RGHandle targetTexture,
+                                RHIRenderTargetView targetRTV,
+                                float fViewportWidth, float fViewportHeight)
 {
 	m_vDrawItems.clear();
 	CollectDrawItems(scene, defaultPipeline);
-	AddOpaquePass(renderer, viewProj);
+	AddOpaquePass(renderer, viewProj, targetTexture, targetRTV, fViewportWidth, fViewportHeight);
 }
 
 void SceneRenderer::CollectDrawItems(Scene& scene, RHIPipelineHandle defaultPipeline)
@@ -43,14 +46,14 @@ void SceneRenderer::CollectDrawItems(Scene& scene, RHIPipelineHandle defaultPipe
 	});
 }
 
-void SceneRenderer::AddOpaquePass(Renderer& renderer, const Mat4& viewProj)
+void SceneRenderer::AddOpaquePass(Renderer& renderer, const Mat4& viewProj,
+                                  RGHandle targetTexture, RHIRenderTargetView targetRTV,
+                                  float fViewportWidth, float fViewportHeight)
 {
 	auto& graph = renderer.GetRenderGraph();
-	RGHandle backBuffer = renderer.GetBackBufferRG();
-	RHIRenderTargetView backBufferRTV = renderer.GetSwapChain()->GetCurrentBackBufferRTV();
 
-	float w = static_cast<float>(renderer.GetSwapChain()->GetWidth());
-	float h = static_cast<float>(renderer.GetSwapChain()->GetHeight());
+	float w = fViewportWidth;
+	float h = fViewportHeight;
 	RHIColor clearColor = { 0.2f, 0.3f, 0.4f, 1.0f };
 
 	// Capture draw items + viewProj by value for the execute lambda
@@ -58,8 +61,8 @@ void SceneRenderer::AddOpaquePass(Renderer& renderer, const Mat4& viewProj)
 	Mat4 vp = viewProj;
 
 	graph.AddPass("OpaquePass",
-		[backBuffer, backBufferRTV, clearColor](RGPassBuilder& builder) {
-			builder.WriteRenderTarget(backBuffer, backBufferRTV, &clearColor);
+		[targetTexture, targetRTV, clearColor](RGPassBuilder& builder) {
+			builder.WriteRenderTarget(targetTexture, targetRTV, &clearColor);
 		},
 		[drawItems, vp, w, h](RHICommandList* pCmdList) {
 			RHIViewport viewport = { 0, 0, w, h, 0, 1 };

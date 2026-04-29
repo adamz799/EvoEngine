@@ -225,16 +225,17 @@ void CubeDemo::Shutdown(RHIDevice* pDevice)
 	m_AssetManager.Shutdown();
 }
 
-void CubeDemo::Update(float fDeltaTime, const Input& input, Window& window)
+void CubeDemo::Update(float fDeltaTime, const Input& input, Window& window,
+                      uint32 uViewportWidth, uint32 uViewportHeight)
 {
 	m_fTime += fDeltaTime;
 
 	// Process async asset completions (for future async loads)
 	m_AssetManager.Update();
 
-	// Update camera
-	float w = static_cast<float>(window.GetWidth());
-	float h = static_cast<float>(window.GetHeight());
+	// Update camera with viewport aspect ratio
+	float w = static_cast<float>(uViewportWidth);
+	float h = static_cast<float>(uViewportHeight);
 	if (h > 0.0f)
 		m_Camera.SetAspect(w / h);
 	m_CameraController.Update(m_Camera, input, window, fDeltaTime);
@@ -251,10 +252,14 @@ void CubeDemo::Update(float fDeltaTime, const Input& input, Window& window)
 	});
 }
 
-void CubeDemo::Render(Renderer& renderer)
+void CubeDemo::Render(Renderer& renderer,
+                      RGHandle targetTexture, RHIRenderTargetView targetRTV,
+                      float fViewportWidth, float fViewportHeight)
 {
 	Mat4 viewProj = m_Camera.GetViewProjectionMatrix();
-	m_SceneRenderer.RenderScene(m_Scene, renderer, m_Pipeline, viewProj);
+	m_SceneRenderer.RenderScene(m_Scene, renderer, m_Pipeline, viewProj,
+	                            targetTexture, targetRTV,
+	                            fViewportWidth, fViewportHeight);
 }
 
 } // namespace Evo
