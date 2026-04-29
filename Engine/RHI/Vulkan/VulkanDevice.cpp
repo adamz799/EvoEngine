@@ -41,8 +41,9 @@ RHIDescriptorSetHandle VulkanDevice::AllocateDescriptorSet(RHIDescriptorSetLayou
 void VulkanDevice::FreeDescriptorSet(RHIDescriptorSetHandle) {}
 void VulkanDevice::WriteDescriptorSet(RHIDescriptorSetHandle, const RHIDescriptorWrite*, uint32) {}
 
-void VulkanDevice::BeginFrame() {}
-void VulkanDevice::EndFrame() {}
+RHICommandList* VulkanDevice::AcquireCommandList(RHIQueueType) { return nullptr; }
+void VulkanDevice::BeginFrame(uint64) {}
+void VulkanDevice::EndFrame(uint64) {}
 void VulkanDevice::WaitIdle() {}
 
 } // namespace Evo

@@ -34,7 +34,6 @@ private:
 	std::unique_ptr<RHIFence>		m_pFrameFence;
 	uint64                          m_uCurrentFrame = 0;
 	uint64							m_uFrameIndex = 0;
-	std::unique_ptr<RHICommandList> m_vCmdLists[NUM_BACK_FRAMES];
 	uint64                          m_vFenceValues[NUM_BACK_FRAMES] = {0, 0, 0};
 
 	RenderGraph m_RenderGraph;

@@ -13,16 +13,18 @@ bool DX12CommandList::Initialize(DX12Device* device, RHIQueueType type)
 	if (!device || !device->GetD3D12Device())
 		return false;
 
-	HRESULT hr = device->GetD3D12Device()->CreateCommandAllocator(MapQueueType(type), IID_PPV_ARGS(&m_pAllocator));
+	HRESULT hr = device->GetD3D12Device()->CreateCommandAllocator(MapQueueType(type), IID_PPV_ARGS(&m_pOwnedAllocator));
 	if (FAILED(hr))
 	{
 		EVO_LOG_ERROR("Failed to create command allocator: {}", GetHResultString(hr));
 		return false;
 	}
 
+	m_pAllocator = m_pOwnedAllocator.Get();
+
 	// Create as base CommandList, then QI for CommandList7 (Enhanced Barriers)
 	ComPtr<ID3D12GraphicsCommandList> baseCmdList;
-	hr = device->GetD3D12Device()->CreateCommandList(0, MapQueueType(type), m_pAllocator.Get(), nullptr, IID_PPV_ARGS(&baseCmdList));
+	hr = device->GetD3D12Device()->CreateCommandList(0, MapQueueType(type), m_pAllocator, nullptr, IID_PPV_ARGS(&baseCmdList));
 	if (FAILED(hr))
 	{
 		EVO_LOG_ERROR("Failed to create command list: {}", GetHResultString(hr));
@@ -41,16 +43,47 @@ bool DX12CommandList::Initialize(DX12Device* device, RHIQueueType type)
 	return true;
 }
 
+bool DX12CommandList::InitializePooled(DX12Device* device, RHIQueueType type,
+                                        ID3D12CommandAllocator* pExternalAllocator)
+{
+	m_pDevice    = device;
+	m_QueueType  = type;
+	m_pAllocator = pExternalAllocator;
+
+	if (!device || !device->GetD3D12Device() || !pExternalAllocator)
+		return false;
+
+	ComPtr<ID3D12GraphicsCommandList> baseCmdList;
+	HRESULT hr = device->GetD3D12Device()->CreateCommandList(
+		0, MapQueueType(type), m_pAllocator, nullptr, IID_PPV_ARGS(&baseCmdList));
+	if (FAILED(hr))
+	{
+		EVO_LOG_ERROR("Failed to create pooled command list: {}", GetHResultString(hr));
+		return false;
+	}
+
+	hr = baseCmdList.As(&m_pCmdList);
+	if (FAILED(hr))
+	{
+		EVO_LOG_ERROR("Failed to query ID3D12GraphicsCommandList7: {}", GetHResultString(hr));
+		return false;
+	}
+
+	m_pCmdList->Close();
+	return true;
+}
+
 void DX12CommandList::ShutdownCommandList()
 {
 	m_pCmdList.Reset();
-	m_pAllocator.Reset();
+	m_pOwnedAllocator.Reset();
+	m_pAllocator = nullptr;
 }
 
 void DX12CommandList::Begin()
 {
-	m_pAllocator->Reset(); 
-	m_pCmdList->Reset(m_pAllocator.Get(), nullptr);
+	m_pAllocator->Reset();
+	m_pCmdList->Reset(m_pAllocator, nullptr);
 }
 
 void DX12CommandList::End()

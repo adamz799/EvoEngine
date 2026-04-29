@@ -73,11 +73,15 @@ public:
     virtual void WriteDescriptorSet(RHIDescriptorSetHandle set,
         const RHIDescriptorWrite* writes, uint32 writeCount) = 0;
 
+    // ---- CommandList pool ----
+    /// Acquire a command list from the pool, ready for recording (already Begin'd).
+    virtual RHICommandList* AcquireCommandList(RHIQueueType type = RHIQueueType::Graphics) = 0;
+
     // ---- Frame management ----
-    /// Process deferred deletions for frames the GPU has completed.
-    virtual void BeginFrame() = 0;
-    /// Advance internal frame counter.
-    virtual void EndFrame() = 0;
+    /// Recycle pool entries whose GPU work has completed.
+    virtual void BeginFrame(uint64 uCompletedFenceValue) = 0;
+    /// Mark acquired pool entries as in-flight.
+    virtual void EndFrame(uint64 uFrameFenceValue) = 0;
 
     // ---- Global sync ----
     virtual void WaitIdle() = 0;

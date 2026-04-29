@@ -148,12 +148,14 @@ void RenderGraph::Compile()
 	}
 }
 
-void RenderGraph::Execute(RHICommandList* pCmdList)
+void RenderGraph::Execute(RHIDevice* pDevice, std::vector<RHICommandList*>& outCmdLists)
 {
 	for (size_t i = 0; i < m_vCompiledPasses.size(); ++i)
 	{
 		auto& compiled = m_vCompiledPasses[i];
 		auto& pass     = m_vPasses[compiled.uPassIndex];
+
+		auto* pCmdList = pDevice->AcquireCommandList();
 
 		// Insert barriers before this pass
 		if (!compiled.vBarriersBefore.empty())
@@ -171,12 +173,20 @@ void RenderGraph::Execute(RHICommandList* pCmdList)
 
 		// Execute pass callback
 		pass.executeFn(pCmdList);
+
+		pCmdList->End();
+		outCmdLists.push_back(pCmdList);
 	}
 
 	// Final barriers (e.g. RenderTarget → Common for present)
 	if (!m_vFinalBarriers.empty())
+	{
+		auto* pCmdList = pDevice->AcquireCommandList();
 		pCmdList->TextureBarrier(m_vFinalBarriers.data(),
 		                         static_cast<uint32>(m_vFinalBarriers.size()));
+		pCmdList->End();
+		outCmdLists.push_back(pCmdList);
+	}
 }
 
 void RenderGraph::Reset()

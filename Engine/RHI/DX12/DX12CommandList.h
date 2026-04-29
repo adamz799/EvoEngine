@@ -12,7 +12,13 @@ public:
 	DX12CommandList() = default;
 	~DX12CommandList() override = default;
 
+	/// Initialize with self-owned allocator (standalone mode).
 	bool Initialize(DX12Device* device, RHIQueueType type);
+
+	/// Initialize with external allocator (pool mode — pool owns the allocator).
+	bool InitializePooled(DX12Device* device, RHIQueueType type,
+	                       ID3D12CommandAllocator* pExternalAllocator);
+
 	void ShutdownCommandList();
 
 	// ---- Lifecycle ----
@@ -75,8 +81,9 @@ private:
 	DX12Device*                         m_pDevice = nullptr;   // non-owning
 	RHIQueueType                        m_QueueType = RHIQueueType::Graphics;
 
-	ComPtr<ID3D12CommandAllocator>       m_pAllocator;
-	ComPtr<ID3D12GraphicsCommandList7>   m_pCmdList;
+	ID3D12CommandAllocator*             m_pAllocator = nullptr;       // non-owning, used by Begin()
+	ComPtr<ID3D12CommandAllocator>      m_pOwnedAllocator;           // only in standalone mode
+	ComPtr<ID3D12GraphicsCommandList7>  m_pCmdList;
 };
 
 } // namespace Evo

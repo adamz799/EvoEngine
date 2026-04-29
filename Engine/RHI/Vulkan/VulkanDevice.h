@@ -50,9 +50,12 @@ public:
     void WriteDescriptorSet(RHIDescriptorSetHandle set,
         const RHIDescriptorWrite* writes, uint32 writeCount) override;
 
+    // ---- CommandList pool ----
+    RHICommandList* AcquireCommandList(RHIQueueType type) override;
+
     // ---- Frame management ----
-    void BeginFrame() override;
-    void EndFrame() override;
+    void BeginFrame(uint64 uCompletedFenceValue) override;
+    void EndFrame(uint64 uFrameFenceValue) override;
     void WaitIdle() override;
 
 private:

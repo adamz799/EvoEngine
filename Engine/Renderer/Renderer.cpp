@@ -41,17 +41,6 @@ bool Renderer::Initialize(const RendererDesc& desc, Window& window)
 	// Create frame fence
 	m_pFrameFence = m_pRHIDevice->CreateFence(0);
 
-	// Pre-create command lists (one per back buffer)
-	for (uint32 i = 0; i < NUM_BACK_FRAMES; ++i)
-	{
-		m_vCmdLists[i] = m_pRHIDevice->CreateCommandList(RHIQueueType::Graphics);
-		if (!m_vCmdLists[i])
-		{
-			EVO_LOG_CRITICAL("Failed to create command list {}", i);
-			return false;
-		}
-	}
-
 	EVO_LOG_INFO("Renderer initialized (backend: {})",
 		desc.backend == RHIBackendType::DX12 ? "DX12" : "Vulkan");
 
@@ -64,8 +53,6 @@ void Renderer::Shutdown()
 	{
 		m_pRHIDevice->WaitIdle();
 
-		for (auto& cmd : m_vCmdLists)
-			cmd.reset();
 		m_pFrameFence.reset();
 		m_pSwapChain.reset();
 		m_pRHIDevice->Shutdown();
@@ -77,13 +64,11 @@ void Renderer::Shutdown()
 
 void Renderer::BeginFrame()
 {
-	if (m_pRHIDevice)
-		m_pRHIDevice->BeginFrame();
-
 	m_uFrameIndex = m_pSwapChain->GetCurrentBackBufferIndex();
 	m_pFrameFence->CpuWait(m_vFenceValues[m_uFrameIndex]);
 
-	m_vCmdLists[m_uFrameIndex]->Begin();
+	// Recycle pool entries whose GPU work has completed
+	m_pRHIDevice->BeginFrame(m_pFrameFence->GetCompletedValue());
 
 	// Prepare render graph for this frame
 	m_RenderGraph.Reset();
@@ -96,27 +81,24 @@ void Renderer::BeginFrame()
 
 void Renderer::EndFrame()
 {
-	auto* pCmdList = m_vCmdLists[m_uFrameIndex].get();
-
-	// Compile and execute the render graph (barriers + passes + final barriers)
+	// Compile and execute the render graph (each pass gets its own CmdList)
 	m_RenderGraph.Compile();
-	m_RenderGraph.Execute(pCmdList);
 
-	pCmdList->End();
+	std::vector<RHICommandList*> cmdLists;
+	m_RenderGraph.Execute(m_pRHIDevice.get(), cmdLists);
 
-	// Submit + signal fence
-	RHICommandList* cmdListPtr = pCmdList;
+	// Submit all CmdLists in order + signal fence
 	m_uCurrentFrame++;
 	m_pRHIDevice->GetGraphicsQueue()->Submit(
-		&cmdListPtr, 1,
+		cmdLists.data(), static_cast<uint32>(cmdLists.size()),
 		nullptr, 0,
 		m_pFrameFence.get(), m_uCurrentFrame);
 	m_vFenceValues[m_uFrameIndex] = m_uCurrentFrame;
 
 	m_pSwapChain->Present();
 
-	if (m_pRHIDevice)
-		m_pRHIDevice->EndFrame();
+	// Mark acquired pool entries as in-flight
+	m_pRHIDevice->EndFrame(m_uCurrentFrame);
 }
 
 } // namespace Evo

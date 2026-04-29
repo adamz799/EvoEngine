@@ -113,6 +113,9 @@ bool DX12Device::Initialize(const RHIDeviceDesc& desc)
         return false;
     }
 
+    // 8. Create command list pool for graphics queue
+    m_GraphicsCmdListPool.Initialize(this, D3D12_COMMAND_LIST_TYPE_DIRECT);
+
     return true;
 }
 
@@ -125,6 +128,7 @@ void DX12Device::Shutdown()
 
     WaitIdle();
 
+    m_GraphicsCmdListPool.Shutdown();
     m_RTVAllocator.Shutdown();
     m_pCopyQueue.reset();
     m_pComputeQueue.reset();
@@ -471,14 +475,20 @@ const DX12PipelineEntry* DX12Device::ResolvePipeline(RHIPipelineHandle handle) c
 
 // ---- Frame management ----
 
-void DX12Device::BeginFrame()
+RHICommandList* DX12Device::AcquireCommandList(RHIQueueType /*type*/)
 {
-    // TODO Phase 1: process deferred deletions, wait for oldest frame fence
+    // Currently only Graphics pool is supported
+    return m_GraphicsCmdListPool.Acquire();
 }
 
-void DX12Device::EndFrame()
+void DX12Device::BeginFrame(uint64 uCompletedFenceValue)
 {
-    // TODO Phase 1: advance frame counter
+    m_GraphicsCmdListPool.BeginFrame(uCompletedFenceValue);
+}
+
+void DX12Device::EndFrame(uint64 uFrameFenceValue)
+{
+    m_GraphicsCmdListPool.EndFrame(uFrameFenceValue);
 }
 
 void DX12Device::WaitIdle()

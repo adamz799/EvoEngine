@@ -8,6 +8,7 @@
 #include "RHI/DX12/DX12ShaderPool.h"
 #include "RHI/DX12/DX12PipelinePool.h"
 #include "RHI/DX12/DX12DescriptorAllocator.h"
+#include "RHI/DX12/DX12CommandListPool.h"
 #include <D3D12MemAlloc.h>
 
 namespace Evo {
@@ -64,9 +65,12 @@ public:
     void WriteDescriptorSet(RHIDescriptorSetHandle set,
         const RHIDescriptorWrite* writes, uint32 writeCount) override;
 
+    // ---- CommandList pool ----
+    RHICommandList* AcquireCommandList(RHIQueueType type) override;
+
     // ---- Frame management ----
-    void BeginFrame() override;
-    void EndFrame() override;
+    void BeginFrame(uint64 uCompletedFenceValue) override;
+    void EndFrame(uint64 uFrameFenceValue) override;
     void WaitIdle() override;
 
     // ---- Native handle accessors (for ImGui and other integrations) ----
@@ -112,6 +116,7 @@ private:
     DX12ShaderPool  m_ShaderPool;
     DX12PipelinePool m_PipelinePool;
     DX12CpuDescriptorAllocator m_RTVAllocator;
+    DX12CommandListPool        m_GraphicsCmdListPool;
 };
 
 } // namespace Evo

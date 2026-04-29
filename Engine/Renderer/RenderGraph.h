@@ -2,6 +2,7 @@
 
 #include "RHI/RHITypes.h"
 #include "RHI/RHICommandList.h"
+#include "RHI/RHIDevice.h"
 #include <vector>
 #include <string>
 #include <functional>
@@ -67,9 +68,9 @@ public:
 	/// Compile: walk passes, deduce layout transitions, generate barrier list.
 	void Compile();
 
-	/// Execute: for each pass — insert barriers, bind RT, clear, call execute fn.
-	/// After all passes, insert final barriers (e.g. RT → Common for present).
-	void Execute(RHICommandList* pCmdList);
+	/// Execute: each pass acquires its own CmdList from the device pool.
+	/// Returned CmdLists are in End() state, ready for submission in order.
+	void Execute(RHIDevice* pDevice, std::vector<RHICommandList*>& outCmdLists);
 
 	/// Clear all passes and resource references. Call at the start of each frame.
 	void Reset();
