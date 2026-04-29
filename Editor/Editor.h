@@ -32,6 +32,21 @@ public:
 	// Scene viewport texture accessors
 	RHITextureHandle    GetViewportTexture() const { return m_ViewportTexture; }
 	RHIRenderTargetView GetViewportRTV()     const { return m_ViewportRTV; }
+	RHITextureHandle    GetDepthTexture()    const { return m_DepthTexture; }
+	RHIDepthStencilView GetDepthDSV()        const { return m_DepthDSV; }
+
+	// G-Buffer texture accessors
+	RHITextureHandle    GetGBAlbedoTexture()  const { return m_GBAlbedoTexture; }
+	RHIRenderTargetView GetGBAlbedoRTV()      const { return m_GBAlbedoRTV; }
+	RHITextureHandle    GetGBNormalTexture()  const { return m_GBNormalTexture; }
+	RHIRenderTargetView GetGBNormalRTV()      const { return m_GBNormalRTV; }
+	RHITextureHandle    GetGBRoughMetTexture() const { return m_GBRoughMetTexture; }
+	RHIRenderTargetView GetGBRoughMetRTV()     const { return m_GBRoughMetRTV; }
+
+	// HDR intermediate texture accessors
+	RHITextureHandle    GetHDRTexture() const { return m_HDRTexture; }
+	RHIRenderTargetView GetHDRRTV()     const { return m_HDRRTV; }
+
 	uint32              GetViewportWidth()   const { return m_uViewportWidth; }
 	uint32              GetViewportHeight()  const { return m_uViewportHeight; }
 
@@ -58,9 +73,24 @@ private:
 	// Log sink for ImGui panel
 	std::shared_ptr<ImGuiLogSink> m_pLogSink;
 
-	// Off-screen scene viewport texture
+	// Off-screen scene viewport texture + depth buffer
 	RHITextureHandle    m_ViewportTexture;
 	RHIRenderTargetView m_ViewportRTV;
+	RHITextureHandle    m_DepthTexture;
+	RHIDepthStencilView m_DepthDSV;
+
+	// G-Buffer textures (same size as viewport)
+	RHITextureHandle    m_GBAlbedoTexture;
+	RHIRenderTargetView m_GBAlbedoRTV;
+	RHITextureHandle    m_GBNormalTexture;
+	RHIRenderTargetView m_GBNormalRTV;
+	RHITextureHandle    m_GBRoughMetTexture;
+	RHIRenderTargetView m_GBRoughMetRTV;
+
+	// HDR intermediate (same size as viewport)
+	RHITextureHandle    m_HDRTexture;
+	RHIRenderTargetView m_HDRRTV;
+
 	uint32              m_uViewportWidth  = 0;
 	uint32              m_uViewportHeight = 0;
 

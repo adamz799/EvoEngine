@@ -44,6 +44,25 @@ void RGPassBuilder::ReadTexture(RGHandle texture)
 	m_vTextureReads.push_back(texture);
 }
 
+void RGPassBuilder::WriteDepthStencil(RGHandle texture, RHIDepthStencilView dsv,
+                                      float fClearDepth, uint8 uClearStencil)
+{
+	m_DepthOutput.texture       = texture;
+	m_DepthOutput.dsv           = dsv;
+	m_DepthOutput.fClearDepth   = fClearDepth;
+	m_DepthOutput.uClearStencil = uClearStencil;
+	m_DepthOutput.bClear        = true;
+	m_DepthOutput.bReadOnly     = false;
+}
+
+void RGPassBuilder::ReadDepthStencil(RGHandle texture, RHIDepthStencilView dsv)
+{
+	m_DepthOutput.texture       = texture;
+	m_DepthOutput.dsv           = dsv;
+	m_DepthOutput.bClear        = false;
+	m_DepthOutput.bReadOnly     = true;
+}
+
 // ============================================================================
 // RenderGraph
 // ============================================================================
@@ -76,6 +95,7 @@ void RenderGraph::AddPass(const char* name,
 	pass.sName          = name;
 	pass.vRenderTargets = std::move(builder.m_vRenderTargets);
 	pass.vTextureReads  = std::move(builder.m_vTextureReads);
+	pass.depthOutput    = builder.m_DepthOutput;
 	pass.executeFn      = std::move(executeFn);
 	m_vPasses.push_back(std::move(pass));
 }
@@ -145,6 +165,36 @@ void RenderGraph::Compile()
 			}
 		}
 
+		// Depth output: need DepthStencilWrite or DepthStencilRead layout
+		if (pass.depthOutput.texture.IsValid() && pass.depthOutput.texture.index < m_vTextures.size())
+		{
+			uint32 texIdx = pass.depthOutput.texture.index;
+			RHITextureLayout targetLayout = pass.depthOutput.bReadOnly
+				? RHITextureLayout::DepthStencilRead
+				: RHITextureLayout::DepthStencilWrite;
+
+			if (trackingLayout[texIdx] != targetLayout)
+			{
+				RHITextureBarrier barrier = {};
+				barrier.texture      = m_vTextures[texIdx].texture;
+				barrier.syncBefore   = RHIBarrierSync::All;
+				barrier.syncAfter    = RHIBarrierSync::DepthStencil;
+				barrier.accessBefore = AccessFromLayout(trackingLayout[texIdx]);
+				barrier.accessAfter  = pass.depthOutput.bReadOnly
+					? RHIBarrierAccess::DepthStencilRead
+					: RHIBarrierAccess::DepthStencilWrite;
+				barrier.layoutBefore = trackingLayout[texIdx];
+				barrier.layoutAfter  = targetLayout;
+				compiled.vBarriersBefore.push_back(barrier);
+				trackingLayout[texIdx] = targetLayout;
+			}
+
+			compiled.dsv           = pass.depthOutput.dsv;
+			compiled.bClearDepth   = pass.depthOutput.bClear;
+			compiled.fClearDepth   = pass.depthOutput.fClearDepth;
+			compiled.uClearStencil = pass.depthOutput.uClearStencil;
+		}
+
 		m_vCompiledPasses.push_back(std::move(compiled));
 	}
 
@@ -175,19 +225,33 @@ void RenderGraph::Execute(RHIDevice* pDevice, std::vector<RHICommandList*>& outC
 
 		auto* pCmdList = pDevice->AcquireCommandList();
 
+		// Bind GPU-visible descriptor heap for SRV/UAV/CBV descriptor tables
+		pDevice->BindGpuDescriptorHeap(pCmdList);
+
 		// Insert barriers before this pass
 		if (!compiled.vBarriersBefore.empty())
 			pCmdList->TextureBarrier(compiled.vBarriersBefore.data(),
 			                         static_cast<uint32>(compiled.vBarriersBefore.size()));
 
-		// Bind render targets
+		// Bind render targets (with optional DSV)
 		if (!compiled.vRTVs.empty())
+		{
+			const RHIDepthStencilView* pDsv = compiled.dsv.IsValid() ? &compiled.dsv : nullptr;
 			pCmdList->SetRenderTargets(compiled.vRTVs.data(),
-			                           static_cast<uint32>(compiled.vRTVs.size()));
+			                           static_cast<uint32>(compiled.vRTVs.size()), pDsv);
+		}
+		else if (compiled.dsv.IsValid())
+		{
+			pCmdList->SetRenderTargets(nullptr, 0, &compiled.dsv);
+		}
 
 		// Clear render targets
 		for (auto& [rtv, color] : compiled.vClears)
 			pCmdList->ClearRenderTarget(rtv, color);
+
+		// Clear depth/stencil
+		if (compiled.bClearDepth && compiled.dsv.IsValid())
+			pCmdList->ClearDepthStencilView(compiled.dsv, compiled.fClearDepth, compiled.uClearStencil);
 
 		// Execute pass callback
 		pass.executeFn(pCmdList);

@@ -113,8 +113,14 @@ bool DX12Device::Initialize(const RHIDeviceDesc& desc)
         return false;
     }
 
+    if (!m_DSVAllocator.Initialize(m_pDevice.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_DSV, 64))
+    {
+        EVO_LOG_ERROR("Failed to create DSV descriptor allocator");
+        return false;
+    }
+
     // 8. Create GPU-visible SRV descriptor heap (for ImGui, texture bindings)
-    if (!m_SRVAllocator.Initialize(m_pDevice.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 64))
+    if (!m_SRVAllocator.Initialize(m_pDevice.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 256))
     {
         EVO_LOG_ERROR("Failed to create SRV descriptor allocator");
         return false;
@@ -137,6 +143,7 @@ void DX12Device::Shutdown()
 
     m_GraphicsCmdListPool.Shutdown();
     m_SRVAllocator.Shutdown();
+    m_DSVAllocator.Shutdown();
     m_RTVAllocator.Shutdown();
     m_pCopyQueue.reset();
     m_pComputeQueue.reset();
@@ -241,7 +248,10 @@ RHITextureHandle DX12Device::CreateTexture(const RHITextureDesc& desc)
     resourceDesc.Height           = desc.uHeight;
     resourceDesc.DepthOrArraySize = static_cast<UINT16>(desc.uDepthOrArraySize);
     resourceDesc.MipLevels        = static_cast<UINT16>(desc.uMipLevels);
-    resourceDesc.Format           = MapFormat(desc.format);
+    // Use typeless format for depth textures that also need SRV access
+    bool bDepthWithSRV = IsDepthFormat(desc.format)
+        && (desc.usage & RHITextureUsage::ShaderResource) != RHITextureUsage(0);
+    resourceDesc.Format = bDepthWithSRV ? MapDepthToTypeless(desc.format) : MapFormat(desc.format);
     resourceDesc.SampleDesc.Count = 1;
     resourceDesc.Layout           = D3D12_TEXTURE_LAYOUT_UNKNOWN;
 
@@ -268,6 +278,13 @@ RHITextureHandle DX12Device::CreateTexture(const RHITextureDesc& desc)
         clearValue.Color[3] = desc.clearColor.fA;
         pClearValue = &clearValue;
     }
+    else if (flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL)
+    {
+        clearValue.Format               = MapFormat(desc.format);  // actual depth format, not typeless
+        clearValue.DepthStencil.Depth   = 1.0f;
+        clearValue.DepthStencil.Stencil = 0;
+        pClearValue = &clearValue;
+    }
 
     D3D12MA::Allocation* allocation = nullptr;
     ComPtr<ID3D12Resource> resource;
@@ -288,7 +305,7 @@ RHITextureHandle DX12Device::CreateTexture(const RHITextureDesc& desc)
         resource->SetName(wname);
     }
 
-    return m_TexturePool.Allocate(std::move(resource), desc.sDebugName);
+    return m_TexturePool.Allocate(std::move(resource), desc.sDebugName, desc.format);
 }
 
 RHIShaderHandle DX12Device::CreateShader(const RHIShaderDesc& desc)
@@ -305,30 +322,73 @@ RHIPipelineHandle DX12Device::CreateGraphicsPipeline(const RHIGraphicsPipelineDe
 {
     // Resolve shader bytecode
     auto* vsEntry = m_ShaderPool.GetEntry(desc.vertexShader);
-    auto* psEntry = m_ShaderPool.GetEntry(desc.pixelShader);
-    if (!vsEntry || !psEntry)
+    auto* psEntry = m_ShaderPool.GetEntry(desc.pixelShader);  // may be null for depth-only
+    if (!vsEntry)
     {
-        EVO_LOG_ERROR("CreateGraphicsPipeline: invalid shader handle");
+        EVO_LOG_ERROR("CreateGraphicsPipeline: invalid vertex shader handle");
         return {};
     }
 
     // Build root signature
-    D3D12_ROOT_PARAMETER rootParam = {};
-    uint32 numParams = 0;
+    // Root params: [push constants (optional)] [descriptor table per set]
+    std::vector<D3D12_ROOT_PARAMETER> rootParams;
+    // Storage for descriptor ranges — must outlive D3D12SerializeRootSignature
+    std::vector<std::vector<D3D12_DESCRIPTOR_RANGE>> allRanges;
+
+    uint32 descTableRootOffset = 0;
 
     if (desc.uPushConstantSize > 0)
     {
-        rootParam.ParameterType             = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
-        rootParam.Constants.ShaderRegister  = 0;
-        rootParam.Constants.RegisterSpace   = 0;
-        rootParam.Constants.Num32BitValues  = (desc.uPushConstantSize + 3) / 4;  // Round up to DWORD
-        rootParam.ShaderVisibility          = D3D12_SHADER_VISIBILITY_ALL;
-        numParams = 1;
+        D3D12_ROOT_PARAMETER param = {};
+        param.ParameterType             = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+        param.Constants.ShaderRegister  = 0;
+        param.Constants.RegisterSpace   = 0;
+        param.Constants.Num32BitValues  = (desc.uPushConstantSize + 3) / 4;
+        param.ShaderVisibility          = D3D12_SHADER_VISIBILITY_ALL;
+        rootParams.push_back(param);
+        descTableRootOffset = 1;
+    }
+
+    // Add descriptor tables for each set layout
+    for (uint32 setIdx = 0; setIdx < desc.uDescriptorSetLayoutCount; ++setIdx)
+    {
+        auto* layoutEntry = m_DescSetLayoutPool.GetEntry(desc.descriptorSetLayouts[setIdx]);
+        if (!layoutEntry) continue;
+
+        // Register space: push constants use space 0, sets start at space 1 (if push constants present)
+        uint32 regSpace = desc.uPushConstantSize > 0 ? setIdx + 1 : setIdx;
+
+        std::vector<D3D12_DESCRIPTOR_RANGE> ranges;
+        for (const auto& binding : layoutEntry->vBindings)
+        {
+            D3D12_DESCRIPTOR_RANGE range = {};
+            switch (binding.type)
+            {
+                case RHIDescriptorType::ConstantBuffer:  range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV; break;
+                case RHIDescriptorType::ShaderResource:  range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV; break;
+                case RHIDescriptorType::UnorderedAccess: range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV; break;
+                case RHIDescriptorType::Sampler:         range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER; break;
+            }
+            range.NumDescriptors                    = binding.uCount;
+            range.BaseShaderRegister                = binding.uBinding;
+            range.RegisterSpace                     = regSpace;
+            range.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND;
+            ranges.push_back(range);
+        }
+
+        allRanges.push_back(std::move(ranges));
+
+        D3D12_ROOT_PARAMETER param = {};
+        param.ParameterType                       = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+        param.DescriptorTable.NumDescriptorRanges = static_cast<UINT>(allRanges.back().size());
+        param.DescriptorTable.pDescriptorRanges   = allRanges.back().data();
+        param.ShaderVisibility                    = D3D12_SHADER_VISIBILITY_ALL;
+        rootParams.push_back(param);
     }
 
     D3D12_ROOT_SIGNATURE_DESC rootSigDesc = {};
-    rootSigDesc.NumParameters = numParams;
-    rootSigDesc.pParameters   = numParams > 0 ? &rootParam : nullptr;
+    rootSigDesc.NumParameters = static_cast<UINT>(rootParams.size());
+    rootSigDesc.pParameters   = rootParams.empty() ? nullptr : rootParams.data();
     rootSigDesc.Flags = D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT;
 
     ComPtr<ID3DBlob> sigBlob, errorBlob;
@@ -370,7 +430,8 @@ RHIPipelineHandle DX12Device::CreateGraphicsPipeline(const RHIGraphicsPipelineDe
     psoDesc.pRootSignature = rootSig.Get();
 
     psoDesc.VS = { vsEntry->vBytecode.data(), vsEntry->vBytecode.size() };
-    psoDesc.PS = { psEntry->vBytecode.data(), psEntry->vBytecode.size() };
+    if (psEntry)
+        psoDesc.PS = { psEntry->vBytecode.data(), psEntry->vBytecode.size() };
 
     psoDesc.InputLayout = { inputElements.data(), static_cast<UINT>(inputElements.size()) };
 
@@ -424,7 +485,7 @@ RHIPipelineHandle DX12Device::CreateGraphicsPipeline(const RHIGraphicsPipelineDe
         return {};
     }
 
-    return m_PipelinePool.Allocate(std::move(pso), std::move(rootSig), desc.topology, desc.uPushConstantSize, desc.sDebugName);
+    return m_PipelinePool.Allocate(std::move(pso), std::move(rootSig), desc.topology, desc.uPushConstantSize, descTableRootOffset, desc.sDebugName);
 }
 
 RHIPipelineHandle DX12Device::CreateComputePipeline(const RHIComputePipelineDesc& /*desc*/)
@@ -464,6 +525,41 @@ void DX12Device::DestroyRenderTargetView(RHIRenderTargetView rtv)
     m_RTVAllocator.Free(UnwrapRTV(rtv));
 }
 
+RHIDepthStencilView DX12Device::CreateDepthStencilView(RHITextureHandle texture)
+{
+    auto* entry = m_TexturePool.GetEntry(texture);
+    if (!entry || !entry->pResource)
+    {
+        EVO_LOG_WARN("CreateDepthStencilView: invalid texture handle");
+        return {};
+    }
+
+    D3D12_CPU_DESCRIPTOR_HANDLE slot = m_DSVAllocator.Allocate();
+    if (slot.ptr == 0)
+        return {};
+
+    // When the resource uses a typeless format (depth+SRV), provide explicit DSV desc
+    D3D12_DEPTH_STENCIL_VIEW_DESC* pDsvDesc = nullptr;
+    D3D12_DEPTH_STENCIL_VIEW_DESC dsvDesc = {};
+    if (IsDepthFormat(entry->rhiFormat)
+        && entry->pResource->GetDesc().Format != MapFormat(entry->rhiFormat))
+    {
+        dsvDesc.Format        = MapFormat(entry->rhiFormat);
+        dsvDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+        pDsvDesc = &dsvDesc;
+    }
+
+    m_pDevice->CreateDepthStencilView(entry->pResource.Get(), pDsvDesc, slot);
+    return WrapDSV(slot);
+}
+
+void DX12Device::DestroyDepthStencilView(RHIDepthStencilView dsv)
+{
+    if (!dsv.IsValid())
+        return;
+    m_DSVAllocator.Free(UnwrapDSV(dsv));
+}
+
 DX12GpuDescriptorAllocator::Allocation DX12Device::CreateShaderResourceView(RHITextureHandle texture)
 {
     auto* pEntry = m_TexturePool.GetEntry(texture);
@@ -478,7 +574,10 @@ DX12GpuDescriptorAllocator::Allocation DX12Device::CreateShaderResourceView(RHIT
         return {};
 
     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-    srvDesc.Format                  = pEntry->pResource->GetDesc().Format;
+    // Use SRV-compatible format for depth textures (typeless resource)
+    srvDesc.Format = IsDepthFormat(pEntry->rhiFormat)
+        ? MapDepthToSRVFormat(pEntry->rhiFormat)
+        : pEntry->pResource->GetDesc().Format;
     srvDesc.ViewDimension           = D3D12_SRV_DIMENSION_TEXTURE2D;
     srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
     srvDesc.Texture2D.MipLevels    = 1;
@@ -502,21 +601,124 @@ void DX12Device::UnmapBuffer(RHIBufferHandle /*handle*/)
     // Upload heap uses persistent mapping — no explicit unmap needed
 }
 
-// ---- Descriptors (implement in Phase 4) ----
+// ---- Descriptors ----
 
-RHIDescriptorSetLayoutHandle DX12Device::CreateDescriptorSetLayout(const RHIDescriptorSetLayoutDesc& /*desc*/)
+RHIDescriptorSetLayoutHandle DX12Device::CreateDescriptorSetLayout(const RHIDescriptorSetLayoutDesc& desc)
 {
-    return {};
+    return m_DescSetLayoutPool.Allocate(desc);
 }
-void DX12Device::DestroyDescriptorSetLayout(RHIDescriptorSetLayoutHandle /*handle*/) {}
 
-RHIDescriptorSetHandle DX12Device::AllocateDescriptorSet(RHIDescriptorSetLayoutHandle /*layout*/)
+void DX12Device::DestroyDescriptorSetLayout(RHIDescriptorSetLayoutHandle handle)
 {
-    return {};
+    m_DescSetLayoutPool.Free(handle);
 }
-void DX12Device::FreeDescriptorSet(RHIDescriptorSetHandle /*handle*/) {}
-void DX12Device::WriteDescriptorSet(RHIDescriptorSetHandle /*set*/,
-    const RHIDescriptorWrite* /*writes*/, uint32 /*writeCount*/) {}
+
+RHIDescriptorSetHandle DX12Device::AllocateDescriptorSet(RHIDescriptorSetLayoutHandle layout)
+{
+    auto* layoutEntry = m_DescSetLayoutPool.GetEntry(layout);
+    if (!layoutEntry)
+    {
+        EVO_LOG_ERROR("AllocateDescriptorSet: invalid layout handle");
+        return {};
+    }
+
+    auto range = m_SRVAllocator.AllocateRange(layoutEntry->uTotalDescriptorCount);
+    if (!range.IsValid())
+    {
+        EVO_LOG_ERROR("AllocateDescriptorSet: failed to allocate {} descriptors",
+                      layoutEntry->uTotalDescriptorCount);
+        return {};
+    }
+
+    return m_DescSetPool.Allocate(layout, range);
+}
+
+void DX12Device::FreeDescriptorSet(RHIDescriptorSetHandle handle)
+{
+    // Note: range descriptors are not individually freed back to the allocator
+    // since we use bump allocation for ranges. They'll be reclaimed on reset.
+    m_DescSetPool.Free(handle);
+}
+
+void DX12Device::WriteDescriptorSet(RHIDescriptorSetHandle set,
+    const RHIDescriptorWrite* writes, uint32 writeCount)
+{
+    auto* setEntry = m_DescSetPool.GetEntry(set);
+    if (!setEntry)
+    {
+        EVO_LOG_ERROR("WriteDescriptorSet: invalid set handle");
+        return;
+    }
+
+    auto* layoutEntry = m_DescSetLayoutPool.GetEntry(setEntry->layout);
+    if (!layoutEntry) return;
+
+    for (uint32 w = 0; w < writeCount; ++w)
+    {
+        const auto& write = writes[w];
+
+        // Find the descriptor offset within the set for this binding
+        uint32 offset = 0;
+        bool found = false;
+        for (const auto& binding : layoutEntry->vBindings)
+        {
+            if (binding.uBinding == write.uBinding)
+            {
+                offset += write.uArrayIndex;
+                found = true;
+                break;
+            }
+            offset += binding.uCount;
+        }
+        if (!found) continue;
+
+        D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = m_SRVAllocator.GetCpuHandle(
+            setEntry->allocation, offset);
+
+        switch (write.type)
+        {
+            case RHIDescriptorType::ShaderResource:
+            {
+                auto* texEntry = m_TexturePool.GetEntry(write.texture);
+                if (!texEntry || !texEntry->pResource) break;
+
+                D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+                srvDesc.Format = IsDepthFormat(texEntry->rhiFormat)
+                    ? MapDepthToSRVFormat(texEntry->rhiFormat)
+                    : texEntry->pResource->GetDesc().Format;
+                srvDesc.ViewDimension           = D3D12_SRV_DIMENSION_TEXTURE2D;
+                srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+                srvDesc.Texture2D.MipLevels    = 1;
+                m_pDevice->CreateShaderResourceView(texEntry->pResource.Get(), &srvDesc, cpuHandle);
+                break;
+            }
+            case RHIDescriptorType::ConstantBuffer:
+            {
+                auto* bufEntry = m_BufferPool.GetEntry(write.buffer);
+                if (!bufEntry) break;
+
+                D3D12_CONSTANT_BUFFER_VIEW_DESC cbvDesc = {};
+                cbvDesc.BufferLocation = bufEntry->uGpuAddress + write.uBufferOffset;
+                cbvDesc.SizeInBytes    = static_cast<UINT>(
+                    write.uBufferRange > 0 ? write.uBufferRange
+                                           : (bufEntry->uSize - write.uBufferOffset));
+                cbvDesc.SizeInBytes = (cbvDesc.SizeInBytes + 255) & ~255u; // align to 256
+                m_pDevice->CreateConstantBufferView(&cbvDesc, cpuHandle);
+                break;
+            }
+            case RHIDescriptorType::UnorderedAccess:
+            {
+                // TODO: implement UAV creation
+                break;
+            }
+            case RHIDescriptorType::Sampler:
+            {
+                // Samplers require a separate heap — use static samplers for now
+                break;
+            }
+        }
+    }
+}
 
 // ---- Texture pool access ----
 
@@ -535,7 +737,7 @@ RHITextureHandle DX12Device::RegisterTextureExternal(
     const std::string& debugName,
     const RHIBarrierState& initialBarrier)
 {
-    return m_TexturePool.Allocate(std::move(resource), debugName, initialBarrier);
+    return m_TexturePool.Allocate(std::move(resource), debugName, RHIFormat::Unknown, initialBarrier);
 }
 
 void DX12Device::UnregisterTextureExternal(RHITextureHandle handle)
@@ -558,6 +760,11 @@ const DX12ShaderEntry* DX12Device::ResolveShader(RHIShaderHandle handle) const
 const DX12PipelineEntry* DX12Device::ResolvePipeline(RHIPipelineHandle handle) const
 {
     return m_PipelinePool.GetEntry(handle);
+}
+
+const DX12DescriptorSetEntry* DX12Device::ResolveDescriptorSet(RHIDescriptorSetHandle handle) const
+{
+    return m_DescSetPool.GetEntry(handle);
 }
 
 // ---- Frame management ----
@@ -583,6 +790,16 @@ void DX12Device::WaitIdle()
     if (m_pGraphicsQueue) m_pGraphicsQueue->WaitIdle();
     if (m_pComputeQueue)  m_pComputeQueue->WaitIdle();
     if (m_pCopyQueue)     m_pCopyQueue->WaitIdle();
+}
+
+void DX12Device::BindGpuDescriptorHeap(RHICommandList* pCmdList)
+{
+    ID3D12DescriptorHeap* pHeap = m_SRVAllocator.GetHeap();
+    if (pHeap)
+    {
+        void* heapPtr = static_cast<void*>(pHeap);
+        pCmdList->SetDescriptorHeaps(1, &heapPtr);
+    }
 }
 
 } // namespace Evo

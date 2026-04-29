@@ -58,6 +58,9 @@ public:
     virtual RHIRenderTargetView CreateRenderTargetView(RHITextureHandle texture) = 0;
     virtual void                DestroyRenderTargetView(RHIRenderTargetView rtv) = 0;
 
+    virtual RHIDepthStencilView CreateDepthStencilView(RHITextureHandle texture) = 0;
+    virtual void                DestroyDepthStencilView(RHIDepthStencilView dsv) = 0;
+
     // ---- Buffer operations ----
     virtual void* MapBuffer(RHIBufferHandle handle) = 0;
     virtual void  UnmapBuffer(RHIBufferHandle handle) = 0;
@@ -85,6 +88,10 @@ public:
 
     // ---- Global sync ----
     virtual void WaitIdle() = 0;
+
+    // ---- Descriptor heap binding ----
+    /// Bind the GPU-visible descriptor heap on a command list (required before SetDescriptorSet).
+    virtual void BindGpuDescriptorHeap(RHICommandList* /*pCmdList*/) {}
 };
 
 /// Factory: create an RHI device for the specified backend.

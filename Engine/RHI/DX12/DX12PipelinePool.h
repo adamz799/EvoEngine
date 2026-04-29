@@ -13,6 +13,7 @@ struct DX12PipelineEntry {
 	ComPtr<ID3D12RootSignature>  pRootSignature;
 	RHIPrimitiveTopology         topology = RHIPrimitiveTopology::TriangleList;
 	uint32                       uPushConstantSize = 0;
+	uint32                       uDescriptorTableRootOffset = 0;
 	std::string                  sDebugName;
 	uint16                       uGeneration = 0;
 	bool                         bAlive      = false;
@@ -24,6 +25,7 @@ public:
 	                           ComPtr<ID3D12RootSignature> rootSig,
 	                           RHIPrimitiveTopology topology,
 	                           uint32 pushConstantSize,
+	                           uint32 descTableRootOffset,
 	                           const std::string& name)
 	{
 		std::unique_lock lock(m_Mutex);
@@ -42,6 +44,7 @@ public:
 		e.pRootSignature = std::move(rootSig);
 		e.topology       = topology;
 		e.uPushConstantSize = pushConstantSize;
+		e.uDescriptorTableRootOffset = descTableRootOffset;
 		e.sDebugName     = name;
 		e.bAlive         = true;
 

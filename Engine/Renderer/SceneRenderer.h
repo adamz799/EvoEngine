@@ -20,6 +20,47 @@ struct DrawItem {
 	uint32            uIndexCount   = 0;
 	uint32            uVertexOffset = 0;
 	Mat4              worldMatrix;
+	Vec3              vAlbedoColor = Vec3(0.8f, 0.8f, 0.8f);
+	float             fRoughness   = 0.5f;
+	float             fMetallic    = 0.0f;
+	float             fAlpha       = 1.0f;
+	bool              bTransparent = false;
+};
+
+/// G-Buffer render targets bundle.
+struct GBufferTargets {
+	RGHandle            albedoTexture;
+	RGHandle            normalTexture;
+	RGHandle            roughMetTexture;
+	RGHandle            depthTexture;
+	RHIRenderTargetView albedoRTV;
+	RHIRenderTargetView normalRTV;
+	RHIRenderTargetView roughMetRTV;
+	RHIDepthStencilView depthDSV;
+};
+
+/// Push constants for deferred lighting pass.
+struct LightingPushConstants {
+	Mat4  invViewProj;
+	Mat4  lightViewProj;
+	float vLightDir[3];
+	float fShadowMapSize;
+	float vLightColor[3];
+	float _pad;
+};
+
+/// Push constants for forward transparent pass.
+struct TransparentPushConstants {
+	Mat4  mvp;
+	Mat4  lightViewProj;
+	float vAlbedoColor[3];
+	float fRoughness;
+	float fMetallic;
+	float fAlpha;
+	float vLightDir[3];
+	float fShadowMapSize;
+	float vLightColor[3];
+	float _pad;
 };
 
 /// SceneRenderer — bridges Scene data and RenderGraph.
@@ -31,7 +72,47 @@ public:
 	                 const Mat4& viewProj,
 	                 RGHandle targetTexture,
 	                 RHIRenderTargetView targetRTV,
+	                 RGHandle depthTexture,
+	                 RHIDepthStencilView depthDSV,
 	                 float fViewportWidth, float fViewportHeight);
+
+	void RenderGBuffer(Scene& scene, Renderer& renderer,
+	                   RHIPipelineHandle gbufferPipeline,
+	                   const Mat4& viewProj,
+	                   const GBufferTargets& targets,
+	                   float fViewportWidth, float fViewportHeight);
+
+	void RenderShadowMap(Scene& scene, Renderer& renderer,
+	                     RHIPipelineHandle shadowPipeline,
+	                     const Mat4& lightViewProj,
+	                     RGHandle shadowTexture, RHIDepthStencilView shadowDSV,
+	                     float fShadowMapSize);
+
+	void AddLightingPass(Renderer& renderer,
+	                     RHIPipelineHandle lightingPipeline,
+	                     RHIDescriptorSetHandle lightingDescSet,
+	                     const GBufferTargets& gbTargets,
+	                     RGHandle shadowTexture,
+	                     RGHandle targetTexture, RHIRenderTargetView targetRTV,
+	                     const LightingPushConstants& lightPC,
+	                     float fViewportWidth, float fViewportHeight);
+
+	void AddPostProcessPass(Renderer& renderer,
+	                        RHIPipelineHandle postPipeline,
+	                        RHIDescriptorSetHandle postDescSet,
+	                        RGHandle hdrTexture,
+	                        RGHandle targetTexture, RHIRenderTargetView targetRTV,
+	                        float fViewportWidth, float fViewportHeight);
+
+	void RenderForwardTransparent(Scene& scene, Renderer& renderer,
+	                              RHIPipelineHandle transparentPipeline,
+	                              RHIDescriptorSetHandle shadowDescSet,
+	                              const Mat4& viewProj,
+	                              const TransparentPushConstants& basePc,
+	                              RGHandle targetTexture, RHIRenderTargetView targetRTV,
+	                              RGHandle depthTexture, RHIDepthStencilView depthDSV,
+	                              RGHandle shadowTexture,
+	                              float fViewportWidth, float fViewportHeight);
 
 private:
 	std::vector<DrawItem> m_vDrawItems;
@@ -39,7 +120,24 @@ private:
 	void CollectDrawItems(Scene& scene, RHIPipelineHandle defaultPipeline);
 	void AddOpaquePass(Renderer& renderer, const Mat4& viewProj,
 	                   RGHandle targetTexture, RHIRenderTargetView targetRTV,
+	                   RGHandle depthTexture, RHIDepthStencilView depthDSV,
 	                   float fViewportWidth, float fViewportHeight);
+	void AddGBufferPass(Renderer& renderer, const Mat4& viewProj,
+	                    const GBufferTargets& targets,
+	                    float fViewportWidth, float fViewportHeight);
+	void AddShadowPass(Renderer& renderer, RHIPipelineHandle shadowPipeline,
+	                   const Mat4& lightViewProj,
+	                   RGHandle shadowTexture, RHIDepthStencilView shadowDSV,
+	                   float fShadowMapSize);
+	void AddForwardTransparentPass(Renderer& renderer,
+	                               RHIPipelineHandle transparentPipeline,
+	                               RHIDescriptorSetHandle shadowDescSet,
+	                               const TransparentPushConstants& basePc,
+	                               const Mat4& viewProj,
+	                               RGHandle targetTexture, RHIRenderTargetView targetRTV,
+	                               RGHandle depthTexture, RHIDepthStencilView depthDSV,
+	                               RGHandle shadowTexture,
+	                               float fViewportWidth, float fViewportHeight);
 };
 
 } // namespace Evo

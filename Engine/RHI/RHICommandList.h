@@ -36,6 +36,7 @@ public:
     // ---- Clear ----
 
     virtual void ClearRenderTarget(RHIRenderTargetView rtv, const RHIColor& color) = 0;
+    virtual void ClearDepthStencilView(RHIDepthStencilView dsv, float fDepth, uint8 uStencil) = 0;
 
     // ---- Render pass ----
 

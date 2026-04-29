@@ -9,6 +9,8 @@
 #include "RHI/DX12/DX12PipelinePool.h"
 #include "RHI/DX12/DX12DescriptorAllocator.h"
 #include "RHI/DX12/DX12GpuDescriptorAllocator.h"
+#include "RHI/DX12/DX12DescriptorSetLayoutPool.h"
+#include "RHI/DX12/DX12DescriptorSetPool.h"
 #include "RHI/DX12/DX12CommandListPool.h"
 #include <D3D12MemAlloc.h>
 
@@ -51,6 +53,9 @@ public:
     RHIRenderTargetView CreateRenderTargetView(RHITextureHandle texture) override;
     void                DestroyRenderTargetView(RHIRenderTargetView rtv) override;
 
+    RHIDepthStencilView CreateDepthStencilView(RHITextureHandle texture) override;
+    void                DestroyDepthStencilView(RHIDepthStencilView dsv) override;
+
     // ---- Buffer ops ----
     void* MapBuffer(RHIBufferHandle handle) override;
     void  UnmapBuffer(RHIBufferHandle handle) override;
@@ -73,6 +78,7 @@ public:
     void BeginFrame(uint64 uCompletedFenceValue) override;
     void EndFrame(uint64 uFrameFenceValue) override;
     void WaitIdle() override;
+    void BindGpuDescriptorHeap(RHICommandList* pCmdList) override;
 
     // ---- Native handle accessors (for ImGui and other integrations) ----
     ID3D12Device*        GetD3D12Device()   const { return m_pDevice.Get(); }
@@ -107,6 +113,9 @@ public:
     const DX12ShaderEntry*   ResolveShader(RHIShaderHandle handle) const;
     const DX12PipelineEntry* ResolvePipeline(RHIPipelineHandle handle) const;
 
+    // ---- Descriptor set access ----
+    const DX12DescriptorSetEntry* ResolveDescriptorSet(RHIDescriptorSetHandle handle) const;
+
 private:
     std::string m_sAdapterName;
 
@@ -124,7 +133,10 @@ private:
     DX12BufferPool  m_BufferPool;
     DX12ShaderPool  m_ShaderPool;
     DX12PipelinePool m_PipelinePool;
+    DX12DescriptorSetLayoutPool m_DescSetLayoutPool;
+    DX12DescriptorSetPool       m_DescSetPool;
     DX12CpuDescriptorAllocator m_RTVAllocator;
+    DX12CpuDescriptorAllocator m_DSVAllocator;
     DX12GpuDescriptorAllocator m_SRVAllocator;
     DX12CommandListPool        m_GraphicsCmdListPool;
 };

@@ -38,6 +38,7 @@ void Scene::DestroyEntity(EntityHandle entity)
 	// Remove all components
 	m_Transforms.Remove(entity);
 	m_Meshes.Remove(entity);
+	m_Materials.Remove(entity);
 
 	// Clear name/prefab and mark dead
 	m_vNames[entity.uIndex].clear();

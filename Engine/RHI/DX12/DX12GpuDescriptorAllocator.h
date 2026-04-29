@@ -18,6 +18,15 @@ public:
 		bool IsValid() const { return cpuHandle.ptr != 0; }
 	};
 
+	struct RangeAllocation {
+		D3D12_CPU_DESCRIPTOR_HANDLE cpuStart = {};
+		D3D12_GPU_DESCRIPTOR_HANDLE gpuStart = {};
+		uint32 uCount     = 0;
+		uint32 uBaseIndex = 0;
+
+		bool IsValid() const { return uCount > 0 && cpuStart.ptr != 0; }
+	};
+
 	bool Initialize(ID3D12Device* device, D3D12_DESCRIPTOR_HEAP_TYPE type, uint32 capacity)
 	{
 		D3D12_DESCRIPTOR_HEAP_DESC desc = {};
@@ -81,6 +90,39 @@ public:
 
 		uint32 index = static_cast<uint32>((alloc.cpuHandle.ptr - m_uCpuStart) / m_uDescriptorSize);
 		m_vFreeList.push_back(index);
+	}
+
+	/// Allocate a contiguous range of descriptors (bump-only, no free-list reuse).
+	RangeAllocation AllocateRange(uint32 count)
+	{
+		if (count == 0 || m_uNextIndex + count > m_uCapacity)
+		{
+			EVO_LOG_ERROR("DX12GpuDescriptorAllocator: range alloc failed (need={}, avail={})",
+			              count, m_uCapacity - m_uNextIndex);
+			return {};
+		}
+
+		uint32 base = m_uNextIndex;
+		m_uNextIndex += count;
+
+		RangeAllocation alloc;
+		alloc.cpuStart.ptr = m_uCpuStart + static_cast<SIZE_T>(base) * m_uDescriptorSize;
+		alloc.gpuStart.ptr = m_uGpuStart + static_cast<UINT64>(base) * m_uDescriptorSize;
+		alloc.uCount       = count;
+		alloc.uBaseIndex   = base;
+		return alloc;
+	}
+
+	/// Get CPU handle at offset within a range allocation.
+	D3D12_CPU_DESCRIPTOR_HANDLE GetCpuHandle(const RangeAllocation& range, uint32 offset) const
+	{
+		return { range.cpuStart.ptr + static_cast<SIZE_T>(offset) * m_uDescriptorSize };
+	}
+
+	/// Get GPU handle at offset within a range allocation.
+	D3D12_GPU_DESCRIPTOR_HANDLE GetGpuHandle(const RangeAllocation& range, uint32 offset) const
+	{
+		return { range.gpuStart.ptr + static_cast<UINT64>(offset) * m_uDescriptorSize };
 	}
 
 	ID3D12DescriptorHeap* GetHeap() const { return m_pHeap.Get(); }

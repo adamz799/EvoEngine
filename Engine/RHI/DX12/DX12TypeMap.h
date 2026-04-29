@@ -212,6 +212,38 @@ inline DXGI_FORMAT MapIndexFormat(RHIIndexFormat format)
     return DXGI_FORMAT_R32_UINT;
 }
 
+// ---- Depth format helpers: typeless, DSV, and SRV-compatible formats ----
+
+/// Returns true if the RHI format is a depth/stencil format.
+inline bool IsDepthFormat(RHIFormat format)
+{
+    return format == RHIFormat::D32_FLOAT
+        || format == RHIFormat::D24_UNORM_S8_UINT
+        || format == RHIFormat::D32_FLOAT_S8X24_UINT;
+}
+
+/// Returns the typeless DXGI format for a depth format (for resource creation when SRV access is needed).
+inline DXGI_FORMAT MapDepthToTypeless(RHIFormat format)
+{
+    switch (format) {
+    case RHIFormat::D32_FLOAT:          return DXGI_FORMAT_R32_TYPELESS;
+    case RHIFormat::D24_UNORM_S8_UINT:  return DXGI_FORMAT_R24G8_TYPELESS;
+    case RHIFormat::D32_FLOAT_S8X24_UINT: return DXGI_FORMAT_R32G8X24_TYPELESS;
+    default:                            return MapFormat(format);
+    }
+}
+
+/// Returns the SRV-compatible DXGI format for sampling a depth texture.
+inline DXGI_FORMAT MapDepthToSRVFormat(RHIFormat format)
+{
+    switch (format) {
+    case RHIFormat::D32_FLOAT:          return DXGI_FORMAT_R32_FLOAT;
+    case RHIFormat::D24_UNORM_S8_UINT:  return DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+    case RHIFormat::D32_FLOAT_S8X24_UINT: return DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
+    default:                            return MapFormat(format);
+    }
+}
+
 // ---- View wrapping: RHI View ↔ D3D12_CPU_DESCRIPTOR_HANDLE ----
 
 inline RHIRenderTargetView WrapRTV(D3D12_CPU_DESCRIPTOR_HANDLE h)

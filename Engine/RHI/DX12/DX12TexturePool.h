@@ -16,6 +16,7 @@ struct DX12TextureEntry {
     uint16                 uGeneration = 0;
     bool                   bAlive      = false;
     RHIBarrierState        barrierState;
+    RHIFormat              rhiFormat   = RHIFormat::Unknown;
 };
 
 /// Concrete texture pool. O(1) lookup, generation-based use-after-free protection.
@@ -28,6 +29,7 @@ public:
     /// Allocate a slot, register a resource, return a handle.
     RHITextureHandle Allocate(ComPtr<ID3D12Resource> resource,
                               const std::string& name,
+                              RHIFormat rhiFormat = RHIFormat::Unknown,
                               const RHIBarrierState& initialBarrier = {})
     {
         std::unique_lock lock(m_Mutex);
@@ -46,6 +48,7 @@ public:
         e.sDebugName   = name;
         e.bAlive       = true;
         e.barrierState = initialBarrier;
+        e.rhiFormat    = rhiFormat;
 
         RHITextureHandle h;
         h.uHandle     = index;
@@ -65,6 +68,7 @@ public:
         e->pResource.Reset();
         e->sDebugName.clear();
         e->barrierState = {};
+        e->rhiFormat    = RHIFormat::Unknown;
         m_vFreeList.push_back(handle.uHandle);
     }
 

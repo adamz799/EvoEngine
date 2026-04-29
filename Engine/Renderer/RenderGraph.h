@@ -28,6 +28,13 @@ public:
 	void WriteRenderTarget(RGHandle texture, RHIRenderTargetView rtv,
 	                       const RHIColor* pClearColor = nullptr);
 
+	/// Declare this pass writes to a depth/stencil target. Provide pre-created DSV.
+	void WriteDepthStencil(RGHandle texture, RHIDepthStencilView dsv,
+	                       float fClearDepth = 1.0f, uint8 uClearStencil = 0);
+
+	/// Declare this pass reads depth (depth test on, depth write off). Provide pre-created DSV.
+	void ReadDepthStencil(RGHandle texture, RHIDepthStencilView dsv);
+
 	/// Declare this pass reads a texture as shader resource.
 	void ReadTexture(RGHandle texture);
 
@@ -41,8 +48,18 @@ private:
 		bool                bClear     = false;
 	};
 
+	struct DSOutput {
+		RGHandle            texture;
+		RHIDepthStencilView dsv;
+		float               fClearDepth   = 1.0f;
+		uint8               uClearStencil = 0;
+		bool                bClear        = false;
+		bool                bReadOnly     = false;
+	};
+
 	std::vector<RTOutput> m_vRenderTargets;
 	std::vector<RGHandle> m_vTextureReads;
+	DSOutput              m_DepthOutput;
 };
 
 // ============================================================================
@@ -87,6 +104,7 @@ private:
 		std::string                          sName;
 		std::vector<RGPassBuilder::RTOutput> vRenderTargets;
 		std::vector<RGHandle>                vTextureReads;
+		RGPassBuilder::DSOutput              depthOutput;
 		std::function<void(RHICommandList*)> executeFn;
 	};
 
@@ -94,7 +112,11 @@ private:
 		std::vector<RHITextureBarrier>   vBarriersBefore;
 		std::vector<RHIRenderTargetView> vRTVs;
 		std::vector<std::pair<RHIRenderTargetView, RHIColor>> vClears;
-		uint32                           uPassIndex = 0;
+		RHIDepthStencilView              dsv;
+		bool                             bClearDepth    = false;
+		float                            fClearDepth    = 1.0f;
+		uint8                            uClearStencil  = 0;
+		uint32                           uPassIndex     = 0;
 	};
 
 	std::vector<RGTexture>         m_vTextures;

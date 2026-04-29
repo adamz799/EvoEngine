@@ -27,4 +27,12 @@ struct MeshComponent {
 	bool       bVisible  = true;
 };
 
+/// Material component — per-entity material properties for deferred rendering.
+struct MaterialComponent {
+	Vec3  vAlbedoColor = Vec3(0.8f, 0.8f, 0.8f);
+	float fRoughness   = 0.5f;
+	float fMetallic    = 0.0f;
+	float fAlpha       = 1.0f;
+};
+
 } // namespace Evo

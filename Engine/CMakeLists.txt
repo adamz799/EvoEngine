@@ -20,7 +20,8 @@ set(PLATFORM_SOURCES       Platform/Window.cpp
 file(GLOB ASSET_HEADERS    Asset/*.h)
 set(ASSET_SOURCES          Asset/AssetLoader.cpp
                            Asset/AssetManager.cpp
-                           Asset/ShaderAsset.cpp)
+                           Asset/ShaderAsset.cpp
+                           Asset/TextureAsset.cpp)
 
 file(GLOB RHI_HEADERS     RHI/*.h)
 set(RHI_SOURCES           RHI/RHI.cpp)
@@ -95,6 +96,8 @@ target_include_directories(EvoEngine
     PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}            # Engine/ root: #include "Core/Log.h"
         ${CMAKE_CURRENT_BINARY_DIR}/Generated  # For RHIConfig.h
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/ThirdParty/stb     # stb_image.h
 )
 
 # ---- Link third-party ----

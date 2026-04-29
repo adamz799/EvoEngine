@@ -31,6 +31,7 @@ public:
 
 	// ---- Clear ----
 	void ClearRenderTarget(RHIRenderTargetView rtv, const RHIColor& color) override;
+	void ClearDepthStencilView(RHIDepthStencilView dsv, float fDepth, uint8 uStencil) override;
 
 	// ---- Render pass ----
 	void SetRenderTargets(const RHIRenderTargetView* rtvs, uint32 count,
@@ -81,6 +82,7 @@ public:
 private:
 	DX12Device*                         m_pDevice = nullptr;   // non-owning
 	RHIQueueType                        m_QueueType = RHIQueueType::Graphics;
+	uint32                              m_uDescTableRootOffset = 0;
 
 	ID3D12CommandAllocator*             m_pAllocator = nullptr;       // non-owning, used by Begin()
 	ComPtr<ID3D12CommandAllocator>      m_pOwnedAllocator;           // only in standalone mode

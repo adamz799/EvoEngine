@@ -152,6 +152,20 @@ void DX12CommandList::ClearRenderTarget(RHIRenderTargetView rtv, const RHIColor&
 	m_pCmdList->ClearRenderTargetView(UnwrapRTV(rtv), clearColor, 0, nullptr);
 }
 
+void DX12CommandList::ClearDepthStencilView(RHIDepthStencilView dsv, float fDepth, uint8 uStencil)
+{
+	if (!dsv.IsValid())
+	{
+		EVO_LOG_WARN("ClearDepthStencilView: invalid DSV");
+		return;
+	}
+
+	m_pCmdList->ClearDepthStencilView(
+		UnwrapDSV(dsv),
+		D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL,
+		fDepth, uStencil, 0, nullptr);
+}
+
 void DX12CommandList::NativeTextureBarrier(
 	ID3D12Resource* resource,
 	D3D12_BARRIER_SYNC syncBefore, D3D12_BARRIER_SYNC syncAfter,
@@ -220,6 +234,7 @@ void DX12CommandList::SetPipeline(RHIPipelineHandle pipeline)
 	m_pCmdList->SetPipelineState(entry->pPso.Get());
 	m_pCmdList->SetGraphicsRootSignature(entry->pRootSignature.Get());
 	m_pCmdList->IASetPrimitiveTopology(MapPrimitiveTopology(entry->topology));
+	m_uDescTableRootOffset = entry->uDescriptorTableRootOffset;
 }
 
 void DX12CommandList::SetViewport(const RHIViewport& viewport)
@@ -244,9 +259,17 @@ void DX12CommandList::SetPushConstants(const void* data, uint32 size)
 	m_pCmdList->SetGraphicsRoot32BitConstants(0, num32BitValues, data, 0);
 }
 
-void DX12CommandList::SetDescriptorSet(uint32 /*index*/, RHIDescriptorSetHandle /*set*/)
+void DX12CommandList::SetDescriptorSet(uint32 index, RHIDescriptorSetHandle set)
 {
-	// TODO Phase 4: SetGraphicsRootDescriptorTable
+	auto* setEntry = m_pDevice->ResolveDescriptorSet(set);
+	if (!setEntry || !setEntry->allocation.IsValid())
+	{
+		EVO_LOG_WARN("SetDescriptorSet: invalid descriptor set handle");
+		return;
+	}
+
+	uint32 rootIndex = m_uDescTableRootOffset + index;
+	m_pCmdList->SetGraphicsRootDescriptorTable(rootIndex, setEntry->allocation.gpuStart);
 }
 
 void DX12CommandList::SetDescriptorHeaps(uint32 uCount, void* const* ppHeaps)
@@ -309,15 +332,43 @@ void DX12CommandList::Dispatch(uint32 /*groupCountX*/, uint32 /*groupCountY*/, u
 
 // ---- Copy ----
 
-void DX12CommandList::CopyBuffer(RHIBufferHandle /*src*/, uint64 /*srcOffset*/,
-	RHIBufferHandle /*dst*/, uint64 /*dstOffset*/, uint64 /*size*/)
+void DX12CommandList::CopyBuffer(RHIBufferHandle src, uint64 srcOffset,
+	RHIBufferHandle dst, uint64 dstOffset, uint64 size)
 {
-	// TODO: m_pCmdList->CopyBufferRegion(...)
+	auto* srcEntry = m_pDevice->ResolveBuffer(src);
+	auto* dstEntry = m_pDevice->ResolveBuffer(dst);
+	if (!srcEntry || !dstEntry) return;
+
+	m_pCmdList->CopyBufferRegion(dstEntry->pResource.Get(), dstOffset,
+	                              srcEntry->pResource.Get(), srcOffset, size);
 }
 
-void DX12CommandList::CopyBufferToTexture(RHIBufferHandle /*src*/, RHITextureHandle /*dst*/)
+void DX12CommandList::CopyBufferToTexture(RHIBufferHandle src, RHITextureHandle dst)
 {
-	// TODO Phase 5: CopyTextureRegion
+	auto* bufEntry = m_pDevice->ResolveBuffer(src);
+	auto* texEntry = m_pDevice->ResolveTexture(dst);
+	if (!bufEntry || !texEntry) return;
+
+	auto texDesc = texEntry->pResource->GetDesc();
+
+	D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint = {};
+	UINT numRows = 0;
+	UINT64 rowSizeInBytes = 0;
+	UINT64 totalBytes = 0;
+	m_pDevice->GetD3D12Device()->GetCopyableFootprints(
+		&texDesc, 0, 1, 0, &footprint, &numRows, &rowSizeInBytes, &totalBytes);
+
+	D3D12_TEXTURE_COPY_LOCATION srcLoc = {};
+	srcLoc.pResource       = bufEntry->pResource.Get();
+	srcLoc.Type            = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+	srcLoc.PlacedFootprint = footprint;
+
+	D3D12_TEXTURE_COPY_LOCATION dstLoc = {};
+	dstLoc.pResource        = texEntry->pResource.Get();
+	dstLoc.Type             = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+	dstLoc.SubresourceIndex = 0;
+
+	m_pCmdList->CopyTextureRegion(&dstLoc, 0, 0, 0, &srcLoc, nullptr);
 }
 
 } // namespace Evo

@@ -107,6 +107,55 @@ void Editor::CreateViewportResources(uint32 uWidth, uint32 uHeight)
 	auto* pDX12 = static_cast<DX12Device*>(m_pDevice);
 	m_ViewportSRV = pDX12->CreateShaderResourceView(m_ViewportTexture);
 
+	// Depth buffer for viewport
+	RHITextureDesc depthDesc = {};
+	depthDesc.uWidth     = uWidth;
+	depthDesc.uHeight    = uHeight;
+	depthDesc.format     = RHIFormat::D32_FLOAT;
+	depthDesc.usage      = RHITextureUsage::DepthStencil | RHITextureUsage::ShaderResource;
+	depthDesc.sDebugName = "EditorViewportDepth";
+
+	m_DepthTexture = m_pDevice->CreateTexture(depthDesc);
+	m_DepthDSV     = m_pDevice->CreateDepthStencilView(m_DepthTexture);
+
+	// G-Buffer textures (same size as viewport)
+	RHITextureDesc gbAlbedoDesc = {};
+	gbAlbedoDesc.uWidth     = uWidth;
+	gbAlbedoDesc.uHeight    = uHeight;
+	gbAlbedoDesc.format     = RHIFormat::R8G8B8A8_UNORM;
+	gbAlbedoDesc.usage      = RHITextureUsage::RenderTarget | RHITextureUsage::ShaderResource;
+	gbAlbedoDesc.sDebugName = "EditorGBuffer_Albedo";
+	m_GBAlbedoTexture = m_pDevice->CreateTexture(gbAlbedoDesc);
+	m_GBAlbedoRTV     = m_pDevice->CreateRenderTargetView(m_GBAlbedoTexture);
+
+	RHITextureDesc gbNormalDesc = {};
+	gbNormalDesc.uWidth     = uWidth;
+	gbNormalDesc.uHeight    = uHeight;
+	gbNormalDesc.format     = RHIFormat::R16G16B16A16_FLOAT;
+	gbNormalDesc.usage      = RHITextureUsage::RenderTarget | RHITextureUsage::ShaderResource;
+	gbNormalDesc.sDebugName = "EditorGBuffer_Normal";
+	m_GBNormalTexture = m_pDevice->CreateTexture(gbNormalDesc);
+	m_GBNormalRTV     = m_pDevice->CreateRenderTargetView(m_GBNormalTexture);
+
+	RHITextureDesc gbRoughMetDesc = {};
+	gbRoughMetDesc.uWidth     = uWidth;
+	gbRoughMetDesc.uHeight    = uHeight;
+	gbRoughMetDesc.format     = RHIFormat::R8G8B8A8_UNORM;
+	gbRoughMetDesc.usage      = RHITextureUsage::RenderTarget | RHITextureUsage::ShaderResource;
+	gbRoughMetDesc.sDebugName = "EditorGBuffer_RoughMet";
+	m_GBRoughMetTexture = m_pDevice->CreateTexture(gbRoughMetDesc);
+	m_GBRoughMetRTV     = m_pDevice->CreateRenderTargetView(m_GBRoughMetTexture);
+
+	// HDR intermediate (same size as viewport)
+	RHITextureDesc hdrDesc = {};
+	hdrDesc.uWidth     = uWidth;
+	hdrDesc.uHeight    = uHeight;
+	hdrDesc.format     = RHIFormat::R16G16B16A16_FLOAT;
+	hdrDesc.usage      = RHITextureUsage::RenderTarget | RHITextureUsage::ShaderResource;
+	hdrDesc.sDebugName = "EditorHDRIntermediate";
+	m_HDRTexture = m_pDevice->CreateTexture(hdrDesc);
+	m_HDRRTV     = m_pDevice->CreateRenderTargetView(m_HDRTexture);
+
 	m_uViewportWidth  = uWidth;
 	m_uViewportHeight = uHeight;
 #endif
@@ -115,6 +164,46 @@ void Editor::CreateViewportResources(uint32 uWidth, uint32 uHeight)
 void Editor::DestroyViewportResources()
 {
 #if EVO_RHI_DX12
+	// Destroy HDR intermediate
+	if (m_HDRTexture.IsValid())
+	{
+		m_pDevice->DestroyRenderTargetView(m_HDRRTV);
+		m_HDRRTV = {};
+		m_pDevice->DestroyTexture(m_HDRTexture);
+		m_HDRTexture = {};
+	}
+	// Destroy G-Buffer textures
+	if (m_GBRoughMetTexture.IsValid())
+	{
+		m_pDevice->DestroyRenderTargetView(m_GBRoughMetRTV);
+		m_GBRoughMetRTV = {};
+		m_pDevice->DestroyTexture(m_GBRoughMetTexture);
+		m_GBRoughMetTexture = {};
+	}
+	if (m_GBNormalTexture.IsValid())
+	{
+		m_pDevice->DestroyRenderTargetView(m_GBNormalRTV);
+		m_GBNormalRTV = {};
+		m_pDevice->DestroyTexture(m_GBNormalTexture);
+		m_GBNormalTexture = {};
+	}
+	if (m_GBAlbedoTexture.IsValid())
+	{
+		m_pDevice->DestroyRenderTargetView(m_GBAlbedoRTV);
+		m_GBAlbedoRTV = {};
+		m_pDevice->DestroyTexture(m_GBAlbedoTexture);
+		m_GBAlbedoTexture = {};
+	}
+
+	if (m_DepthTexture.IsValid())
+	{
+		m_pDevice->DestroyDepthStencilView(m_DepthDSV);
+		m_DepthDSV = {};
+
+		m_pDevice->DestroyTexture(m_DepthTexture);
+		m_DepthTexture = {};
+	}
+
 	if (m_ViewportTexture.IsValid())
 	{
 		auto* pDX12 = static_cast<DX12Device*>(m_pDevice);
@@ -489,6 +578,18 @@ void Editor::DrawInspectorPanel(Scene& scene)
 			{
 				ImGui::Checkbox("Visible", &pMesh->bVisible);
 				ImGui::Text("LOD: %u", pMesh->uLODIndex);
+			}
+		}
+
+		// Material
+		auto* pMaterial = scene.Materials().Get(m_SelectedEntity);
+		if (pMaterial)
+		{
+			if (ImGui::CollapsingHeader("Material", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				ImGui::ColorEdit3("Albedo", &pMaterial->vAlbedoColor.x);
+				ImGui::SliderFloat("Roughness", &pMaterial->fRoughness, 0.0f, 1.0f);
+				ImGui::SliderFloat("Metallic", &pMaterial->fMetallic, 0.0f, 1.0f);
 			}
 		}
 	}
