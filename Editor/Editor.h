@@ -17,6 +17,7 @@ namespace Evo {
 class RHIDevice;
 class RHICommandList;
 class RenderPipeline;
+class Renderer;
 class Window;
 
 /// Editor — ImGui-based editor UI with scene hierarchy, inspector, and log panels.
@@ -29,6 +30,9 @@ public:
 	void BeginFrame();
 	void Update(Scene& scene, const Camera& camera, float fDeltaTime);
 	void Render(RHICommandList* pCmdList);
+
+	/// Composite the editor viewport + ImGui onto the swap chain back buffer.
+	void CompositeToBackBuffer(Renderer& renderer);
 
 	EntityHandle GetSelectedEntity() const { return m_SelectedEntity; }
 	int          GetHoveredAxis()   const { return m_iHoveredAxis; }

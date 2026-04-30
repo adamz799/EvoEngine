@@ -1,14 +1,11 @@
-﻿#include "Core/Log.h"
+#include "Core/Engine.h"
 #include "Core/EngineConfig.h"
+#include "Core/Log.h"
 #include "Math/Math.h"
-#include "Platform/Window.h"
-#include "Platform/Input.h"
-#include "Renderer/Renderer.h"
 #include "Renderer/RenderGraph.h"
 #include "Editor.h"
 #include "EditorRenderPipeline.h"
 #include "TestScene.h"
-#include <chrono>
 
 #define SDL_MAIN_HANDLED
 #include <SDL3/SDL.h>
@@ -21,114 +18,58 @@ extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ".\\D3D12\\
 
 int main(int /*argc*/, char* /*argv*/[])
 {
-	// ---- Initialize logging (must come first for config-load messages) ----
 	Evo::Log::Initialize();
-	EVO_LOG_INFO("EvoEditor starting...");
 
-	// ---- Load engine config ----
-	auto config = Evo::EngineConfig::Load("Assets/engine_config.json");
-	if (!config)
-		config = Evo::EngineConfig::Default();
+	// ---- Phase 1: Config ----
+	Evo::EngineConfig::LoadFromFile("Assets/engine_config.json");
 
-	// ---- Resolve RHI backend from config ----
-	Evo::RHIBackendType backend = Evo::RHIBackendType::DX12;
-	if (config->rhi.backend == "vulkan") {
-#if EVO_RHI_VULKAN
-		backend = Evo::RHIBackendType::Vulkan;
-#else
-		EVO_LOG_WARN("Vulkan requested in config but not compiled in, falling back to DX12");
-#endif
-	} else if (config->rhi.backend != "dx12") {
-		EVO_LOG_WARN("Unknown backend '{}', falling back to DX12", config->rhi.backend);
-	}
-#if !EVO_RHI_DX12 && EVO_RHI_VULKAN
-	if (config->rhi.backend != "vulkan") {
-		backend = Evo::RHIBackendType::Vulkan;
-		EVO_LOG_WARN("DX12 requested but not compiled in, falling back to Vulkan");
-	}
-#endif
-
-	// ---- Create editor window ----
-	Evo::Window window;
-	Evo::WindowDesc winDesc{};
-	winDesc.sTitle  = config->window.sTitle;
-	winDesc.uWidth  = config->window.uWidth;
-	winDesc.uHeight = config->window.uHeight;
-
-	if (!window.Initialize(winDesc)) {
-		EVO_LOG_CRITICAL("Failed to create window");
-		Evo::Log::Shutdown();
+	// ---- Phase 2: Launch engine ----
+	Evo::Engine EvoEngine;
+	if (!EvoEngine.Launch())
 		return -1;
-	}
+
+	auto* pDevice = EvoEngine.GetRenderer().GetDevice();
 
 	// ---- Create runtime window (separate OS window with its own swap chain) ----
 	SDL_Window* pRuntimeWindow = SDL_CreateWindow("Runtime", 640, 480, SDL_WINDOW_RESIZABLE);
-	if (!pRuntimeWindow) {
+	if (!pRuntimeWindow)
 		EVO_LOG_ERROR("Failed to create runtime window: {}", SDL_GetError());
-	}
 
-	// ---- Create renderer ----
-	Evo::Renderer renderer;
-	Evo::RendererDesc renderDesc{};
-	renderDesc.backend                 = backend;
-	renderDesc.bEnableDebugLayer        = config->rhi.bEnableDebugLayer;
-	renderDesc.bEnableGPUBasedValidation = config->rhi.bEnableGPUBasedValidation;
-
-	if (!renderer.Initialize(renderDesc, window)) {
-		EVO_LOG_ERROR("Failed to initialize renderer (continuing with window only)");
-	}
-
-	// ---- Create secondary swap chain for runtime window ----
-	std::unique_ptr<Evo::RHISwapChain> pRuntimeSC;
+	// ---- Create secondary window target for runtime window ----
+	Evo::WindowTarget runtimeWin;
 	if (pRuntimeWindow)
 	{
-#if EVO_RHI_DX12
 		void* hRuntimeWnd = SDL_GetPointerProperty(
 			SDL_GetWindowProperties(pRuntimeWindow),
 			SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr);
 
-		Evo::RHISwapChainDesc rtScDesc{};
-		rtScDesc.pWindowHandle = hRuntimeWnd;
-		rtScDesc.uWidth        = 640;
-		rtScDesc.uHeight       = 480;
-		rtScDesc.uBufferCount  = 2;
-		pRuntimeSC = renderer.GetDevice()->CreateSwapChain(rtScDesc);
-		if (!pRuntimeSC)
-			EVO_LOG_ERROR("Failed to create runtime swap chain");
-#endif
+		runtimeWin = EvoEngine.GetRenderer().CreateWindowTarget(hRuntimeWnd, 640, 480);
 	}
 
-	auto* pDevice = renderer.GetDevice();
-	auto scFormat = renderer.GetSwapChain()->GetFormat();
+	auto scFormat = EvoEngine.GetRenderer().GetSwapChain()->GetFormat();
 
-	// ---- Initialize render pipeline ----
+	// ---- Initialize editor render pipeline ----
 	Evo::EditorRenderPipeline pipeline;
 	if (!pipeline.Initialize(pDevice, scFormat))
-	{
 		EVO_LOG_ERROR("Failed to initialize render pipeline");
-	}
 
 	// ---- Initialize test scene ----
 	Evo::TestScene testScene;
 	if (!testScene.Initialize(pDevice))
-	{
 		EVO_LOG_ERROR("Failed to initialize test scene");
-	}
 
 	// ---- Initialize editor ----
 	Evo::Editor editor;
-	if (!editor.Initialize(pDevice, window, scFormat, pipeline))
-	{
+	if (!editor.Initialize(pDevice, EvoEngine.GetWindow(), scFormat, pipeline))
 		EVO_LOG_ERROR("Failed to initialize editor");
-	}
 
 	// ---- Runtime viewport resources ----
 	Evo::ViewportFrame runtimeViewport;
-	if (pRuntimeSC)
+	if (pRuntimeWindow)
 	{
 		runtimeViewport.Initialize(pDevice,
 			pipeline.MakeViewportFrameDesc(
-				pRuntimeSC->GetWidth(), pRuntimeSC->GetHeight(), "Runtime"));
+				runtimeWin.GetWidth(), runtimeWin.GetHeight(), "Runtime"));
 	}
 
 	// ---- Editor camera (free-roaming) ----
@@ -138,38 +79,28 @@ int main(int /*argc*/, char* /*argv*/[])
 	editorCamera.SetPosition(Evo::Vec3(0.0f, 5.0f, -12.0f));
 	editorCamera.LookAt(Evo::Vec3::Zero);
 
-	// ---- Main loop ----
-	EVO_LOG_INFO("Entering main loop");
-	auto lastTime = std::chrono::high_resolution_clock::now();
-	Evo::Input input;
-
-	while (window.PollEvents(&input)) {
-		if (window.IsMinimized())
-			continue;
-
-		// Handle window resize �?swap chain must match window size
-		renderer.HandleResize(window.GetWidth(), window.GetHeight());
+	// ---- Phase 3: Main loop ----
+	while (EvoEngine.BeginFrame()) {
+		float dt = EvoEngine.GetDeltaTime();
+		auto& input = EvoEngine.GetInput();
+		auto& window = EvoEngine.GetWindow();
 
 		// Handle runtime window resize
-		if (pRuntimeSC)
+		if (pRuntimeWindow)
 		{
 			int rtW = 0, rtH = 0;
 			SDL_GetWindowSize(pRuntimeWindow, &rtW, &rtH);
 			if (rtW > 0 && rtH > 0
-				&& (static_cast<Evo::uint32>(rtW) != pRuntimeSC->GetWidth()
-				 || static_cast<Evo::uint32>(rtH) != pRuntimeSC->GetHeight()))
+				&& (static_cast<Evo::uint32>(rtW) != runtimeWin.GetWidth()
+				 || static_cast<Evo::uint32>(rtH) != runtimeWin.GetHeight()))
 			{
 				pDevice->WaitIdle();
-				pRuntimeSC->Resize(static_cast<Evo::uint32>(rtW), static_cast<Evo::uint32>(rtH));
+				EvoEngine.GetRenderer().ResizeWindowTarget(runtimeWin,
+				static_cast<Evo::uint32>(rtW), static_cast<Evo::uint32>(rtH));
 				runtimeViewport.Resize(pDevice,
-					pRuntimeSC->GetWidth(), pRuntimeSC->GetHeight());
+					runtimeWin.GetWidth(), runtimeWin.GetHeight());
 			}
 		}
-
-		// Delta time
-		auto now = std::chrono::high_resolution_clock::now();
-		float dt = std::chrono::duration<float>(now - lastTime).count();
-		lastTime = now;
 
 		// Update editor camera
 		float vpW = static_cast<float>(editor.GetViewportWidth());
@@ -186,13 +117,10 @@ int main(int /*argc*/, char* /*argv*/[])
 		editor.Update(testScene.GetScene(), editorCamera, dt);
 
 		// ---- Render ----
-		renderer.BeginFrame();
-
-		auto& rg = renderer.GetRenderGraph();
-		auto* swapChain = renderer.GetSwapChain();
+		auto& rg = EvoEngine.GetRenderer().GetRenderGraph();
 
 		// Shadow pass (once for all viewports)
-		pipeline.RenderShadow(renderer, testScene.GetScene());
+		pipeline.RenderShadow(EvoEngine.GetRenderer(), testScene.GetScene());
 
 		// Import editor viewport texture (used by scene render + ImGui read)
 		Evo::RGHandle vpRG = rg.ImportTexture("EditorViewport",
@@ -204,7 +132,7 @@ int main(int /*argc*/, char* /*argv*/[])
 		Evo::Mat4 editorVP = editorCamera.GetViewProjectionMatrix();
 
 		// GBuffer -> Lighting -> Transparent -> PostProcess -> viewport texture
-		pipeline.RenderViewport(renderer, testScene.GetScene(),
+		pipeline.RenderViewport(EvoEngine.GetRenderer(), testScene.GetScene(),
 			editor.GetViewportFrame(), editorVP,
 			vpRG, editor.GetViewportRTV());
 
@@ -235,19 +163,19 @@ int main(int /*argc*/, char* /*argv*/[])
 				}
 			}
 		}
-		pipeline.RenderDebugOverlay(renderer, vpRG, editor.GetViewportRTV(),
+		pipeline.RenderDebugOverlay(EvoEngine.GetRenderer(), vpRG, editor.GetViewportRTV(),
 			editorVP, vpW, vpH);
 
 		// ---- Runtime viewport -> runtime swap chain ----
-		if (pRuntimeSC)
+		if (pRuntimeWindow)
 		{
 			Evo::RGHandle rtBB = rg.ImportTexture("RuntimeBackBuffer",
-				pRuntimeSC->GetCurrentBackBuffer(),
+				runtimeWin.GetCurrentBackBuffer(),
 				Evo::RHITextureLayout::Common,
 				Evo::RHITextureLayout::Common);
 
-			float rtW = static_cast<float>(pRuntimeSC->GetWidth());
-			float rtH = static_cast<float>(pRuntimeSC->GetHeight());
+			float rtW = static_cast<float>(runtimeWin.GetWidth());
+			float rtH = static_cast<float>(runtimeWin.GetHeight());
 
 			auto& scene = testScene.GetScene();
 			auto camEntity = testScene.GetGameCameraEntity();
@@ -258,45 +186,32 @@ int main(int /*argc*/, char* /*argv*/[])
 				float rtAspect = (rtH > 0.0f) ? rtW / rtH : 1.0f;
 				Evo::Camera gameCamera = Evo::BuildCameraFromEntity(*pCamTransform, *pCamComp, rtAspect);
 
-				pipeline.RenderViewport(renderer, testScene.GetScene(),
+				pipeline.RenderViewport(EvoEngine.GetRenderer(), testScene.GetScene(),
 					runtimeViewport, gameCamera.GetViewProjectionMatrix(),
-					rtBB, pRuntimeSC->GetCurrentBackBufferRTV());
+					rtBB, runtimeWin.GetCurrentBackBufferRTV());
 			}
 		}
 
 		// ---- ImGui pass -> editor back buffer ----
-		{
-			auto bbRG = renderer.GetBackBufferRG();
+		editor.CompositeToBackBuffer(EvoEngine.GetRenderer());
 
-			rg.AddPass("ImGui", [&](Evo::RGPassBuilder& builder) {
-				builder.ReadTexture(vpRG);
-				builder.WriteRenderTarget(bbRG, swapChain->GetCurrentBackBufferRTV());
-			}, [&](Evo::RHICommandList* pCmdList) {
-				editor.Render(pCmdList);
-			});
-		}
-
-		renderer.EndFrame();
+		EvoEngine.EndFrame();
 
 		// Present runtime window via its own swap chain
-		if (pRuntimeSC)
-			pRuntimeSC->Present();
+		if (pRuntimeWindow)
+			EvoEngine.GetRenderer().PresentWindowTarget(runtimeWin);
 	}
 
-	// ---- Shutdown (reverse order) ----
-	EVO_LOG_INFO("Shutting down...");
+	// ---- Shutdown ----
 	pDevice->WaitIdle();
 	runtimeViewport.Shutdown(pDevice);
 	editor.Shutdown();
 	testScene.Shutdown(pDevice);
 	pipeline.Shutdown(pDevice);
-	pRuntimeSC.reset();
-	renderer.Shutdown();
+	// runtimeWin destroyed automatically
 	if (pRuntimeWindow)
 		SDL_DestroyWindow(pRuntimeWindow);
-	window.Shutdown();
-	Evo::Log::Shutdown();
+	EvoEngine.Shutdown();
 
 	return 0;
 }
-

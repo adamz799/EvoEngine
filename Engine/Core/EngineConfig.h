@@ -1,6 +1,7 @@
-﻿#pragma once
+#pragma once
 
 #include "Core/Types.h"
+#include "RHI/RHITypes.h"
 #include <string>
 #include <optional>
 #include <filesystem>
@@ -8,9 +9,13 @@
 namespace Evo {
 
 // ============================================================================
-// EngineConfig — runtime configuration loaded from JSON at startup.
-// Read BEFORE RHI / window initialization so backend and debug options
-// are available when creating the device.
+// EngineConfig — global singleton, loaded before Engine::Launch().
+// Access from anywhere via EngineConfig::GetInstance().
+//
+// Usage:
+//   EngineConfig::LoadFromFile("Assets/engine_config.json");
+//   auto& cfg = EngineConfig::GetInstance();
+//   bool debug = cfg.rhi.bEnableDebugLayer;
 // ============================================================================
 
 struct RHIEngineConfig {
@@ -26,19 +31,35 @@ struct WindowEngineConfig {
 	bool        bVsync  = true;
 };
 
-struct EngineConfig {
+class EngineConfig {
+public:
+	// ---- Singleton ----
+	static EngineConfig& GetInstance();
+	static bool          IsLoaded();
+
+	// ---- Loading ----
+	/// Load from JSON file. Returns false on parse error, true on success.
+	static bool LoadFromFile(const std::filesystem::path& path);
+
+	/// Use hardcoded defaults (no file needed).
+	static void SetDefaults();
+
+	// ---- Config data ----
 	RHIEngineConfig    rhi;
 	WindowEngineConfig window;
 
-	/// Load config from a JSON file. Returns nullopt on failure.
+	/// Resolve rhi.backend string to enum, logging availability warnings.
+	RHIBackendType ResolveBackend() const;
+
+private:
+	EngineConfig() = default;
+
+	static EngineConfig s_Instance;
+	static bool         s_bLoaded;
+
 	static std::optional<EngineConfig> Load(const std::filesystem::path& path);
-
-	/// Parse config from a JSON string. Returns nullopt on failure.
 	static std::optional<EngineConfig> Parse(const std::string& json);
-
-	/// Return a default config (hardcoded fallback).
 	static EngineConfig Default();
 };
 
 } // namespace Evo
-

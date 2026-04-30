@@ -30,6 +30,11 @@ public:
 	void RenderShadow(Renderer& renderer, Scene& scene);
 
 	/// Full per-viewport pipeline: GBuffer -> Lighting -> Transparent -> PostProcess.
+	/// Output goes to the swap chain back buffer.
+	void RenderViewport(Renderer& renderer, Scene& scene,
+						ViewportFrame& viewport, const Mat4& viewProj);
+
+	/// Overload with explicit output target (for off-screen viewports).
 	virtual void RenderViewport(Renderer& renderer, Scene& scene,
 								ViewportFrame& viewport, const Mat4& viewProj,
 								RGHandle outputTarget, RHIRenderTargetView outputRTV);

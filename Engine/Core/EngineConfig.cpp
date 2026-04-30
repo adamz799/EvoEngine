@@ -1,6 +1,7 @@
 ﻿#include "Core/EngineConfig.h"
 #include "Core/Log.h"
 #include "Platform/FileSystem.h"
+#include "RHIConfig.h"
 #include <unordered_map>
 #include <variant>
 #include <memory>
@@ -336,25 +337,44 @@ static bool GetInt(const JsonObject& obj, const std::string& key, int64_t& out) 
 }
 
 // ============================================================================
-// EngineConfig implementation
+// EngineConfig — singleton static members
 // ============================================================================
 
-EngineConfig EngineConfig::Default() {
-	EngineConfig cfg;
-	cfg.rhi.backend                 = "dx12";
-	cfg.rhi.bEnableDebugLayer       = true;
-	cfg.rhi.bEnableGPUBasedValidation = false;
-	cfg.window.sTitle                = "EvoEngine";
-	cfg.window.uWidth                = 1280;
-	cfg.window.uHeight               = 720;
-	cfg.window.bVsync                = true;
-	return cfg;
+EngineConfig EngineConfig::s_Instance;
+bool         EngineConfig::s_bLoaded = false;
+
+EngineConfig& EngineConfig::GetInstance() {
+	return s_Instance;
 }
+
+bool EngineConfig::IsLoaded() {
+	return s_bLoaded;
+}
+
+bool EngineConfig::LoadFromFile(const std::filesystem::path& path) {
+	auto cfg = Load(path);
+	if (!cfg) {
+		EVO_LOG_ERROR("EngineConfig: failed to parse '{}', using defaults", path.string());
+		cfg = Default();
+	}
+	s_Instance = std::move(*cfg);
+	s_bLoaded = true;
+	return true;
+}
+
+void EngineConfig::SetDefaults() {
+	s_Instance = Default();
+	s_bLoaded = true;
+}
+
+// ============================================================================
+// EngineConfig — private parsing
+// ============================================================================
 
 std::optional<EngineConfig> EngineConfig::Load(const std::filesystem::path& path) {
 	auto text = FileSystem::ReadText(path);
 	if (!text) {
-		EVO_LOG_WARN("EngineConfig: file not found at '{}', using defaults", path.string());
+		EVO_LOG_WARN("EngineConfig: file not found at '{}'", path.string());
 		return Default();
 	}
 	return Parse(*text);
@@ -407,6 +427,43 @@ std::optional<EngineConfig> EngineConfig::Parse(const std::string& json) {
 		cfg.rhi.backend, cfg.rhi.bEnableDebugLayer, cfg.rhi.bEnableGPUBasedValidation);
 
 	return cfg;
+}
+
+EngineConfig EngineConfig::Default() {
+	EngineConfig cfg;
+	cfg.rhi.backend                 = "dx12";
+	cfg.rhi.bEnableDebugLayer       = true;
+	cfg.rhi.bEnableGPUBasedValidation = false;
+	cfg.window.sTitle                = "EvoEngine";
+	cfg.window.uWidth                = 1280;
+	cfg.window.uHeight               = 720;
+	cfg.window.bVsync                = true;
+	return cfg;
+}
+
+// ============================================================================
+// EngineConfig — helpers
+// ============================================================================
+
+RHIBackendType EngineConfig::ResolveBackend() const {
+	if (rhi.backend == "vulkan") {
+#if EVO_RHI_VULKAN
+		return RHIBackendType::Vulkan;
+#else
+		EVO_LOG_WARN("Vulkan requested in config but not compiled in, falling back to DX12");
+		return RHIBackendType::DX12;
+#endif
+	}
+	if (rhi.backend != "dx12") {
+		EVO_LOG_WARN("Unknown backend '{}', falling back to DX12", rhi.backend);
+	}
+#if !EVO_RHI_DX12 && EVO_RHI_VULKAN
+	if (rhi.backend != "vulkan") {
+		EVO_LOG_WARN("DX12 requested but not compiled in, falling back to Vulkan");
+		return RHIBackendType::Vulkan;
+	}
+#endif
+	return RHIBackendType::DX12;
 }
 
 } // namespace Evo

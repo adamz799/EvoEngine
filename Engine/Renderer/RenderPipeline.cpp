@@ -296,6 +296,14 @@ void RenderPipeline::RenderShadow(Renderer& renderer, Scene& scene)
 }
 
 void RenderPipeline::RenderViewport(Renderer& renderer, Scene& scene,
+									ViewportFrame& viewport, const Mat4& viewProj)
+{
+	RenderViewport(renderer, scene, viewport, viewProj,
+				   renderer.GetBackBufferRG(),
+				   renderer.GetSwapChain()->GetCurrentBackBufferRTV());
+}
+
+void RenderPipeline::RenderViewport(Renderer& renderer, Scene& scene,
 									ViewportFrame& viewport, const Mat4& viewProj,
 									RGHandle outputTarget, RHIRenderTargetView outputRTV)
 {

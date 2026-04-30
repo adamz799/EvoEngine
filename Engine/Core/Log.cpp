@@ -8,6 +8,8 @@ std::shared_ptr<spdlog::logger> Log::s_ClientLogger;
 
 void Log::Initialize()
 {
+	if (s_EngineLogger) return; // already initialized
+
 	spdlog::set_pattern("%^[%T] [%n] %v%$");
 
 	auto consoleSink = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();

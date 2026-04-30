@@ -1,4 +1,4 @@
-﻿# ---- Generate RHIConfig.h from compile options ----
+# ---- Generate RHIConfig.h from compile options ----
 configure_file(
 	${CMAKE_CURRENT_SOURCE_DIR}/RHIConfig.h.in
 	${CMAKE_CURRENT_BINARY_DIR}/Generated/RHIConfig.h
@@ -9,7 +9,8 @@ configure_file(
 
 file(GLOB CORE_HEADERS    Core/*.h)
 set(CORE_SOURCES          Core/Log.cpp
-						   Core/EngineConfig.cpp)
+						   Core/EngineConfig.cpp
+						   Core/Engine.cpp)
 
 file(GLOB MATH_HEADERS    Math/*.h)
 
@@ -148,5 +149,3 @@ elseif(UNIX AND NOT APPLE)
 elseif(APPLE)
 	target_compile_definitions(EvoEngine PUBLIC EVO_PLATFORM_MACOS=1)
 endif()
-
-

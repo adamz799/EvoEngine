@@ -2,6 +2,7 @@
 #include "Core/Log.h"
 #include "Platform/Window.h"
 #include "RHI/RHICommandList.h"
+#include "Renderer/Renderer.h"
 #include "Renderer/RenderPipeline.h"
 #include "Scene/Components.h"
 #include "Scene/MaterialWriter.h"
@@ -548,6 +549,23 @@ void Editor::Render(RHICommandList* pCmdList)
 	auto* pDX12CmdList = static_cast<DX12CommandList*>(pCmdList);
 	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), pDX12CmdList->GetD3D12CommandList());
 #endif
+}
+
+void Editor::CompositeToBackBuffer(Renderer& renderer)
+{
+	auto& rg = renderer.GetRenderGraph();
+	auto bbRG = renderer.GetBackBufferRG();
+
+	auto vpRG = rg.ImportTexture("EditorViewport", m_ViewportTexture,
+		RHITextureLayout::Common, RHITextureLayout::Common);
+
+	rg.AddPass("ImGui", [&](RGPassBuilder& builder) {
+		builder.ReadTexture(vpRG);
+		builder.WriteRenderTarget(bbRG,
+			renderer.GetSwapChain()->GetCurrentBackBufferRTV());
+	}, [this](RHICommandList* pCmdList) {
+		Render(pCmdList);
+	});
 }
 
 // ============================================================================

@@ -75,6 +75,43 @@ void Renderer::HandleResize(uint32 uWidth, uint32 uHeight)
 	EVO_LOG_INFO("Swap chain resized: {}x{}", uWidth, uHeight);
 }
 
+WindowTarget Renderer::CreateWindowTarget(void* nativeWindow, uint32 uWidth, uint32 uHeight)
+{
+	RHISwapChainDesc scDesc{};
+	scDesc.pWindowHandle = nativeWindow;
+	scDesc.uWidth        = uWidth;
+	scDesc.uHeight       = uHeight;
+	scDesc.uBufferCount  = 2;
+	scDesc.format        = RHIFormat::R8G8B8A8_UNORM;
+
+	WindowTarget target;
+	target.m_uWidth  = uWidth;
+	target.m_uHeight = uHeight;
+	target.m_pSwapChain = m_pRHIDevice->CreateSwapChain(scDesc);
+
+	EVO_LOG_INFO("WindowTarget created: {}x{}", uWidth, uHeight);
+	return target;
+}
+
+void Renderer::ResizeWindowTarget(WindowTarget& t, uint32 uWidth, uint32 uHeight)
+{
+	if (!t.m_pSwapChain || uWidth == 0 || uHeight == 0)
+		return;
+	if (uWidth == t.m_uWidth && uHeight == t.m_uHeight)
+		return;
+
+	m_pRHIDevice->WaitIdle();
+	t.m_pSwapChain->Resize(uWidth, uHeight);
+	t.m_uWidth  = uWidth;
+	t.m_uHeight = uHeight;
+}
+
+void Renderer::PresentWindowTarget(WindowTarget& t)
+{
+	if (t.m_pSwapChain)
+		t.m_pSwapChain->Present();
+}
+
 void Renderer::BeginFrame()
 {
 	m_uFrameIndex = m_pSwapChain->GetCurrentBackBufferIndex();
