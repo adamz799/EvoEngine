@@ -58,7 +58,17 @@ struct JsonToken {
 class JsonTokenizer {
 public:
 	explicit JsonTokenizer(const std::string& source)
-		: m_Source(source), m_Pos(0) {}
+		: m_Source(source), m_Pos(0)
+	{
+		// Skip UTF-8 BOM if present
+		if (m_Source.size() >= 3 &&
+			static_cast<unsigned char>(m_Source[0]) == 0xEF &&
+			static_cast<unsigned char>(m_Source[1]) == 0xBB &&
+			static_cast<unsigned char>(m_Source[2]) == 0xBF)
+		{
+			m_Pos = 3;
+		}
+	}
 
 	std::optional<JsonToken> Next() {
 		SkipWhitespace();

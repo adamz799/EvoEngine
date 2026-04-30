@@ -1,4 +1,4 @@
-﻿// StaticMesh.hlsl — Per-object MVP via root constants
+// StaticMesh.hlsl — Per-object MVP via root constants
 
 cbuffer PushConstants : register(b0)
 {

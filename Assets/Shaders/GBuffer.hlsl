@@ -1,4 +1,4 @@
-﻿// GBuffer.hlsl — G-Buffer pass: outputs albedo, normal, roughness+metallic to MRT
+// GBuffer.hlsl — G-Buffer pass: outputs albedo, normal, roughness+metallic to MRT
 
 cbuffer PushConstants : register(b0)
 {

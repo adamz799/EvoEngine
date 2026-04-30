@@ -1,4 +1,4 @@
-﻿// PostProcess.hlsl — Fullscreen post-processing pass.
+// PostProcess.hlsl — Fullscreen post-processing pass.
 // Reads HDR intermediate via SRV Load(), applies ACES tone mapping + sRGB gamma.
 
 Texture2D<float4> gHDRInput : register(t0, space0);

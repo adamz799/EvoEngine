@@ -1,4 +1,4 @@
-﻿// ForwardTransparent.hlsl — Forward-lit pass for transparent objects.
+// ForwardTransparent.hlsl — Forward-lit pass for transparent objects.
 // Renders after deferred lighting, reads depth (depth test on, depth write off),
 // samples shadow map, outputs alpha-blended color into HDR target.
 

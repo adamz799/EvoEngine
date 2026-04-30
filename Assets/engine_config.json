@@ -1,4 +1,4 @@
-﻿{
+{
 	// EvoEngine runtime configuration.  This file is read at startup before any
 	// subsystem initializes — the options below must be known before the GPU
 	// device is created.

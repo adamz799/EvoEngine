@@ -1,4 +1,4 @@
-﻿// DeferredLighting.hlsl -- Fullscreen deferred lighting pass with shadow mapping.
+// DeferredLighting.hlsl -- Fullscreen deferred lighting pass with shadow mapping.
 // Reads G-Buffer textures + scene depth + shadow map via SRV Load().
 // No vertex buffer needed: fullscreen triangle from SV_VertexID.
 

@@ -1,4 +1,4 @@
-﻿// DebugLine.hlsl -- Anti-aliased colored line rendering (quad expansion)
+// DebugLine.hlsl -- Anti-aliased colored line rendering (quad expansion)
 
 cbuffer PushConstants : register(b0)
 {

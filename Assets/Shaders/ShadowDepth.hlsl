@@ -1,4 +1,4 @@
-﻿// ShadowDepth.hlsl — Depth-only pass for shadow map generation.
+// ShadowDepth.hlsl — Depth-only pass for shadow map generation.
 // VS transforms vertices by light MVP; no pixel shader output.
 
 cbuffer PushConstants : register(b0)
