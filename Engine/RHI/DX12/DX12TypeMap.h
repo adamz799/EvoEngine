@@ -36,6 +36,7 @@ inline DXGI_FORMAT MapFormat(RHIFormat format)
     case RHIFormat::R32G32B32A32_FLOAT: return DXGI_FORMAT_R32G32B32A32_FLOAT;
     case RHIFormat::R32G32B32_FLOAT:    return DXGI_FORMAT_R32G32B32_FLOAT;
     case RHIFormat::R32G32_FLOAT:       return DXGI_FORMAT_R32G32_FLOAT;
+    case RHIFormat::R32_FLOAT:          return DXGI_FORMAT_R32_FLOAT;
     case RHIFormat::D24_UNORM_S8_UINT:  return DXGI_FORMAT_D24_UNORM_S8_UINT;
     case RHIFormat::D32_FLOAT:          return DXGI_FORMAT_D32_FLOAT;
     case RHIFormat::D32_FLOAT_S8X24_UINT: return DXGI_FORMAT_D32_FLOAT_S8X24_UINT;

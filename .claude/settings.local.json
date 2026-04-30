@@ -7,7 +7,9 @@
       "Read(//c/Program Files \\(x86\\)/Microsoft Visual Studio/**)",
       "Bash(unzip -l \"/d/GitHub/EvoEngine/ThirdParty/AgilitySDK/Microsoft.Direct3D.D3D12.nuspec\")",
       "PowerShell(& \"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\Common7\\\\IDE\\\\CommonExtensions\\\\Microsoft\\\\CMake\\\\CMake\\\\bin\\\\cmake.exe\" -S D:\\\\GitHub\\\\EvoEngine -B D:\\\\GitHub\\\\EvoEngine\\\\build -G \"Visual Studio 17 2022\" -A x64)",
-      "PowerShell(& \"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\Common7\\\\IDE\\\\CommonExtensions\\\\Microsoft\\\\CMake\\\\CMake\\\\bin\\\\cmake.exe\" --build D:\\\\GitHub\\\\EvoEngine\\\\build --config Debug --parallel)"
+      "PowerShell(& \"C:\\\\Program Files\\\\Microsoft Visual Studio\\\\2022\\\\Community\\\\Common7\\\\IDE\\\\CommonExtensions\\\\Microsoft\\\\CMake\\\\CMake\\\\bin\\\\cmake.exe\" --build D:\\\\GitHub\\\\EvoEngine\\\\build --config Debug --parallel)",
+      "Bash(git config *)",
+      "Bash(git checkout *)"
     ]
   }
 }

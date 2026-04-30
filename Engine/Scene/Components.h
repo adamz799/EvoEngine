@@ -35,4 +35,11 @@ struct MaterialComponent {
 	float fAlpha       = 1.0f;
 };
 
+/// Camera component — perspective projection parameters for a camera entity.
+struct CameraComponent {
+	float fFovY  = DegToRad(60.0f);
+	float fNearZ = 0.1f;
+	float fFarZ  = 100.0f;
+};
+
 } // namespace Evo
