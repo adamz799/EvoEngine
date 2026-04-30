@@ -1,4 +1,4 @@
-// StaticMesh.hlsl — Per-object MVP via root constants
+﻿// StaticMesh.hlsl — Per-object MVP via root constants
 
 cbuffer PushConstants : register(b0)
 {
@@ -37,3 +37,4 @@ float4 PSMain(PSInput input) : SV_TARGET
 	float3 diffuse = float3(0.85, 0.85, 0.8) * ndotl;
 	return float4(ambient + diffuse, 1.0);
 }
+

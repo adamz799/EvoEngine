@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Renderer/RenderPipeline.h"
 #include "DebugRenderer.h"
@@ -13,9 +13,9 @@ public:
 
 	/// Draw debug overlays (frustum, camera icon) onto an already-rendered viewport.
 	void RenderDebugOverlay(Renderer& renderer,
-	                        RGHandle target, RHIRenderTargetView rtv,
-	                        const Mat4& viewProj,
-	                        float fWidth, float fHeight);
+							RGHandle target, RHIRenderTargetView rtv,
+							const Mat4& viewProj,
+							float fWidth, float fHeight);
 
 	DebugRenderer& GetDebugRenderer() { return m_DebugRenderer; }
 
@@ -25,3 +25,4 @@ private:
 };
 
 } // namespace Evo
+

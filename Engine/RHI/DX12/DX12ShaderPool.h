@@ -18,7 +18,7 @@ struct DX12ShaderEntry {
 class DX12ShaderPool {
 public:
 	RHIShaderHandle Allocate(const void* bytecodeData, uint64 bytecodeSize,
-	                         RHIShaderStage stage, const std::string& name)
+							 RHIShaderStage stage, const std::string& name)
 	{
 		std::unique_lock lock(m_Mutex);
 
@@ -92,3 +92,4 @@ private:
 };
 
 } // namespace Evo
+

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Core/Types.h"
 #include <string>
@@ -473,3 +473,4 @@ struct RHISwapChainDesc {
 };
 
 } // namespace Evo
+

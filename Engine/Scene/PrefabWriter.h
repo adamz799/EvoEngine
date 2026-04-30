@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <string>
 
@@ -8,3 +8,4 @@ namespace Evo {
 bool WritePrefab(const std::string& sPath, const std::string& sMeshPath);
 
 } // namespace Evo
+

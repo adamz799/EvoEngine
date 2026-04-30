@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <string>
 
@@ -10,3 +10,4 @@ class Scene;
 bool WriteScene(const std::string& sPath, Scene& scene);
 
 } // namespace Evo
+

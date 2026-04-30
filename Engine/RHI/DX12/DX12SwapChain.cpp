@@ -1,4 +1,4 @@
-#include "RHI/DX12/DX12SwapChain.h"
+﻿#include "RHI/DX12/DX12SwapChain.h"
 #include "RHI/DX12/DX12Device.h"
 #include "Core/Log.h"
 
@@ -158,3 +158,4 @@ void DX12SwapChain::ReleaseRenderTargetViews()
 }
 
 } // namespace Evo
+

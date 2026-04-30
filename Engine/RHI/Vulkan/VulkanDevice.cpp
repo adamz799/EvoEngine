@@ -1,4 +1,4 @@
-#include "RHI/Vulkan/VulkanDevice.h"
+﻿#include "RHI/Vulkan/VulkanDevice.h"
 #include "Core/Log.h"
 
 namespace Evo {
@@ -7,14 +7,14 @@ VulkanDevice::~VulkanDevice() { Shutdown(); }
 
 bool VulkanDevice::Initialize(const RHIDeviceDesc& /*desc*/)
 {
-    EVO_LOG_INFO("VulkanDevice::Initialize (stub)");
-    m_AdapterName = "Vulkan Device (stub — not yet implemented)";
-    return true;
+	EVO_LOG_INFO("VulkanDevice::Initialize (stub)");
+	m_AdapterName = "Vulkan Device (stub — not yet implemented)";
+	return true;
 }
 
 void VulkanDevice::Shutdown()
 {
-    EVO_LOG_INFO("VulkanDevice::Shutdown (stub)");
+	EVO_LOG_INFO("VulkanDevice::Shutdown (stub)");
 }
 
 std::unique_ptr<RHISwapChain>   VulkanDevice::CreateSwapChain(const RHISwapChainDesc&) { return nullptr; }
@@ -47,3 +47,4 @@ void VulkanDevice::EndFrame(uint64) {}
 void VulkanDevice::WaitIdle() {}
 
 } // namespace Evo
+

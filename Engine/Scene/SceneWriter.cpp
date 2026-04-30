@@ -1,4 +1,4 @@
-#include "Scene/SceneWriter.h"
+﻿#include "Scene/SceneWriter.h"
 #include "Scene/Scene.h"
 #include "Platform/FileSystem.h"
 #include "Core/Log.h"
@@ -30,7 +30,7 @@ bool WriteScene(const std::string& sPath, Scene& scene)
 		{
 			position = Schema::Vec3(pTransform->vPosition.x, pTransform->vPosition.y, pTransform->vPosition.z);
 			rotation = Schema::Vec4(pTransform->qRotation.x, pTransform->qRotation.y,
-			                        pTransform->qRotation.z, pTransform->qRotation.w);
+									pTransform->qRotation.z, pTransform->qRotation.w);
 			scale    = Schema::Vec3(pTransform->vScale.x, pTransform->vScale.y, pTransform->vScale.z);
 		}
 		pPosition = &position;
@@ -92,3 +92,4 @@ bool WriteScene(const std::string& sPath, Scene& scene)
 }
 
 } // namespace Evo
+

@@ -1,4 +1,4 @@
-// Material.fbs — EvoEngine PBR material schema.
+﻿// Material.fbs — EvoEngine PBR material schema.
 // Generated header: Material_generated.h
 
 include "Common.fbs";
@@ -15,3 +15,4 @@ table Material {
 root_type Material;
 file_identifier "EMAT";
 file_extension "ematerial";
+

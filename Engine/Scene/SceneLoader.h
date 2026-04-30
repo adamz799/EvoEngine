@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <string>
 
@@ -11,3 +11,4 @@ class AssetManager;
 bool LoadScene(const std::string& sPath, Scene& scene, AssetManager& assetManager);
 
 } // namespace Evo
+

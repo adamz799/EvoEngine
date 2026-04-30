@@ -23,10 +23,10 @@ struct DX12BufferEntry {
 class DX12BufferPool {
 public:
 	RHIBufferHandle Allocate(ComPtr<ID3D12Resource> resource,
-	                         D3D12MA::Allocation* allocation,
-	                         D3D12_GPU_VIRTUAL_ADDRESS gpuAddress,
-	                         uint64 size, void* mappedPtr,
-	                         const std::string& name)
+							 D3D12MA::Allocation* allocation,
+							 D3D12_GPU_VIRTUAL_ADDRESS gpuAddress,
+							 uint64 size, void* mappedPtr,
+							 const std::string& name)
 	{
 		std::unique_lock lock(m_Mutex);
 
@@ -106,3 +106,4 @@ private:
 };
 
 } // namespace Evo
+

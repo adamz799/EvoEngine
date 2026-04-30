@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Asset/AssetManager.h"
 #include "Renderer/Camera.h"
@@ -29,7 +29,7 @@ public:
 	void DrawTranslationGizmo(const Vec3& position, float fSize, int iHighlightAxis = -1);
 
 	void Render(Renderer& renderer, RGHandle target, RHIRenderTargetView rtv,
-	            const Mat4& viewProj, float fViewportWidth, float fViewportHeight);
+				const Mat4& viewProj, float fViewportWidth, float fViewportHeight);
 
 private:
 	struct RawLine { Vec3 from, to; Vec4 color; };
@@ -43,3 +43,4 @@ private:
 };
 
 } // namespace Evo
+

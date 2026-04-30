@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Scene/MeshAsset.h"
 #include "Math/Vec2.h"
@@ -52,3 +52,4 @@ bool WriteMeshFromArrays(
 	const AABB* pBounds = nullptr);
 
 } // namespace Evo
+

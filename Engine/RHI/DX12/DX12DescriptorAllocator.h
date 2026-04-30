@@ -22,7 +22,7 @@ public:
 		if (FAILED(hr))
 		{
 			EVO_LOG_ERROR("DX12CpuDescriptorAllocator: failed to create heap: {}",
-			              GetHResultString(hr));
+						  GetHResultString(hr));
 			return false;
 		}
 
@@ -81,3 +81,4 @@ private:
 };
 
 } // namespace Evo
+

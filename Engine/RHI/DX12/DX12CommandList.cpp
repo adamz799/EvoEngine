@@ -1,4 +1,4 @@
-#include "RHI/DX12/DX12CommandList.h"
+﻿#include "RHI/DX12/DX12CommandList.h"
 #include "RHI/DX12/DX12Device.h"
 #include "Core/Log.h"
 #include "DX12TypeMap.h"
@@ -35,7 +35,7 @@ bool DX12CommandList::Initialize(DX12Device* device, RHIQueueType type)
 	if (FAILED(hr))
 	{
 		EVO_LOG_ERROR("Failed to query ID3D12GraphicsCommandList7 (Enhanced Barriers require Agility SDK): {}",
-		              GetHResultString(hr));
+					  GetHResultString(hr));
 		return false;
 	}
 
@@ -44,7 +44,7 @@ bool DX12CommandList::Initialize(DX12Device* device, RHIQueueType type)
 }
 
 bool DX12CommandList::InitializePooled(DX12Device* device, RHIQueueType type,
-                                        ID3D12CommandAllocator* pExternalAllocator)
+										ID3D12CommandAllocator* pExternalAllocator)
 {
 	m_pDevice    = device;
 	m_QueueType  = type;
@@ -103,7 +103,7 @@ void DX12CommandList::TextureBarrier(const RHITextureBarrier* barriers, uint32 c
 		if (!entry)
 		{
 			EVO_LOG_WARN("TextureBarrier: invalid texture handle (idx={}, gen={})",
-			             b.texture.uHandle, b.texture.uGeneration);
+						 b.texture.uHandle, b.texture.uGeneration);
 			continue;
 		}
 
@@ -111,7 +111,7 @@ void DX12CommandList::TextureBarrier(const RHITextureBarrier* barriers, uint32 c
 		if (!resource)
 		{
 			EVO_LOG_WARN("TextureBarrier: texture '{}' has null ID3D12Resource",
-			             entry->sDebugName);
+						 entry->sDebugName);
 			continue;
 		}
 
@@ -194,7 +194,7 @@ void DX12CommandList::NativeTextureBarrier(
 // ---- Render pass ----
 
 void DX12CommandList::SetRenderTargets(const RHIRenderTargetView* rtvs, uint32 count,
-                                       const RHIDepthStencilView* dsv)
+									   const RHIDepthStencilView* dsv)
 {
 	D3D12_CPU_DESCRIPTOR_HANDLE rtvHandles[8] = {};
 	for (uint32 i = 0; i < count && i < 8; ++i)
@@ -340,7 +340,7 @@ void DX12CommandList::CopyBuffer(RHIBufferHandle src, uint64 srcOffset,
 	if (!srcEntry || !dstEntry) return;
 
 	m_pCmdList->CopyBufferRegion(dstEntry->pResource.Get(), dstOffset,
-	                              srcEntry->pResource.Get(), srcOffset, size);
+								  srcEntry->pResource.Get(), srcOffset, size);
 }
 
 void DX12CommandList::CopyBufferToTexture(RHIBufferHandle src, RHITextureHandle dst)
@@ -372,3 +372,4 @@ void DX12CommandList::CopyBufferToTexture(RHIBufferHandle src, RHITextureHandle 
 }
 
 } // namespace Evo
+

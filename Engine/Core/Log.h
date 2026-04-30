@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <spdlog/spdlog.h>
 #include <memory>
@@ -7,18 +7,18 @@ namespace Evo {
 
 class Log {
 public:
-    static void Initialize();
-    static void Shutdown();
+	static void Initialize();
+	static void Shutdown();
 
-    static std::shared_ptr<spdlog::logger>& GetEngineLogger()  { return s_EngineLogger; }
-    static std::shared_ptr<spdlog::logger>& GetClientLogger()  { return s_ClientLogger; }
+	static std::shared_ptr<spdlog::logger>& GetEngineLogger()  { return s_EngineLogger; }
+	static std::shared_ptr<spdlog::logger>& GetClientLogger()  { return s_ClientLogger; }
 
-    /// Register an additional sink (e.g. ImGui log panel) with all loggers.
-    static void AddSink(spdlog::sink_ptr pSink);
+	/// Register an additional sink (e.g. ImGui log panel) with all loggers.
+	static void AddSink(spdlog::sink_ptr pSink);
 
 private:
-    static std::shared_ptr<spdlog::logger> s_EngineLogger;
-    static std::shared_ptr<spdlog::logger> s_ClientLogger;
+	static std::shared_ptr<spdlog::logger> s_EngineLogger;
+	static std::shared_ptr<spdlog::logger> s_ClientLogger;
 };
 
 } // namespace Evo
@@ -37,3 +37,4 @@ private:
 #define EVO_APP_INFO(...)     ::Evo::Log::GetClientLogger()->info(__VA_ARGS__)
 #define EVO_APP_WARN(...)     ::Evo::Log::GetClientLogger()->warn(__VA_ARGS__)
 #define EVO_APP_ERROR(...)    ::Evo::Log::GetClientLogger()->error(__VA_ARGS__)
+

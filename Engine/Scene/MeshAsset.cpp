@@ -11,8 +11,8 @@ namespace Evo {
 // ============================================================================
 
 bool MeshAsset::CreateGPUBuffers(RHIDevice* pDevice,
-                                 const void* pVertices, uint32 uVertexCount, uint32 uVertexStride,
-                                 const void* pIndices,  uint32 uIndexCount,  RHIIndexFormat indexFormat)
+								 const void* pVertices, uint32 uVertexCount, uint32 uVertexStride,
+								 const void* pIndices,  uint32 uIndexCount,  RHIIndexFormat indexFormat)
 {
 	// Vertex buffer
 	uint64 vbSize = static_cast<uint64>(uVertexCount) * uVertexStride;
@@ -125,7 +125,7 @@ static uint32 GetFormatStride(Evo::Schema::AttributeFormat format)
 /// Decode one vertex element into float32 components.
 /// Writes exactly uOutComponents floats to pOut.
 static void DecodeElement(const uint8* pElement, Evo::Schema::AttributeFormat format,
-                          float* pOut, uint32 uOutComponents)
+						  float* pOut, uint32 uOutComponents)
 {
 	using enum Evo::Schema::AttributeFormat;
 	switch (format)
@@ -156,13 +156,13 @@ static void DecodeElement(const uint8* pElement, Evo::Schema::AttributeFormat fo
 static bool IsFloat3Format(Evo::Schema::AttributeFormat format)
 {
 	return format == Evo::Schema::AttributeFormat_Float32x3
-	    || format == Evo::Schema::AttributeFormat_Float16x3;
+		|| format == Evo::Schema::AttributeFormat_Float16x3;
 }
 
 static bool IsFloat2Format(Evo::Schema::AttributeFormat format)
 {
 	return format == Evo::Schema::AttributeFormat_Float32x2
-	    || format == Evo::Schema::AttributeFormat_Float16x2;
+		|| format == Evo::Schema::AttributeFormat_Float16x2;
 }
 
 // ============================================================================
@@ -215,7 +215,7 @@ bool MeshAsset::OnLoad(const std::vector<uint8>& rawData)
 
 	// Validate array sizes match
 	if (pNormals->data()->size() / uNrmStride != uVertexCount ||
-	    pUVs->data()->size() / uUvStride != uVertexCount)
+		pUVs->data()->size() / uUvStride != uVertexCount)
 	{
 		EVO_LOG_ERROR("MeshAsset::OnLoad — vertex attribute count mismatch in '{}'", m_sPath);
 		return false;
@@ -247,10 +247,10 @@ bool MeshAsset::OnLoad(const std::vector<uint8>& rawData)
 	auto* pIB = pMesh->indices();
 	uint32 uIndexStride = (pIB->format() == Evo::Schema::IndexFormat_UInt16) ? 2 : 4;
 	m_pPending->indexFormat = (pIB->format() == Evo::Schema::IndexFormat_UInt16)
-	                        ? RHIIndexFormat::U16 : RHIIndexFormat::U32;
+							? RHIIndexFormat::U16 : RHIIndexFormat::U32;
 	m_pPending->uIndexCount = static_cast<uint32>(pIB->data()->size()) / uIndexStride;
 	m_pPending->vIndexData.assign(pIB->data()->data(),
-	                              pIB->data()->data() + pIB->data()->size());
+								  pIB->data()->data() + pIB->data()->size());
 
 	// ---- Bounds ----
 	auto* pBounds = pMesh->bounds();
@@ -320,7 +320,7 @@ bool MeshAsset::OnFinalize(RHIDevice* pDevice)
 
 	if (bSuccess)
 		EVO_LOG_INFO("MeshAsset '{}' loaded from file: {} vertices, {} indices",
-		             m_sName, m_vLODs[0].uVertexCount, m_vLODs[0].uIndexCount);
+					 m_sName, m_vLODs[0].uVertexCount, m_vLODs[0].uIndexCount);
 
 	return bSuccess;
 }
@@ -352,11 +352,11 @@ std::unique_ptr<MeshAsset> MeshAsset::CreateFromMemory(
 	}
 
 	if (!mesh->CreateGPUBuffers(pDevice, pVertices, uVertexCount, uVertexStride,
-	                            pIndices, uIndexCount, indexFormat))
+								pIndices, uIndexCount, indexFormat))
 		return nullptr;
 
 	EVO_LOG_INFO("MeshAsset '{}' created: {} vertices, {} indices",
-	             mesh->m_sName, uVertexCount, uIndexCount);
+				 mesh->m_sName, uVertexCount, uIndexCount);
 	return mesh;
 }
 
@@ -371,3 +371,4 @@ void MeshAsset::Destroy(RHIDevice* pDevice)
 }
 
 } // namespace Evo
+

@@ -39,7 +39,7 @@ public:
 		if (FAILED(hr))
 		{
 			EVO_LOG_ERROR("DX12GpuDescriptorAllocator: failed to create heap: {}",
-			              GetHResultString(hr));
+						  GetHResultString(hr));
 			return false;
 		}
 
@@ -98,7 +98,7 @@ public:
 		if (count == 0 || m_uNextIndex + count > m_uCapacity)
 		{
 			EVO_LOG_ERROR("DX12GpuDescriptorAllocator: range alloc failed (need={}, avail={})",
-			              count, m_uCapacity - m_uNextIndex);
+						  count, m_uCapacity - m_uNextIndex);
 			return {};
 		}
 
@@ -138,3 +138,4 @@ private:
 };
 
 } // namespace Evo
+

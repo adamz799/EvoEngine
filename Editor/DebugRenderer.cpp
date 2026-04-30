@@ -1,4 +1,4 @@
-#include "DebugRenderer.h"
+﻿#include "DebugRenderer.h"
 #include "Asset/ShaderAsset.h"
 #include "Renderer/Renderer.h"
 #include "Core/Log.h"
@@ -222,7 +222,7 @@ void DebugRenderer::DrawTranslationGizmo(const Vec3& position, float fSize, int 
 }
 
 void DebugRenderer::Render(Renderer& renderer, RGHandle target, RHIRenderTargetView rtv,
-                           const Mat4& viewProj, float fViewportWidth, float fViewportHeight)
+						   const Mat4& viewProj, float fViewportWidth, float fViewportHeight)
 {
 	if (m_vLines.empty())
 		return;
@@ -323,3 +323,4 @@ void DebugRenderer::Render(Renderer& renderer, RGHandle target, RHIRenderTargetV
 }
 
 } // namespace Evo
+

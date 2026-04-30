@@ -22,3 +22,4 @@ ComPtr<ID3DBlob> CompileShaderFromFile(
 	const char* target);
 
 } // namespace Evo
+

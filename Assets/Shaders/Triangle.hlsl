@@ -1,4 +1,4 @@
-struct VSInput
+﻿struct VSInput
 {
 	float3 pos   : POSITION;
 	float4 color : COLOR;
@@ -22,3 +22,4 @@ float4 PSMain(PSInput input) : SV_TARGET
 {
 	return input.color;
 }
+

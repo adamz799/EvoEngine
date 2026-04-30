@@ -31,7 +31,7 @@ public:
 
 	/// Enqueue an async load task.
 	void Submit(AssetHandle handle, Asset* pAsset,
-	            const std::string& sPath, AssetPriority priority);
+				const std::string& sPath, AssetPriority priority);
 
 	/// Cancel a queued (not yet started) task.
 	void Cancel(AssetHandle handle);
@@ -82,3 +82,4 @@ private:
 };
 
 } // namespace Evo
+

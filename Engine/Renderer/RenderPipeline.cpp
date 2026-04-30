@@ -1,4 +1,4 @@
-#include "Renderer/RenderPipeline.h"
+﻿#include "Renderer/RenderPipeline.h"
 #include "Renderer/Renderer.h"
 #include "Asset/ShaderAsset.h"
 #include "Core/Log.h"
@@ -296,8 +296,8 @@ void RenderPipeline::RenderShadow(Renderer& renderer, Scene& scene)
 }
 
 void RenderPipeline::RenderViewport(Renderer& renderer, Scene& scene,
-                                    ViewportFrame& viewport, const Mat4& viewProj,
-                                    RGHandle outputTarget, RHIRenderTargetView outputRTV)
+									ViewportFrame& viewport, const Mat4& viewProj,
+									RGHandle outputTarget, RHIRenderTargetView outputRTV)
 {
 	auto& rg = renderer.GetRenderGraph();
 	float w = static_cast<float>(viewport.GetWidth());
@@ -350,3 +350,4 @@ void RenderPipeline::RenderViewport(Renderer& renderer, Scene& scene,
 }
 
 } // namespace Evo
+

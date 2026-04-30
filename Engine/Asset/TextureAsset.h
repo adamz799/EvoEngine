@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Asset/Asset.h"
 #include "RHI/RHITypes.h"
@@ -32,3 +32,4 @@ private:
 };
 
 } // namespace Evo
+

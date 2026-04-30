@@ -26,11 +26,11 @@ class RGPassBuilder {
 public:
 	/// Declare this pass writes to a render target. Provide pre-created RTV.
 	void WriteRenderTarget(RGHandle texture, RHIRenderTargetView rtv,
-	                       const RHIColor* pClearColor = nullptr);
+						   const RHIColor* pClearColor = nullptr);
 
 	/// Declare this pass writes to a depth/stencil target. Provide pre-created DSV.
 	void WriteDepthStencil(RGHandle texture, RHIDepthStencilView dsv,
-	                       float fClearDepth = 1.0f, uint8 uClearStencil = 0);
+						   float fClearDepth = 1.0f, uint8 uClearStencil = 0);
 
 	/// Declare this pass reads depth (depth test on, depth write off). Provide pre-created DSV.
 	void ReadDepthStencil(RGHandle texture, RHIDepthStencilView dsv);
@@ -72,15 +72,15 @@ public:
 	/// currentLayout: the layout the texture is in right now.
 	/// finalLayout:   the layout the texture must be in when the graph finishes.
 	RGHandle ImportTexture(const char* name, RHITextureHandle texture,
-	                       RHITextureLayout currentLayout = RHITextureLayout::Common,
-	                       RHITextureLayout finalLayout   = RHITextureLayout::Common);
+						   RHITextureLayout currentLayout = RHITextureLayout::Common,
+						   RHITextureLayout finalLayout   = RHITextureLayout::Common);
 
 	/// Add a render pass.
 	///   setupFn:   declare resource reads/writes via RGPassBuilder
 	///   executeFn: record draw commands via RHICommandList*
 	void AddPass(const char* name,
-	             std::function<void(RGPassBuilder&)> setupFn,
-	             std::function<void(RHICommandList*)> executeFn);
+				 std::function<void(RGPassBuilder&)> setupFn,
+				 std::function<void(RHICommandList*)> executeFn);
 
 	/// Compile: walk passes, deduce layout transitions, generate barrier list.
 	void Compile();
@@ -126,3 +126,4 @@ private:
 };
 
 } // namespace Evo
+

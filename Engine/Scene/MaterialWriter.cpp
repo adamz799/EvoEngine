@@ -1,4 +1,4 @@
-#include "Scene/MaterialWriter.h"
+﻿#include "Scene/MaterialWriter.h"
 #include "Platform/FileSystem.h"
 #include "Core/Log.h"
 #include "Material_generated.h"
@@ -7,7 +7,7 @@
 namespace Evo {
 
 bool WriteMaterial(const std::string& sPath, const Vec3& vAlbedo,
-                   float fRoughness, float fMetallic, float fAlpha)
+				   float fRoughness, float fMetallic, float fAlpha)
 {
 	flatbuffers::FlatBufferBuilder builder(256);
 
@@ -34,3 +34,4 @@ bool WriteMaterial(const std::string& sPath, const Vec3& vAlbedo,
 }
 
 } // namespace Evo
+

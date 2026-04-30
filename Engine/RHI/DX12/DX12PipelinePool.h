@@ -22,11 +22,11 @@ struct DX12PipelineEntry {
 class DX12PipelinePool {
 public:
 	RHIPipelineHandle Allocate(ComPtr<ID3D12PipelineState> pso,
-	                           ComPtr<ID3D12RootSignature> rootSig,
-	                           RHIPrimitiveTopology topology,
-	                           uint32 pushConstantSize,
-	                           uint32 descTableRootOffset,
-	                           const std::string& name)
+							   ComPtr<ID3D12RootSignature> rootSig,
+							   RHIPrimitiveTopology topology,
+							   uint32 pushConstantSize,
+							   uint32 descTableRootOffset,
+							   const std::string& name)
 	{
 		std::unique_lock lock(m_Mutex);
 
@@ -103,3 +103,4 @@ private:
 };
 
 } // namespace Evo
+

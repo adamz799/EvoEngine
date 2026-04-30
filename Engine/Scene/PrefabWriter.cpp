@@ -1,4 +1,4 @@
-#include "Scene/PrefabWriter.h"
+﻿#include "Scene/PrefabWriter.h"
 #include "Platform/FileSystem.h"
 #include "Core/Log.h"
 #include "Prefab_generated.h"
@@ -27,3 +27,4 @@ bool WritePrefab(const std::string& sPath, const std::string& sMeshPath)
 }
 
 } // namespace Evo
+

@@ -1,4 +1,4 @@
-#include "RHI/DX12/DX12Fence.h"
+﻿#include "RHI/DX12/DX12Fence.h"
 #include "Core/Log.h"
 
 namespace Evo {
@@ -53,3 +53,4 @@ void DX12Fence::CpuSignal(uint64 value)
 }
 
 } // namespace Evo
+

@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 // EvoEngine Math Library — aggregate header
 // Wraps DirectXMath with clean C++ types for game engine use.
@@ -11,3 +11,4 @@
 #include "Math/Quat.h"
 #include "Math/Color.h"
 #include "Math/Bounds.h"
+

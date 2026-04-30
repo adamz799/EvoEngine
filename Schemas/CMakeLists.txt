@@ -1,4 +1,4 @@
-# ---- EvoEngine Schema Generation ----
+﻿# ---- EvoEngine Schema Generation ----
 # This project manages all .fbs schema files used by the engine.
 # Building "EvoSchemasGen" in VS triggers flatc to generate _generated.h headers.
 
@@ -37,3 +37,5 @@ add_dependencies(EvoSchemas EvoSchemasGen)
 
 # VS solution folder
 set_target_properties(EvoSchemasGen PROPERTIES FOLDER "Schemas")
+
+

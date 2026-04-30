@@ -1,4 +1,4 @@
-#include "TestScene.h"
+﻿#include "TestScene.h"
 #include "Asset/ShaderAsset.h"
 #include "Asset/TextureAsset.h"
 #include "Scene/MeshWriter.h"
@@ -195,9 +195,9 @@ bool TestScene::Initialize(RHIDevice* pDevice)
 	// ---- Add transparent cubes ----
 	{
 		WriteMaterial("Assets/Materials/GlassCube.ematerial",
-		              Vec3(0.4f, 0.8f, 0.9f), 0.1f, 0.0f, 0.4f);
+					  Vec3(0.4f, 0.8f, 0.9f), 0.1f, 0.0f, 0.4f);
 		WriteMaterial("Assets/Materials/TintedCube.ematerial",
-		              Vec3(0.9f, 0.3f, 0.6f), 0.3f, 0.0f, 0.6f);
+					  Vec3(0.9f, 0.3f, 0.6f), 0.3f, 0.0f, 0.6f);
 
 		auto prefabHandle = m_AssetManager.LoadSync("Assets/Prefabs/CubePrefab.eprefab");
 		auto* pPrefab = m_AssetManager.Get<PrefabAsset>(prefabHandle);
@@ -311,3 +311,4 @@ void TestScene::Update(float fDeltaTime)
 }
 
 } // namespace Evo
+

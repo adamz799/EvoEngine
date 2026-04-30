@@ -87,7 +87,7 @@ bool ShaderAsset::OnFinalize(RHIDevice* pDevice)
 	m_sSource.shrink_to_fit();
 
 	EVO_LOG_INFO("ShaderAsset '{}' compiled (VS={} PS={} CS={})",
-	             m_sPath, m_bHasVS, m_bHasPS, m_bHasCS);
+				 m_sPath, m_bHasVS, m_bHasPS, m_bHasCS);
 	return true;
 #else
 	(void)pDevice;
@@ -105,3 +105,4 @@ void ShaderAsset::OnUnload(RHIDevice* pDevice)
 }
 
 } // namespace Evo
+

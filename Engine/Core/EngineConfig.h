@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Core/Types.h"
 #include <string>
@@ -41,3 +41,4 @@ struct EngineConfig {
 };
 
 } // namespace Evo
+

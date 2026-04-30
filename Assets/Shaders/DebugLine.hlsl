@@ -1,4 +1,4 @@
-// DebugLine.hlsl -- Anti-aliased colored line rendering (quad expansion)
+﻿// DebugLine.hlsl -- Anti-aliased colored line rendering (quad expansion)
 
 cbuffer PushConstants : register(b0)
 {
@@ -63,3 +63,4 @@ float4 PSMain(PSInput input) : SV_TARGET
 	float alpha = 1.0 - smoothstep(0.5, 1.0, abs(input.edgeDist));
 	return float4(input.color.rgb, input.color.a * alpha);
 }
+

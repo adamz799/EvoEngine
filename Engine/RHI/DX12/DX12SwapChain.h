@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "RHI/RHISwapChain.h"
 #include "RHI/DX12/DX12Common.h"
@@ -48,3 +48,4 @@ private:
 };
 
 } // namespace Evo
+

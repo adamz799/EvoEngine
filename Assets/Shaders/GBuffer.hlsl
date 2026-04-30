@@ -1,4 +1,4 @@
-// GBuffer.hlsl — G-Buffer pass: outputs albedo, normal, roughness+metallic to MRT
+﻿// GBuffer.hlsl — G-Buffer pass: outputs albedo, normal, roughness+metallic to MRT
 
 cbuffer PushConstants : register(b0)
 {
@@ -47,3 +47,4 @@ GBufferOutput PSMain(PSInput input)
 	output.roughMet = float4(Roughness, Metallic, 0.0, 0.0);
 	return output;
 }
+

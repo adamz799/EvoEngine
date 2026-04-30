@@ -1,4 +1,4 @@
-#include "Core/EngineConfig.h"
+﻿#include "Core/EngineConfig.h"
 #include "Core/Log.h"
 #include "Platform/FileSystem.h"
 #include <unordered_map>
@@ -400,3 +400,4 @@ std::optional<EngineConfig> EngineConfig::Parse(const std::string& json) {
 }
 
 } // namespace Evo
+

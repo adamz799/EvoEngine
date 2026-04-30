@@ -1,4 +1,4 @@
-// Common.fbs — Shared math types used by multiple schemas.
+﻿// Common.fbs — Shared math types used by multiple schemas.
 // Generated header: Common_generated.h
 
 namespace Evo.Schema;
@@ -6,3 +6,4 @@ namespace Evo.Schema;
 struct Vec3 { x:float; y:float; z:float; }
 struct Vec4 { x:float; y:float; z:float; w:float; }
 struct AABB { min:Vec3; max:Vec3; }
+

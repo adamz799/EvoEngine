@@ -340,8 +340,9 @@ std::string AssetManager::GetExtension(const std::string& sPath) const
 	std::string ext = p.extension().string();
 	// Lowercase
 	std::transform(ext.begin(), ext.end(), ext.begin(),
-	               [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
+				   [](unsigned char c) { return static_cast<char>(std::tolower(c)); });
 	return ext;
 }
 
 } // namespace Evo
+

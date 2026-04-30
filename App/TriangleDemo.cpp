@@ -131,3 +131,4 @@ void TriangleDemo::AddPasses(Renderer& renderer)
 }
 
 } // namespace Evo
+

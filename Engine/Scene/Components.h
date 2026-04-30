@@ -15,8 +15,8 @@ struct TransformComponent {
 	Mat4 GetWorldMatrix() const
 	{
 		return Mat4::Scaling(vScale)
-		     * qRotation.ToMatrix()
-		     * Mat4::Translation(vPosition);
+			 * qRotation.ToMatrix()
+			 * Mat4::Translation(vPosition);
 	}
 };
 
@@ -43,3 +43,4 @@ struct CameraComponent {
 };
 
 } // namespace Evo
+

@@ -1,4 +1,4 @@
-#include "Renderer/Renderer.h"
+﻿#include "Renderer/Renderer.h"
 #include "Core/Log.h"
 
 namespace Evo {
@@ -115,3 +115,4 @@ void Renderer::EndFrame()
 }
 
 } // namespace Evo
+

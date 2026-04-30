@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "RHI/RHI.h"
 #include "Asset/AssetManager.h"
@@ -31,8 +31,8 @@ public:
 
 	/// Full per-viewport pipeline: GBuffer -> Lighting -> Transparent -> PostProcess.
 	virtual void RenderViewport(Renderer& renderer, Scene& scene,
-	                            ViewportFrame& viewport, const Mat4& viewProj,
-	                            RGHandle outputTarget, RHIRenderTargetView outputRTV);
+								ViewportFrame& viewport, const Mat4& viewProj,
+								RGHandle outputTarget, RHIRenderTargetView outputRTV);
 
 	// Accessors
 	RHITextureHandle             GetShadowTexture()             const { return m_ShadowTexture; }
@@ -73,3 +73,4 @@ protected:
 };
 
 } // namespace Evo
+

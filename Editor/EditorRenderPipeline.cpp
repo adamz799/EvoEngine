@@ -1,4 +1,4 @@
-#include "EditorRenderPipeline.h"
+﻿#include "EditorRenderPipeline.h"
 #include "Asset/ShaderAsset.h"
 #include "Core/Log.h"
 
@@ -32,11 +32,12 @@ void EditorRenderPipeline::Shutdown(RHIDevice* pDevice)
 }
 
 void EditorRenderPipeline::RenderDebugOverlay(Renderer& renderer,
-                                              RGHandle target, RHIRenderTargetView rtv,
-                                              const Mat4& viewProj,
-                                              float fWidth, float fHeight)
+											  RGHandle target, RHIRenderTargetView rtv,
+											  const Mat4& viewProj,
+											  float fWidth, float fHeight)
 {
 	m_DebugRenderer.Render(renderer, target, rtv, viewProj, fWidth, fHeight);
 }
 
 } // namespace Evo
+

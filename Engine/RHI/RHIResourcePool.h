@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Core/Types.h"
 #include "RHI/RHITypes.h"
@@ -19,3 +19,4 @@ struct RHIBarrierState {
 };
 
 } // namespace Evo
+

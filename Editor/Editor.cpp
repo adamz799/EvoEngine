@@ -25,8 +25,8 @@ namespace Evo {
 #if EVO_RHI_DX12
 
 static void ImGuiSrvAllocCallback(ImGui_ImplDX12_InitInfo* info,
-                                   D3D12_CPU_DESCRIPTOR_HANDLE* out_cpu,
-                                   D3D12_GPU_DESCRIPTOR_HANDLE* out_gpu)
+								   D3D12_CPU_DESCRIPTOR_HANDLE* out_cpu,
+								   D3D12_GPU_DESCRIPTOR_HANDLE* out_gpu)
 {
 	auto* pAlloc = static_cast<DX12GpuDescriptorAllocator*>(info->UserData);
 	auto alloc = pAlloc->Allocate();
@@ -35,8 +35,8 @@ static void ImGuiSrvAllocCallback(ImGui_ImplDX12_InitInfo* info,
 }
 
 static void ImGuiSrvFreeCallback(ImGui_ImplDX12_InitInfo* info,
-                                  D3D12_CPU_DESCRIPTOR_HANDLE cpu,
-                                  D3D12_GPU_DESCRIPTOR_HANDLE gpu)
+								  D3D12_CPU_DESCRIPTOR_HANDLE cpu,
+								  D3D12_GPU_DESCRIPTOR_HANDLE gpu)
 {
 	auto* pAlloc = static_cast<DX12GpuDescriptorAllocator*>(info->UserData);
 	DX12GpuDescriptorAllocator::Allocation alloc;
@@ -58,7 +58,7 @@ static bool ImGuiProcessEvent(const SDL_Event& event)
 // ============================================================================
 
 static bool RayAABB(const Vec3& origin, const Vec3& dir,
-                    const Vec3& aabbMin, const Vec3& aabbMax, float& tOut)
+					const Vec3& aabbMin, const Vec3& aabbMax, float& tOut)
 {
 	float tMin = -FLT_MAX;
 	float tMax =  FLT_MAX;
@@ -244,7 +244,7 @@ static void SetEditorStyle()
 // ============================================================================
 
 bool Editor::Initialize(RHIDevice* pDevice, Window& window, RHIFormat rtFormat,
-                        const RenderPipeline& pipeline)
+						const RenderPipeline& pipeline)
 {
 #if EVO_RHI_DX12
 	m_pDevice  = pDevice;
@@ -343,7 +343,7 @@ void Editor::Update(Scene& scene, const Camera& camera, float /*fDeltaTime*/)
 
 		// Only build layout if dockspace has no existing saved nodes
 		if (ImGui::DockBuilderGetNode(dockspaceId) == nullptr ||
-		    ImGui::DockBuilderGetNode(dockspaceId)->ChildNodes[0] == nullptr)
+			ImGui::DockBuilderGetNode(dockspaceId)->ChildNodes[0] == nullptr)
 		{
 			ImGui::DockBuilderRemoveNode(dockspaceId);
 			ImGui::DockBuilderAddNode(dockspaceId, ImGuiDockNodeFlags_DockSpace);
@@ -701,7 +701,7 @@ void Editor::DrawMaterialEditorPanel(Scene& scene)
 		if (ImGui::Button("Save Material"))
 		{
 			if (WriteMaterial(sMatPath, pMaterial->vAlbedoColor,
-			                  pMaterial->fRoughness, pMaterial->fMetallic, pMaterial->fAlpha))
+							  pMaterial->fRoughness, pMaterial->fMetallic, pMaterial->fAlpha))
 			{
 				EVO_LOG_INFO("Material saved to '{}'", sMatPath);
 			}
@@ -720,7 +720,7 @@ void Editor::DrawLogPanel()
 	ImGui::Separator();
 
 	ImGui::BeginChild("LogScroll", ImVec2(0, 0), ImGuiChildFlags_None,
-	                   ImGuiWindowFlags_HorizontalScrollbar);
+					   ImGuiWindowFlags_HorizontalScrollbar);
 
 	if (m_pLogSink)
 	{
@@ -810,7 +810,7 @@ void Editor::DoViewportPicking(Scene& scene, const Camera& camera, float u, floa
 // ============================================================================
 
 void Editor::ComputeViewportRay(const Camera& camera, float u, float v,
-                                Vec3& outOrigin, Vec3& outDir) const
+								Vec3& outOrigin, Vec3& outDir) const
 {
 	float ndcX = u * 2.0f - 1.0f;
 	float ndcY = (1.0f - v) * 2.0f - 1.0f;
@@ -824,7 +824,7 @@ void Editor::ComputeViewportRay(const Camera& camera, float u, float v,
 }
 
 int Editor::TestGizmoAxisHit(const Vec3& rayOrigin, const Vec3& rayDir,
-                             const Vec3& gizmoPos, float fSize, float fThreshold) const
+							 const Vec3& gizmoPos, float fSize, float fThreshold) const
 {
 	const Vec3 axes[3] = { Vec3(1,0,0), Vec3(0,1,0), Vec3(0,0,1) };
 	int bestAxis = -1;
@@ -878,3 +878,4 @@ int Editor::TestGizmoAxisHit(const Vec3& rayOrigin, const Vec3& rayDir,
 }
 
 } // namespace Evo
+

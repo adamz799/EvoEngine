@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 // ============================================================================
 // Evo::Platform-Independent Fixed-Width Types
@@ -22,40 +22,40 @@ namespace Evo {
 // ============================================================================
 
 #if defined(_MSC_VER)
-    // ---- Microsoft Visual C++ ----
-    typedef signed   __int8     int8;
-    typedef signed   __int16    int16;
-    typedef signed   __int32    int32;
-    typedef signed   __int64    int64;
-    typedef unsigned __int8     uint8;
-    typedef unsigned __int16    uint16;
-    typedef unsigned __int32    uint32;
-    typedef unsigned __int64    uint64;
+	// ---- Microsoft Visual C++ ----
+	typedef signed   __int8     int8;
+	typedef signed   __int16    int16;
+	typedef signed   __int32    int32;
+	typedef signed   __int64    int64;
+	typedef unsigned __int8     uint8;
+	typedef unsigned __int16    uint16;
+	typedef unsigned __int32    uint32;
+	typedef unsigned __int64    uint64;
 
 #elif defined(__clang__)
-    // ---- Clang (check before GCC — clang also defines __GNUC__) ----
-    typedef signed   char       int8;
-    typedef signed   short      int16;
-    typedef signed   int        int32;
-    typedef signed   long long  int64;
-    typedef unsigned char       uint8;
-    typedef unsigned short      uint16;
-    typedef unsigned int        uint32;
-    typedef unsigned long long  uint64;
+	// ---- Clang (check before GCC — clang also defines __GNUC__) ----
+	typedef signed   char       int8;
+	typedef signed   short      int16;
+	typedef signed   int        int32;
+	typedef signed   long long  int64;
+	typedef unsigned char       uint8;
+	typedef unsigned short      uint16;
+	typedef unsigned int        uint32;
+	typedef unsigned long long  uint64;
 
 #elif defined(__GNUC__)
-    // ---- GCC ----
-    typedef signed   char       int8;
-    typedef signed   short      int16;
-    typedef signed   int        int32;
-    typedef signed   long long  int64;
-    typedef unsigned char       uint8;
-    typedef unsigned short      uint16;
-    typedef unsigned int        uint32;
-    typedef unsigned long long  uint64;
+	// ---- GCC ----
+	typedef signed   char       int8;
+	typedef signed   short      int16;
+	typedef signed   int        int32;
+	typedef signed   long long  int64;
+	typedef unsigned char       uint8;
+	typedef unsigned short      uint16;
+	typedef unsigned int        uint32;
+	typedef unsigned long long  uint64;
 
 #else
-    #error "Unsupported compiler. Evo requires MSVC, GCC, or Clang."
+	#error "Unsupported compiler. Evo requires MSVC, GCC, or Clang."
 #endif
 
 // ---- Floating point (IEEE-754, same on all supported compilers) ----
@@ -78,3 +78,4 @@ static_assert(sizeof(float32) == 4, "float32 must be exactly 4 bytes (IEEE-754 s
 static_assert(sizeof(float64) == 8, "float64 must be exactly 8 bytes (IEEE-754 double)");
 
 } // namespace Evo
+

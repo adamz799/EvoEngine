@@ -17,18 +17,18 @@ struct GBufferPushConstants {
 };
 
 void SceneRenderer::RenderScene(Scene& scene, Renderer& renderer,
-                                RHIPipelineHandle defaultPipeline,
-                                const Mat4& viewProj,
-                                RGHandle targetTexture,
-                                RHIRenderTargetView targetRTV,
-                                RGHandle depthTexture,
-                                RHIDepthStencilView depthDSV,
-                                float fViewportWidth, float fViewportHeight)
+								RHIPipelineHandle defaultPipeline,
+								const Mat4& viewProj,
+								RGHandle targetTexture,
+								RHIRenderTargetView targetRTV,
+								RGHandle depthTexture,
+								RHIDepthStencilView depthDSV,
+								float fViewportWidth, float fViewportHeight)
 {
 	m_vDrawItems.clear();
 	CollectDrawItems(scene, defaultPipeline);
 	AddOpaquePass(renderer, viewProj, targetTexture, targetRTV,
-	              depthTexture, depthDSV, fViewportWidth, fViewportHeight);
+				  depthTexture, depthDSV, fViewportWidth, fViewportHeight);
 }
 
 void SceneRenderer::CollectDrawItems(Scene& scene, RHIPipelineHandle defaultPipeline)
@@ -81,9 +81,9 @@ void SceneRenderer::CollectDrawItems(Scene& scene, RHIPipelineHandle defaultPipe
 }
 
 void SceneRenderer::AddOpaquePass(Renderer& renderer, const Mat4& viewProj,
-                                  RGHandle targetTexture, RHIRenderTargetView targetRTV,
-                                  RGHandle depthTexture, RHIDepthStencilView depthDSV,
-                                  float fViewportWidth, float fViewportHeight)
+								  RGHandle targetTexture, RHIRenderTargetView targetRTV,
+								  RGHandle depthTexture, RHIDepthStencilView depthDSV,
+								  float fViewportWidth, float fViewportHeight)
 {
 	auto& graph = renderer.GetRenderGraph();
 
@@ -127,16 +127,16 @@ void SceneRenderer::AddOpaquePass(Renderer& renderer, const Mat4& viewProj,
 				pCmdList->SetIndexBuffer(ibView);
 
 				pCmdList->DrawIndexed(item.uIndexCount, 1,
-				                      item.uIndexOffset, item.uVertexOffset, 0);
+									  item.uIndexOffset, item.uVertexOffset, 0);
 			}
 		});
 }
 
 void SceneRenderer::RenderGBuffer(Scene& scene, Renderer& renderer,
-                                  RHIPipelineHandle gbufferPipeline,
-                                  const Mat4& viewProj,
-                                  const GBufferTargets& targets,
-                                  float fViewportWidth, float fViewportHeight)
+								  RHIPipelineHandle gbufferPipeline,
+								  const Mat4& viewProj,
+								  const GBufferTargets& targets,
+								  float fViewportWidth, float fViewportHeight)
 {
 	m_vDrawItems.clear();
 	CollectDrawItems(scene, gbufferPipeline);
@@ -144,8 +144,8 @@ void SceneRenderer::RenderGBuffer(Scene& scene, Renderer& renderer,
 }
 
 void SceneRenderer::AddGBufferPass(Renderer& renderer, const Mat4& viewProj,
-                                   const GBufferTargets& targets,
-                                   float fViewportWidth, float fViewportHeight)
+								   const GBufferTargets& targets,
+								   float fViewportWidth, float fViewportHeight)
 {
 	auto& graph = renderer.GetRenderGraph();
 
@@ -200,16 +200,16 @@ void SceneRenderer::AddGBufferPass(Renderer& renderer, const Mat4& viewProj,
 				pCmdList->SetIndexBuffer(ibView);
 
 				pCmdList->DrawIndexed(item.uIndexCount, 1,
-				                      item.uIndexOffset, item.uVertexOffset, 0);
+									  item.uIndexOffset, item.uVertexOffset, 0);
 			}
 		});
 }
 
 void SceneRenderer::RenderShadowMap(Scene& scene, Renderer& renderer,
-                                    RHIPipelineHandle shadowPipeline,
-                                    const Mat4& lightViewProj,
-                                    RGHandle shadowTexture, RHIDepthStencilView shadowDSV,
-                                    float fShadowMapSize)
+									RHIPipelineHandle shadowPipeline,
+									const Mat4& lightViewProj,
+									RGHandle shadowTexture, RHIDepthStencilView shadowDSV,
+									float fShadowMapSize)
 {
 	m_vDrawItems.clear();
 	CollectDrawItems(scene, shadowPipeline);
@@ -217,9 +217,9 @@ void SceneRenderer::RenderShadowMap(Scene& scene, Renderer& renderer,
 }
 
 void SceneRenderer::AddShadowPass(Renderer& renderer, RHIPipelineHandle shadowPipeline,
-                                  const Mat4& lightViewProj,
-                                  RGHandle shadowTexture, RHIDepthStencilView shadowDSV,
-                                  float fShadowMapSize)
+								  const Mat4& lightViewProj,
+								  RGHandle shadowTexture, RHIDepthStencilView shadowDSV,
+								  float fShadowMapSize)
 {
 	auto& graph = renderer.GetRenderGraph();
 
@@ -260,19 +260,19 @@ void SceneRenderer::AddShadowPass(Renderer& renderer, RHIPipelineHandle shadowPi
 				pCmdList->SetIndexBuffer(ibView);
 
 				pCmdList->DrawIndexed(item.uIndexCount, 1,
-				                      item.uIndexOffset, item.uVertexOffset, 0);
+									  item.uIndexOffset, item.uVertexOffset, 0);
 			}
 		});
 }
 
 void SceneRenderer::AddLightingPass(Renderer& renderer,
-                                    RHIPipelineHandle lightingPipeline,
-                                    RHIDescriptorSetHandle lightingDescSet,
-                                    const GBufferTargets& gbTargets,
-                                    RGHandle shadowTexture,
-                                    RGHandle targetTexture, RHIRenderTargetView targetRTV,
-                                    const LightingPushConstants& lightPC,
-                                    float fViewportWidth, float fViewportHeight)
+									RHIPipelineHandle lightingPipeline,
+									RHIDescriptorSetHandle lightingDescSet,
+									const GBufferTargets& gbTargets,
+									RGHandle shadowTexture,
+									RGHandle targetTexture, RHIRenderTargetView targetRTV,
+									const LightingPushConstants& lightPC,
+									float fViewportWidth, float fViewportHeight)
 {
 	auto& graph = renderer.GetRenderGraph();
 
@@ -307,11 +307,11 @@ void SceneRenderer::AddLightingPass(Renderer& renderer,
 }
 
 void SceneRenderer::AddPostProcessPass(Renderer& renderer,
-                                       RHIPipelineHandle postPipeline,
-                                       RHIDescriptorSetHandle postDescSet,
-                                       RGHandle hdrTexture,
-                                       RGHandle targetTexture, RHIRenderTargetView targetRTV,
-                                       float fViewportWidth, float fViewportHeight)
+									   RHIPipelineHandle postPipeline,
+									   RHIDescriptorSetHandle postDescSet,
+									   RGHandle hdrTexture,
+									   RGHandle targetTexture, RHIRenderTargetView targetRTV,
+									   float fViewportWidth, float fViewportHeight)
 {
 	auto& graph = renderer.GetRenderGraph();
 
@@ -339,14 +339,14 @@ void SceneRenderer::AddPostProcessPass(Renderer& renderer,
 }
 
 void SceneRenderer::RenderForwardTransparent(Scene& scene, Renderer& renderer,
-                                             RHIPipelineHandle transparentPipeline,
-                                             RHIDescriptorSetHandle shadowDescSet,
-                                             const Mat4& viewProj,
-                                             const TransparentPushConstants& basePc,
-                                             RGHandle targetTexture, RHIRenderTargetView targetRTV,
-                                             RGHandle depthTexture, RHIDepthStencilView depthDSV,
-                                             RGHandle shadowTexture,
-                                             float fViewportWidth, float fViewportHeight)
+											 RHIPipelineHandle transparentPipeline,
+											 RHIDescriptorSetHandle shadowDescSet,
+											 const Mat4& viewProj,
+											 const TransparentPushConstants& basePc,
+											 RGHandle targetTexture, RHIRenderTargetView targetRTV,
+											 RGHandle depthTexture, RHIDepthStencilView depthDSV,
+											 RGHandle shadowTexture,
+											 float fViewportWidth, float fViewportHeight)
 {
 	m_vDrawItems.clear();
 	CollectDrawItems(scene, transparentPipeline);
@@ -359,19 +359,19 @@ void SceneRenderer::RenderForwardTransparent(Scene& scene, Renderer& renderer,
 		return;
 
 	AddForwardTransparentPass(renderer, transparentPipeline, shadowDescSet, basePc, viewProj,
-	                          targetTexture, targetRTV, depthTexture, depthDSV, shadowTexture,
-	                          fViewportWidth, fViewportHeight);
+							  targetTexture, targetRTV, depthTexture, depthDSV, shadowTexture,
+							  fViewportWidth, fViewportHeight);
 }
 
 void SceneRenderer::AddForwardTransparentPass(Renderer& renderer,
-                                              RHIPipelineHandle transparentPipeline,
-                                              RHIDescriptorSetHandle shadowDescSet,
-                                              const TransparentPushConstants& basePc,
-                                              const Mat4& viewProj,
-                                              RGHandle targetTexture, RHIRenderTargetView targetRTV,
-                                              RGHandle depthTexture, RHIDepthStencilView depthDSV,
-                                              RGHandle shadowTexture,
-                                              float fViewportWidth, float fViewportHeight)
+											  RHIPipelineHandle transparentPipeline,
+											  RHIDescriptorSetHandle shadowDescSet,
+											  const TransparentPushConstants& basePc,
+											  const Mat4& viewProj,
+											  RGHandle targetTexture, RHIRenderTargetView targetRTV,
+											  RGHandle depthTexture, RHIDepthStencilView depthDSV,
+											  RGHandle shadowTexture,
+											  float fViewportWidth, float fViewportHeight)
 {
 	auto& graph = renderer.GetRenderGraph();
 
@@ -422,9 +422,10 @@ void SceneRenderer::AddForwardTransparentPass(Renderer& renderer,
 				pCmdList->SetIndexBuffer(ibView);
 
 				pCmdList->DrawIndexed(item.uIndexCount, 1,
-				                      item.uIndexOffset, item.uVertexOffset, 0);
+									  item.uIndexOffset, item.uVertexOffset, 0);
 			}
 		});
 }
 
 } // namespace Evo
+

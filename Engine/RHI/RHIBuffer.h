@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "RHI/RHITypes.h"
 
@@ -14,22 +14,23 @@ class RHIDevice;
 /// Destruction must go through Device::DestroyBuffer(GetHandle()).
 class RHIBuffer {
 public:
-    RHIBuffer() = default;
-    RHIBuffer(RHIBufferHandle handle, const RHIBufferDesc& desc)
-        : m_Handle(handle), m_Desc(desc) {}
+	RHIBuffer() = default;
+	RHIBuffer(RHIBufferHandle handle, const RHIBufferDesc& desc)
+		: m_Handle(handle), m_Desc(desc) {}
 
-    RHIBufferHandle      GetHandle() const { return m_Handle; }
-    bool                 IsValid()   const { return m_Handle.IsValid(); }
+	RHIBufferHandle      GetHandle() const { return m_Handle; }
+	bool                 IsValid()   const { return m_Handle.IsValid(); }
 
-    uint64                  GetSize()   const { return m_Desc.uSize; }
-    RHIBufferUsage       GetUsage()  const { return m_Desc.usage; }
-    RHIMemoryUsage       GetMemory() const { return m_Desc.memory; }
-    const std::string&   GetName()   const { return m_Desc.sDebugName; }
-    const RHIBufferDesc& GetDesc()   const { return m_Desc; }
+	uint64                  GetSize()   const { return m_Desc.uSize; }
+	RHIBufferUsage       GetUsage()  const { return m_Desc.usage; }
+	RHIMemoryUsage       GetMemory() const { return m_Desc.memory; }
+	const std::string&   GetName()   const { return m_Desc.sDebugName; }
+	const RHIBufferDesc& GetDesc()   const { return m_Desc; }
 
 private:
-    RHIBufferHandle m_Handle;
-    RHIBufferDesc   m_Desc;
+	RHIBufferHandle m_Handle;
+	RHIBufferDesc   m_Desc;
 };
 
 } // namespace Evo
+

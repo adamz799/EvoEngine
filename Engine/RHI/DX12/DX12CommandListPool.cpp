@@ -77,7 +77,7 @@ void DX12CommandListPool::BeginFrame(uint64 uCompletedFenceValue)
 	for (auto& entry : m_vEntries)
 	{
 		if (entry->state == EntryState::InFlight &&
-		    entry->uFenceValue <= uCompletedFenceValue)
+			entry->uFenceValue <= uCompletedFenceValue)
 		{
 			entry->state       = EntryState::Free;
 			entry->uFenceValue = 0;
@@ -99,3 +99,4 @@ void DX12CommandListPool::EndFrame(uint64 uFrameFenceValue)
 }
 
 } // namespace Evo
+

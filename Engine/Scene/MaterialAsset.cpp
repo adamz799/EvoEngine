@@ -1,4 +1,4 @@
-#include "Scene/MaterialAsset.h"
+﻿#include "Scene/MaterialAsset.h"
 #include "Core/Log.h"
 #include "Material_generated.h"
 
@@ -25,7 +25,7 @@ bool MaterialAsset::OnLoad(const std::vector<uint8>& rawData)
 	m_fAlpha     = pMaterial->alpha();
 
 	EVO_LOG_INFO("MaterialAsset: loaded '{}' (albedo=[{:.2f},{:.2f},{:.2f}] rough={:.2f} metal={:.2f} alpha={:.2f})",
-	             m_sPath, m_vAlbedo.x, m_vAlbedo.y, m_vAlbedo.z, m_fRoughness, m_fMetallic, m_fAlpha);
+				 m_sPath, m_vAlbedo.x, m_vAlbedo.y, m_vAlbedo.z, m_fRoughness, m_fMetallic, m_fAlpha);
 	return true;
 }
 
@@ -38,3 +38,4 @@ void MaterialAsset::OnUnload(RHIDevice* /*pDevice*/)
 }
 
 } // namespace Evo
+

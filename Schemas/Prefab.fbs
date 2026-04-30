@@ -1,4 +1,4 @@
-// Prefab.fbs — EvoEngine prefab schema.
+﻿// Prefab.fbs — EvoEngine prefab schema.
 // Generated header: Prefab_generated.h
 
 include "Common.fbs";
@@ -12,3 +12,4 @@ table Prefab {
 root_type Prefab;
 file_identifier "EPRB";
 file_extension "eprefab";
+

@@ -1,4 +1,4 @@
-// Mesh.fbs — EvoEngine mesh schema (one LOD per file).
+﻿// Mesh.fbs — EvoEngine mesh schema (one LOD per file).
 // Generated header: Mesh_generated.h
 
 include "Common.fbs";
@@ -73,3 +73,4 @@ table Mesh {
 root_type Mesh;
 file_identifier "EMSH";
 file_extension "emesh";
+

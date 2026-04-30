@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "RHI/RHICommandList.h"
 #include "RHI/DX12/DX12Common.h"
@@ -17,7 +17,7 @@ public:
 
 	/// Initialize with external allocator (pool mode — pool owns the allocator).
 	bool InitializePooled(DX12Device* device, RHIQueueType type,
-	                       ID3D12CommandAllocator* pExternalAllocator);
+						   ID3D12CommandAllocator* pExternalAllocator);
 
 	void ShutdownCommandList();
 
@@ -35,7 +35,7 @@ public:
 
 	// ---- Render pass ----
 	void SetRenderTargets(const RHIRenderTargetView* rtvs, uint32 count,
-	                      const RHIDepthStencilView* dsv = nullptr) override;
+						  const RHIDepthStencilView* dsv = nullptr) override;
 	void BeginRenderPass(const RHIRenderPassDesc& desc) override;
 	void EndRenderPass() override;
 
@@ -75,9 +75,9 @@ public:
 
 	// ---- Native barrier (Phase 1: for SwapChain back buffers without Handle) ----
 	void NativeTextureBarrier(ID3D12Resource* resource,
-	                          D3D12_BARRIER_SYNC syncBefore, D3D12_BARRIER_SYNC syncAfter,
-	                          D3D12_BARRIER_ACCESS accessBefore, D3D12_BARRIER_ACCESS accessAfter,
-	                          D3D12_BARRIER_LAYOUT layoutBefore, D3D12_BARRIER_LAYOUT layoutAfter);
+							  D3D12_BARRIER_SYNC syncBefore, D3D12_BARRIER_SYNC syncAfter,
+							  D3D12_BARRIER_ACCESS accessBefore, D3D12_BARRIER_ACCESS accessAfter,
+							  D3D12_BARRIER_LAYOUT layoutBefore, D3D12_BARRIER_LAYOUT layoutAfter);
 
 private:
 	DX12Device*                         m_pDevice = nullptr;   // non-owning
@@ -90,3 +90,4 @@ private:
 };
 
 } // namespace Evo
+

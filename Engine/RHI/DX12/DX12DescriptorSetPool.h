@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "RHI/RHITypes.h"
 #include "RHI/DX12/DX12GpuDescriptorAllocator.h"
@@ -17,7 +17,7 @@ struct DX12DescriptorSetEntry {
 class DX12DescriptorSetPool {
 public:
 	RHIDescriptorSetHandle Allocate(RHIDescriptorSetLayoutHandle layout,
-	                                DX12GpuDescriptorAllocator::RangeAllocation allocation)
+									DX12GpuDescriptorAllocator::RangeAllocation allocation)
 	{
 		std::unique_lock lock(m_Mutex);
 
@@ -82,3 +82,4 @@ private:
 };
 
 } // namespace Evo
+

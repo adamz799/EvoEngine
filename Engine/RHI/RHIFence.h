@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "RHI/RHITypes.h"
 
@@ -10,16 +10,17 @@ namespace Evo {
 /// Vulkan: VkSemaphore (VK_SEMAPHORE_TYPE_TIMELINE)
 class RHIFence {
 public:
-    virtual ~RHIFence() = default;
+	virtual ~RHIFence() = default;
 
-    /// Query the latest value the GPU has completed.
-    virtual uint64 GetCompletedValue() = 0;
+	/// Query the latest value the GPU has completed.
+	virtual uint64 GetCompletedValue() = 0;
 
-    /// Block the CPU until the GPU reaches the specified value.
-    virtual void CpuWait(uint64 value) = 0;
+	/// Block the CPU until the GPU reaches the specified value.
+	virtual void CpuWait(uint64 value) = 0;
 
-    /// Signal from the CPU side (rarely needed; GPU signals via Queue::Submit).
-    virtual void CpuSignal(uint64 value) = 0;
+	/// Signal from the CPU side (rarely needed; GPU signals via Queue::Submit).
+	virtual void CpuSignal(uint64 value) = 0;
 };
 
 } // namespace Evo
+

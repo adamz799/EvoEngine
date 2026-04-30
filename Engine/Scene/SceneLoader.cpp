@@ -1,4 +1,4 @@
-#include "Scene/SceneLoader.h"
+﻿#include "Scene/SceneLoader.h"
 #include "Scene/Scene.h"
 #include "Scene/MeshAsset.h"
 #include "Scene/PrefabAsset.h"
@@ -78,13 +78,13 @@ bool LoadScene(const std::string& sPath, Scene& scene, AssetManager& assetManage
 				else
 				{
 					EVO_LOG_WARN("LoadScene: failed to load mesh '{}' from prefab '{}' for entity '{}'",
-					             pPrefab->GetMeshPath(), sPrefabPath, pName ? pName : "<unnamed>");
+								 pPrefab->GetMeshPath(), sPrefabPath, pName ? pName : "<unnamed>");
 				}
 			}
 			else if (!pPrefab)
 			{
 				EVO_LOG_WARN("LoadScene: failed to load prefab '{}' for entity '{}'",
-				             sPrefabPath, pName ? pName : "<unnamed>");
+							 sPrefabPath, pName ? pName : "<unnamed>");
 			}
 		}
 
@@ -109,7 +109,7 @@ bool LoadScene(const std::string& sPath, Scene& scene, AssetManager& assetManage
 			else
 			{
 				EVO_LOG_WARN("LoadScene: failed to load material '{}' for entity '{}'",
-				             sMaterialPath, pName ? pName : "<unnamed>");
+							 sMaterialPath, pName ? pName : "<unnamed>");
 			}
 		}
 	}
@@ -119,3 +119,4 @@ bool LoadScene(const std::string& sPath, Scene& scene, AssetManager& assetManage
 }
 
 } // namespace Evo
+

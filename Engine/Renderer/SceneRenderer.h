@@ -68,76 +68,77 @@ struct TransparentPushConstants {
 class SceneRenderer {
 public:
 	void RenderScene(Scene& scene, Renderer& renderer,
-	                 RHIPipelineHandle defaultPipeline,
-	                 const Mat4& viewProj,
-	                 RGHandle targetTexture,
-	                 RHIRenderTargetView targetRTV,
-	                 RGHandle depthTexture,
-	                 RHIDepthStencilView depthDSV,
-	                 float fViewportWidth, float fViewportHeight);
+					 RHIPipelineHandle defaultPipeline,
+					 const Mat4& viewProj,
+					 RGHandle targetTexture,
+					 RHIRenderTargetView targetRTV,
+					 RGHandle depthTexture,
+					 RHIDepthStencilView depthDSV,
+					 float fViewportWidth, float fViewportHeight);
 
 	void RenderGBuffer(Scene& scene, Renderer& renderer,
-	                   RHIPipelineHandle gbufferPipeline,
-	                   const Mat4& viewProj,
-	                   const GBufferTargets& targets,
-	                   float fViewportWidth, float fViewportHeight);
+					   RHIPipelineHandle gbufferPipeline,
+					   const Mat4& viewProj,
+					   const GBufferTargets& targets,
+					   float fViewportWidth, float fViewportHeight);
 
 	void RenderShadowMap(Scene& scene, Renderer& renderer,
-	                     RHIPipelineHandle shadowPipeline,
-	                     const Mat4& lightViewProj,
-	                     RGHandle shadowTexture, RHIDepthStencilView shadowDSV,
-	                     float fShadowMapSize);
+						 RHIPipelineHandle shadowPipeline,
+						 const Mat4& lightViewProj,
+						 RGHandle shadowTexture, RHIDepthStencilView shadowDSV,
+						 float fShadowMapSize);
 
 	void AddLightingPass(Renderer& renderer,
-	                     RHIPipelineHandle lightingPipeline,
-	                     RHIDescriptorSetHandle lightingDescSet,
-	                     const GBufferTargets& gbTargets,
-	                     RGHandle shadowTexture,
-	                     RGHandle targetTexture, RHIRenderTargetView targetRTV,
-	                     const LightingPushConstants& lightPC,
-	                     float fViewportWidth, float fViewportHeight);
+						 RHIPipelineHandle lightingPipeline,
+						 RHIDescriptorSetHandle lightingDescSet,
+						 const GBufferTargets& gbTargets,
+						 RGHandle shadowTexture,
+						 RGHandle targetTexture, RHIRenderTargetView targetRTV,
+						 const LightingPushConstants& lightPC,
+						 float fViewportWidth, float fViewportHeight);
 
 	void AddPostProcessPass(Renderer& renderer,
-	                        RHIPipelineHandle postPipeline,
-	                        RHIDescriptorSetHandle postDescSet,
-	                        RGHandle hdrTexture,
-	                        RGHandle targetTexture, RHIRenderTargetView targetRTV,
-	                        float fViewportWidth, float fViewportHeight);
+							RHIPipelineHandle postPipeline,
+							RHIDescriptorSetHandle postDescSet,
+							RGHandle hdrTexture,
+							RGHandle targetTexture, RHIRenderTargetView targetRTV,
+							float fViewportWidth, float fViewportHeight);
 
 	void RenderForwardTransparent(Scene& scene, Renderer& renderer,
-	                              RHIPipelineHandle transparentPipeline,
-	                              RHIDescriptorSetHandle shadowDescSet,
-	                              const Mat4& viewProj,
-	                              const TransparentPushConstants& basePc,
-	                              RGHandle targetTexture, RHIRenderTargetView targetRTV,
-	                              RGHandle depthTexture, RHIDepthStencilView depthDSV,
-	                              RGHandle shadowTexture,
-	                              float fViewportWidth, float fViewportHeight);
+								  RHIPipelineHandle transparentPipeline,
+								  RHIDescriptorSetHandle shadowDescSet,
+								  const Mat4& viewProj,
+								  const TransparentPushConstants& basePc,
+								  RGHandle targetTexture, RHIRenderTargetView targetRTV,
+								  RGHandle depthTexture, RHIDepthStencilView depthDSV,
+								  RGHandle shadowTexture,
+								  float fViewportWidth, float fViewportHeight);
 
 private:
 	std::vector<DrawItem> m_vDrawItems;
 
 	void CollectDrawItems(Scene& scene, RHIPipelineHandle defaultPipeline);
 	void AddOpaquePass(Renderer& renderer, const Mat4& viewProj,
-	                   RGHandle targetTexture, RHIRenderTargetView targetRTV,
-	                   RGHandle depthTexture, RHIDepthStencilView depthDSV,
-	                   float fViewportWidth, float fViewportHeight);
+					   RGHandle targetTexture, RHIRenderTargetView targetRTV,
+					   RGHandle depthTexture, RHIDepthStencilView depthDSV,
+					   float fViewportWidth, float fViewportHeight);
 	void AddGBufferPass(Renderer& renderer, const Mat4& viewProj,
-	                    const GBufferTargets& targets,
-	                    float fViewportWidth, float fViewportHeight);
+						const GBufferTargets& targets,
+						float fViewportWidth, float fViewportHeight);
 	void AddShadowPass(Renderer& renderer, RHIPipelineHandle shadowPipeline,
-	                   const Mat4& lightViewProj,
-	                   RGHandle shadowTexture, RHIDepthStencilView shadowDSV,
-	                   float fShadowMapSize);
+					   const Mat4& lightViewProj,
+					   RGHandle shadowTexture, RHIDepthStencilView shadowDSV,
+					   float fShadowMapSize);
 	void AddForwardTransparentPass(Renderer& renderer,
-	                               RHIPipelineHandle transparentPipeline,
-	                               RHIDescriptorSetHandle shadowDescSet,
-	                               const TransparentPushConstants& basePc,
-	                               const Mat4& viewProj,
-	                               RGHandle targetTexture, RHIRenderTargetView targetRTV,
-	                               RGHandle depthTexture, RHIDepthStencilView depthDSV,
-	                               RGHandle shadowTexture,
-	                               float fViewportWidth, float fViewportHeight);
+								   RHIPipelineHandle transparentPipeline,
+								   RHIDescriptorSetHandle shadowDescSet,
+								   const TransparentPushConstants& basePc,
+								   const Mat4& viewProj,
+								   RGHandle targetTexture, RHIRenderTargetView targetRTV,
+								   RGHandle depthTexture, RHIDepthStencilView depthDSV,
+								   RGHandle shadowTexture,
+								   float fViewportWidth, float fViewportHeight);
 };
 
 } // namespace Evo
+

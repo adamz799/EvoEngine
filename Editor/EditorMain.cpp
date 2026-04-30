@@ -1,4 +1,4 @@
-#include "Core/Log.h"
+﻿#include "Core/Log.h"
 #include "Core/EngineConfig.h"
 #include "Math/Math.h"
 #include "Platform/Window.h"
@@ -62,7 +62,7 @@ int main(int /*argc*/, char* /*argv*/[])
 	}
 
 	// ---- Create runtime window (separate OS window with its own swap chain) ----
-	SDL_Window* pRuntimeWindow = SDL_CreateWindow("Runtime", 640, 480, 0);
+	SDL_Window* pRuntimeWindow = SDL_CreateWindow("Runtime", 640, 480, SDL_WINDOW_RESIZABLE);
 	if (!pRuntimeWindow) {
 		EVO_LOG_ERROR("Failed to create runtime window: {}", SDL_GetError());
 	}
@@ -147,8 +147,24 @@ int main(int /*argc*/, char* /*argv*/[])
 		if (window.IsMinimized())
 			continue;
 
-		// Handle window resize — swap chain must match window size
+		// Handle window resize �?swap chain must match window size
 		renderer.HandleResize(window.GetWidth(), window.GetHeight());
+
+		// Handle runtime window resize
+		if (pRuntimeSC)
+		{
+			int rtW = 0, rtH = 0;
+			SDL_GetWindowSize(pRuntimeWindow, &rtW, &rtH);
+			if (rtW > 0 && rtH > 0
+				&& (static_cast<Evo::uint32>(rtW) != pRuntimeSC->GetWidth()
+				 || static_cast<Evo::uint32>(rtH) != pRuntimeSC->GetHeight()))
+			{
+				pDevice->WaitIdle();
+				pRuntimeSC->Resize(static_cast<Evo::uint32>(rtW), static_cast<Evo::uint32>(rtH));
+				runtimeViewport.Resize(pDevice,
+					pRuntimeSC->GetWidth(), pRuntimeSC->GetHeight());
+			}
+		}
 
 		// Delta time
 		auto now = std::chrono::high_resolution_clock::now();
@@ -283,3 +299,4 @@ int main(int /*argc*/, char* /*argv*/[])
 
 	return 0;
 }
+

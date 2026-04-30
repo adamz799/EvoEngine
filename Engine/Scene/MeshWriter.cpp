@@ -1,4 +1,4 @@
-#include "Scene/MeshWriter.h"
+﻿#include "Scene/MeshWriter.h"
 #include "Platform/FileSystem.h"
 #include "Core/Log.h"
 #include <cstring>
@@ -124,7 +124,7 @@ bool WriteMeshFromArrays(
 
 	uint32 uIndexStride = (indexFormat == RHIIndexFormat::U16) ? 2 : 4;
 	desc.indexFormat    = (indexFormat == RHIIndexFormat::U16)
-	                    ? Schema::IndexFormat_UInt16 : Schema::IndexFormat_UInt32;
+						? Schema::IndexFormat_UInt16 : Schema::IndexFormat_UInt32;
 	desc.pIndexData     = reinterpret_cast<const uint8*>(pIndices);
 	desc.uIndexDataSize = uIndexCount * uIndexStride;
 
@@ -144,3 +144,4 @@ bool WriteMeshFromArrays(
 }
 
 } // namespace Evo
+

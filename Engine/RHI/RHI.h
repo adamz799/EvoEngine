@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 // EvoEngine RHI — aggregate header
 

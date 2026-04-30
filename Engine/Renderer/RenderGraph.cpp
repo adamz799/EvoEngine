@@ -26,7 +26,7 @@ static RHIBarrierAccess AccessFromLayout(RHITextureLayout layout)
 // ============================================================================
 
 void RGPassBuilder::WriteRenderTarget(RGHandle texture, RHIRenderTargetView rtv,
-                                      const RHIColor* pClearColor)
+									  const RHIColor* pClearColor)
 {
 	RTOutput out;
 	out.texture = texture;
@@ -45,7 +45,7 @@ void RGPassBuilder::ReadTexture(RGHandle texture)
 }
 
 void RGPassBuilder::WriteDepthStencil(RGHandle texture, RHIDepthStencilView dsv,
-                                      float fClearDepth, uint8 uClearStencil)
+									  float fClearDepth, uint8 uClearStencil)
 {
 	m_DepthOutput.texture       = texture;
 	m_DepthOutput.dsv           = dsv;
@@ -68,8 +68,8 @@ void RGPassBuilder::ReadDepthStencil(RGHandle texture, RHIDepthStencilView dsv)
 // ============================================================================
 
 RGHandle RenderGraph::ImportTexture(const char* name, RHITextureHandle texture,
-                                    RHITextureLayout currentLayout,
-                                    RHITextureLayout finalLayout)
+									RHITextureLayout currentLayout,
+									RHITextureLayout finalLayout)
 {
 	RGHandle handle;
 	handle.index = static_cast<uint32>(m_vTextures.size());
@@ -85,8 +85,8 @@ RGHandle RenderGraph::ImportTexture(const char* name, RHITextureHandle texture,
 }
 
 void RenderGraph::AddPass(const char* name,
-                          std::function<void(RGPassBuilder&)> setupFn,
-                          std::function<void(RHICommandList*)> executeFn)
+						  std::function<void(RGPassBuilder&)> setupFn,
+						  std::function<void(RHICommandList*)> executeFn)
 {
 	RGPassBuilder builder;
 	setupFn(builder);
@@ -231,14 +231,14 @@ void RenderGraph::Execute(RHIDevice* pDevice, std::vector<RHICommandList*>& outC
 		// Insert barriers before this pass
 		if (!compiled.vBarriersBefore.empty())
 			pCmdList->TextureBarrier(compiled.vBarriersBefore.data(),
-			                         static_cast<uint32>(compiled.vBarriersBefore.size()));
+									 static_cast<uint32>(compiled.vBarriersBefore.size()));
 
 		// Bind render targets (with optional DSV)
 		if (!compiled.vRTVs.empty())
 		{
 			const RHIDepthStencilView* pDsv = compiled.dsv.IsValid() ? &compiled.dsv : nullptr;
 			pCmdList->SetRenderTargets(compiled.vRTVs.data(),
-			                           static_cast<uint32>(compiled.vRTVs.size()), pDsv);
+									   static_cast<uint32>(compiled.vRTVs.size()), pDsv);
 		}
 		else if (compiled.dsv.IsValid())
 		{
@@ -265,7 +265,7 @@ void RenderGraph::Execute(RHIDevice* pDevice, std::vector<RHICommandList*>& outC
 	{
 		auto* pCmdList = pDevice->AcquireCommandList();
 		pCmdList->TextureBarrier(m_vFinalBarriers.data(),
-		                         static_cast<uint32>(m_vFinalBarriers.size()));
+								 static_cast<uint32>(m_vFinalBarriers.size()));
 		pCmdList->End();
 		outCmdLists.push_back(pCmdList);
 	}
@@ -280,3 +280,4 @@ void RenderGraph::Reset()
 }
 
 } // namespace Evo
+

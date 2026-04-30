@@ -1,22 +1,23 @@
-{
-    // EvoEngine runtime configuration.  This file is read at startup before any
-    // subsystem initializes — the options below must be known before the GPU
-    // device is created.
-    //
-    // Available backends: "dx12", "vulkan" (Vulkan WIP — most features are DX12-only).
-    // Only compiled-in backends are valid.  If the requested backend is unavailable
-    // the engine falls back to the first compiled-in option.
+﻿{
+	// EvoEngine runtime configuration.  This file is read at startup before any
+	// subsystem initializes — the options below must be known before the GPU
+	// device is created.
+	//
+	// Available backends: "dx12", "vulkan" (Vulkan WIP — most features are DX12-only).
+	// Only compiled-in backends are valid.  If the requested backend is unavailable
+	// the engine falls back to the first compiled-in option.
 
-    "rhi": {
-        "backend": "dx12",
-        "enable_debug_layer": true,
-        "enable_gpu_based_validation": false
-    },
+	"rhi": {
+		"backend": "dx12",
+		"enable_debug_layer": true,
+		"enable_gpu_based_validation": false
+	},
 
-    "window": {
-        "title": "EvoApp",
-        "width": 1280,
-        "height": 720,
-        "vsync": true
-    }
+	"window": {
+		"title": "EvoApp",
+		"width": 1280,
+		"height": 720,
+		"vsync": true
+	}
 }
+

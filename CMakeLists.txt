@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.24)
+﻿cmake_minimum_required(VERSION 3.24)
 project(EvoEngine VERSION 0.1.0 LANGUAGES CXX C)
 
 # --- Enable solution folders in VS ---
@@ -13,7 +13,7 @@ option(EVO_RHI_DX12   "Enable Direct3D 12 backend" ON)
 option(EVO_RHI_VULKAN "Enable Vulkan backend"       OFF)
 
 if(NOT EVO_RHI_DX12 AND NOT EVO_RHI_VULKAN)
-    message(FATAL_ERROR "At least one RHI backend must be enabled (EVO_RHI_DX12 or EVO_RHI_VULKAN)")
+	message(FATAL_ERROR "At least one RHI backend must be enabled (EVO_RHI_DX12 or EVO_RHI_VULKAN)")
 endif()
 
 # --- Include helper ---
@@ -25,3 +25,6 @@ add_subdirectory(Schemas)
 add_subdirectory(Engine)
 add_subdirectory(App)
 add_subdirectory(Editor)
+
+
+

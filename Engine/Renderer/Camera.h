@@ -62,6 +62,7 @@ private:
 
 /// Build a Camera from entity components (TransformComponent + CameraComponent).
 Camera BuildCameraFromEntity(const TransformComponent& transform,
-                             const CameraComponent& cam, float fAspect);
+							 const CameraComponent& cam, float fAspect);
 
 } // namespace Evo
+

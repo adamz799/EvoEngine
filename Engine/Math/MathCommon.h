@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include <DirectXMath.h>
 #include <cmath>
@@ -28,14 +28,14 @@ inline constexpr float Lerp(float a, float b, float t) { return a + (b - a) * t;
 
 inline float InverseLerp(float a, float b, float value)
 {
-    float range = b - a;
-    return (std::abs(range) > Epsilon) ? (value - a) / range : 0.0f;
+	float range = b - a;
+	return (std::abs(range) > Epsilon) ? (value - a) / range : 0.0f;
 }
 
 inline float Remap(float value, float inMin, float inMax, float outMin, float outMax)
 {
-    float t = InverseLerp(inMin, inMax, value);
-    return Lerp(outMin, outMax, t);
+	float t = InverseLerp(inMin, inMax, value);
+	return Lerp(outMin, outMax, t);
 }
 
 inline constexpr float Sign(float value) { return (value > 0.0f) ? 1.0f : (value < 0.0f) ? -1.0f : 0.0f; }
@@ -44,13 +44,14 @@ inline constexpr float Step(float edge, float x) { return x >= edge ? 1.0f : 0.0
 
 inline float SmoothStep(float edge0, float edge1, float x)
 {
-    float t = Saturate(InverseLerp(edge0, edge1, x));
-    return t * t * (3.0f - 2.0f * t);
+	float t = Saturate(InverseLerp(edge0, edge1, x));
+	return t * t * (3.0f - 2.0f * t);
 }
 
 inline bool NearEqual(float a, float b, float epsilon = Epsilon)
 {
-    return std::abs(a - b) <= epsilon;
+	return std::abs(a - b) <= epsilon;
 }
 
 } // namespace Evo
+

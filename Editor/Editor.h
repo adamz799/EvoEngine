@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "RHI/RHITypes.h"
 #include "Renderer/Camera.h"
@@ -23,7 +23,7 @@ class Window;
 class Editor {
 public:
 	bool Initialize(RHIDevice* pDevice, Window& window, RHIFormat rtFormat,
-	                const RenderPipeline& pipeline);
+					const RenderPipeline& pipeline);
 	void Shutdown();
 
 	void BeginFrame();
@@ -52,9 +52,9 @@ private:
 
 	// Gizmo helpers
 	int  TestGizmoAxisHit(const Vec3& rayOrigin, const Vec3& rayDir,
-	                      const Vec3& gizmoPos, float fSize, float fThreshold) const;
+						  const Vec3& gizmoPos, float fSize, float fThreshold) const;
 	void ComputeViewportRay(const Camera& camera, float u, float v,
-	                        Vec3& outOrigin, Vec3& outDir) const;
+							Vec3& outOrigin, Vec3& outDir) const;
 
 	void CreateViewportTexture(uint32 uWidth, uint32 uHeight);
 	void DestroyViewportTexture();
@@ -98,3 +98,4 @@ private:
 };
 
 } // namespace Evo
+

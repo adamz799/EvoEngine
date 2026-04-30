@@ -48,7 +48,7 @@ void AssetLoader::Shutdown()
 }
 
 void AssetLoader::Submit(AssetHandle handle, Asset* pAsset,
-                         const std::string& sPath, AssetPriority priority)
+						 const std::string& sPath, AssetPriority priority)
 {
 	{
 		std::lock_guard lock(m_QueueMutex);
@@ -120,3 +120,4 @@ void AssetLoader::WorkerLoop()
 }
 
 } // namespace Evo
+

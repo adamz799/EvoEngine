@@ -84,7 +84,7 @@ Mat4 Camera::GetViewProjectionMatrix() const
 // ============================================================================
 
 void FreeCameraController::Update(Camera& camera, const Input& input,
-                                   Window& window, float fDeltaTime)
+								   Window& window, float fDeltaTime)
 {
 	// ---- Mouse rotation (right-click drag) ----
 	if (input.IsMouseButtonDown(SDL_BUTTON_RIGHT))
@@ -139,7 +139,7 @@ void FreeCameraController::Update(Camera& camera, const Input& input,
 // ============================================================================
 
 Camera BuildCameraFromEntity(const TransformComponent& transform,
-                             const CameraComponent& cam, float fAspect)
+							 const CameraComponent& cam, float fAspect)
 {
 	Camera camera;
 	camera.SetPerspective(cam.fFovY, fAspect, cam.fNearZ, cam.fFarZ);
@@ -153,3 +153,4 @@ Camera BuildCameraFromEntity(const TransformComponent& transform,
 }
 
 } // namespace Evo
+

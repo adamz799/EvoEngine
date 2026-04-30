@@ -1,4 +1,4 @@
-// Scene.fbs — EvoEngine scene serialization schema.
+﻿// Scene.fbs — EvoEngine scene serialization schema.
 // Generated header: Scene_generated.h
 
 include "Common.fbs";
@@ -31,3 +31,4 @@ table Scene {
 root_type Scene;
 file_identifier "ESCN";
 file_extension "escene";
+

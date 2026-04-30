@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "RHI/RHITypes.h"
 #include "RHI/RHIDescriptor.h"
@@ -83,3 +83,4 @@ private:
 };
 
 } // namespace Evo
+

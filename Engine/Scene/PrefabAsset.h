@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Asset/Asset.h"
 #include <string>
@@ -21,3 +21,4 @@ private:
 };
 
 } // namespace Evo
+

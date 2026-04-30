@@ -1,4 +1,4 @@
-#include "Core/Log.h"
+﻿#include "Core/Log.h"
 #include "Core/EngineConfig.h"
 #include "Math/Math.h"
 #include "Platform/Window.h"
@@ -151,3 +151,4 @@ int main(int /*argc*/, char* /*argv*/[])
 
 	return 0;
 }
+

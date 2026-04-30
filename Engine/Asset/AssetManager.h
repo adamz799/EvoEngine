@@ -36,7 +36,7 @@ public:
 
 	/// Async load. Returns handle immediately; asset loads in background.
 	AssetHandle Load(const std::string& sPath,
-	                 AssetPriority priority = AssetPriority::Normal);
+					 AssetPriority priority = AssetPriority::Normal);
 
 	/// Sync load. Blocks until Loaded or Failed.
 	AssetHandle LoadSync(const std::string& sPath);
@@ -114,3 +114,4 @@ T* AssetManager::Get(AssetHandle handle)
 }
 
 } // namespace Evo
+

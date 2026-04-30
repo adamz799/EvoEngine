@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 
 #include "Asset/AssetManager.h"
 #include "Scene/Scene.h"
@@ -27,3 +27,4 @@ private:
 };
 
 } // namespace Evo
+

@@ -80,8 +80,9 @@ private:
 
 	/// Shared helper: create GPU buffers from raw data and build LOD 0.
 	bool CreateGPUBuffers(RHIDevice* pDevice,
-	                      const void* pVertices, uint32 uVertexCount, uint32 uVertexStride,
-	                      const void* pIndices,  uint32 uIndexCount,  RHIIndexFormat indexFormat);
+						  const void* pVertices, uint32 uVertexCount, uint32 uVertexStride,
+						  const void* pIndices,  uint32 uIndexCount,  RHIIndexFormat indexFormat);
 };
 
 } // namespace Evo
+
