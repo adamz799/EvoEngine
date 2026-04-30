@@ -19,25 +19,25 @@ int main(int /*argc*/, char* /*argv*/[])
 	Evo::EngineConfig::LoadFromFile("Assets/engine_config.json");
 
 	// ---- Phase 2: Launch engine ----
-	Evo::Engine engine;
-	if (!engine.Launch())
+	Evo::Engine EvoEngine;
+	if (!EvoEngine.Launch())
 		return -1;
 
-	auto* pDevice = engine.GetRenderer().GetDevice();
+	auto* pDevice = EvoEngine.GetRenderer().GetDevice();
 
 	// ---- App-specific setup ----
 	Evo::RenderPipeline pipeline;
-	if (!pipeline.Initialize(pDevice, engine.GetRenderer().GetSwapChain()->GetFormat())) {
+	if (!pipeline.Initialize(pDevice, EvoEngine.GetRenderer().GetSwapChain()->GetFormat())) {
 		EVO_LOG_ERROR("Failed to initialize render pipeline");
-		engine.Shutdown();
+		EvoEngine.Shutdown();
 		return -1;
 	}
 
 	Evo::ViewportFrame viewport;
 	viewport.Initialize(pDevice,
 		pipeline.MakeViewportFrameDesc(
-			engine.GetWindow().GetWidth(),
-			engine.GetWindow().GetHeight(), "Game"));
+			EvoEngine.GetWindow().GetWidth(),
+			EvoEngine.GetWindow().GetHeight(), "Game"));
 
 	Evo::TestScene testScene;
 	if (!testScene.Initialize(pDevice)) {
@@ -51,10 +51,10 @@ int main(int /*argc*/, char* /*argv*/[])
 	camera.LookAt(Evo::Vec3::Zero);
 
 	// ---- Phase 3: Main loop ----
-	while (engine.BeginFrame()) {
-		float dt = engine.GetDeltaTime();
-		auto& input = engine.GetInput();
-		auto& window = engine.GetWindow();
+	while (EvoEngine.BeginFrame()) {
+		float dt = EvoEngine.GetDeltaTime();
+		auto& input = EvoEngine.GetInput();
+		auto& window = EvoEngine.GetWindow();
 
 		viewport.Resize(pDevice, window.GetWidth(), window.GetHeight());
 
@@ -66,11 +66,11 @@ int main(int /*argc*/, char* /*argv*/[])
 
 		testScene.Update(dt);
 
-		pipeline.RenderShadow(engine.GetRenderer(), testScene.GetScene());
-		pipeline.RenderViewport(engine.GetRenderer(), testScene.GetScene(),
+		pipeline.RenderShadow(EvoEngine.GetRenderer(), testScene.GetScene());
+		pipeline.RenderViewport(EvoEngine.GetRenderer(), testScene.GetScene(),
 			viewport, camera.GetViewProjectionMatrix());
 
-		engine.EndFrame();
+		EvoEngine.EndFrame();
 	}
 
 	// ---- Shutdown ----
@@ -78,6 +78,6 @@ int main(int /*argc*/, char* /*argv*/[])
 	testScene.Shutdown(pDevice);
 	viewport.Shutdown(pDevice);
 	pipeline.Shutdown(pDevice);
-	engine.Shutdown();
+	EvoEngine.Shutdown();
 	return 0;
 }
