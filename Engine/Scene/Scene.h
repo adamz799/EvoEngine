@@ -42,10 +42,12 @@ public:
 	ComponentArray<TransformComponent>& Transforms() { return m_Transforms; }
 	ComponentArray<MeshComponent>&      Meshes()     { return m_Meshes; }
 	ComponentArray<MaterialComponent>&  Materials()  { return m_Materials; }
+	ComponentArray<CameraComponent>&    Cameras()    { return m_Cameras; }
 
 	const ComponentArray<TransformComponent>& Transforms() const { return m_Transforms; }
 	const ComponentArray<MeshComponent>&      Meshes()     const { return m_Meshes; }
 	const ComponentArray<MaterialComponent>&  Materials()  const { return m_Materials; }
+	const ComponentArray<CameraComponent>&    Cameras()    const { return m_Cameras; }
 
 private:
 	std::vector<uint16>      m_vGenerations;
@@ -59,6 +61,7 @@ private:
 	ComponentArray<TransformComponent> m_Transforms;
 	ComponentArray<MeshComponent>      m_Meshes;
 	ComponentArray<MaterialComponent>  m_Materials;
+	ComponentArray<CameraComponent>    m_Cameras;
 };
 
 } // namespace Evo

@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "Math/Math.h"
+#include "Scene/Components.h"
 
 namespace Evo {
 
@@ -58,5 +59,9 @@ public:
 private:
 	bool m_bCapturing = false;
 };
+
+/// Build a Camera from entity components (TransformComponent + CameraComponent).
+Camera BuildCameraFromEntity(const TransformComponent& transform,
+                             const CameraComponent& cam, float fAspect);
 
 } // namespace Evo

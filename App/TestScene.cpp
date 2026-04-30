@@ -258,10 +258,27 @@ bool TestScene::Initialize(RHIDevice* pDevice)
 		}
 	}
 
-	// Initialize game camera (fixed position)
-	m_GameCamera.SetPerspective(DegToRad(60.0f), 16.0f / 9.0f, 0.1f, 100.0f);
-	m_GameCamera.SetPosition(Vec3(0.0f, 3.0f, -8.0f));
-	m_GameCamera.LookAt(Vec3::Zero);
+	// Create game camera entity
+	{
+		m_GameCameraEntity = m_Scene.CreateEntity("GameCamera");
+
+		TransformComponent camTransform;
+		camTransform.vPosition = Vec3(0.0f, 3.0f, -8.0f);
+
+		// Compute orientation: LookAt target (0,0,0) from position
+		Vec3 dir = (Vec3::Zero - camTransform.vPosition).Normalized();
+		float yaw   = std::atan2(dir.x, dir.z);
+		float pitch = std::asin(Clamp(dir.y, -1.0f, 1.0f));
+		camTransform.qRotation = Quat::FromEuler(pitch, yaw, 0.0f);
+
+		m_Scene.Transforms().Add(m_GameCameraEntity, camTransform);
+
+		CameraComponent camComp;
+		camComp.fFovY  = DegToRad(60.0f);
+		camComp.fNearZ = 0.1f;
+		camComp.fFarZ  = 100.0f;
+		m_Scene.Cameras().Add(m_GameCameraEntity, camComp);
+	}
 
 	EVO_LOG_INFO("TestScene initialized: {} entities (loaded from .escene)", m_Scene.GetEntityCount());
 	return true;
@@ -280,9 +297,10 @@ void TestScene::Update(float fDeltaTime)
 	m_fTime += fDeltaTime;
 	m_AssetManager.Update();
 
-	// Rotate each cube differently
+	// Rotate each cube differently (skip camera entities)
 	int index = 0;
-	m_Scene.Transforms().ForEach([&](EntityHandle /*entity*/, TransformComponent& transform) {
+	m_Scene.Transforms().ForEach([&](EntityHandle entity, TransformComponent& transform) {
+		if (m_Scene.Cameras().Has(entity)) return;
 		float speed = 0.5f + index * 0.3f;
 		transform.qRotation = Quat::FromEuler(
 			m_fTime * speed * 0.7f,

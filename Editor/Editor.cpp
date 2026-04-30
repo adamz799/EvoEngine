@@ -416,15 +416,93 @@ void Editor::Update(Scene& scene, const Camera& camera, float /*fDeltaTime*/)
 		{
 			ImGui::Image(static_cast<ImTextureID>(m_ViewportSRV.gpuHandle.ptr), vAvail);
 
-			// Viewport picking — left-click on the image to select an entity
-			if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+			bool bHovered = ImGui::IsItemHovered();
+			ImVec2 rectMin  = ImGui::GetItemRectMin();
+			ImVec2 rectSize = ImGui::GetItemRectSize();
+			ImVec2 mousePos = ImGui::GetMousePos();
+			float u = (rectSize.x > 0) ? (mousePos.x - rectMin.x) / rectSize.x : 0;
+			float v = (rectSize.y > 0) ? (mousePos.y - rectMin.y) / rectSize.y : 0;
+
+			// Gizmo hover detection (every frame when entity selected)
+			m_iHoveredAxis = -1;
+			if (bHovered && m_SelectedEntity.IsValid() && scene.IsAlive(m_SelectedEntity) && !m_bDraggingGizmo)
 			{
-				ImVec2 rectMin  = ImGui::GetItemRectMin();
-				ImVec2 rectSize = ImGui::GetItemRectSize();
-				ImVec2 mousePos = ImGui::GetMousePos();
-				float u = (mousePos.x - rectMin.x) / rectSize.x;
-				float v = (mousePos.y - rectMin.y) / rectSize.y;
-				DoViewportPicking(scene, camera, u, v);
+				auto* pTransform = scene.Transforms().Get(m_SelectedEntity);
+				if (pTransform)
+				{
+					Vec3 rayOrigin, rayDir;
+					ComputeViewportRay(camera, u, v, rayOrigin, rayDir);
+					m_iHoveredAxis = TestGizmoAxisHit(rayOrigin, rayDir,
+						pTransform->vPosition, 2.0f, 0.15f);
+				}
+			}
+
+			// Left click: start gizmo drag or do picking
+			if (bHovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+			{
+				if (m_iHoveredAxis >= 0)
+				{
+					// Start gizmo drag
+					auto* pTransform = scene.Transforms().Get(m_SelectedEntity);
+					if (pTransform)
+					{
+						m_bDraggingGizmo = true;
+						m_iDragAxis = m_iHoveredAxis;
+						m_vDragOrigin = pTransform->vPosition;
+
+						Vec3 rayOrigin, rayDir;
+						ComputeViewportRay(camera, u, v, rayOrigin, rayDir);
+
+						// Compute initial closest point on axis
+						const Vec3 axes[3] = { Vec3(1,0,0), Vec3(0,1,0), Vec3(0,0,1) };
+						Vec3 axisDir = axes[m_iDragAxis];
+						Vec3 w0 = rayOrigin - m_vDragOrigin;
+						float a = Vec3::Dot(axisDir, axisDir);
+						float b = Vec3::Dot(axisDir, rayDir);
+						float c = Vec3::Dot(rayDir, rayDir);
+						float d = Vec3::Dot(axisDir, w0);
+						float e = Vec3::Dot(rayDir, w0);
+						float denom = a * c - b * b;
+						float t = (denom > 1e-6f) ? (b * e - c * d) / denom : 0.0f;
+						m_vDragRayHit = m_vDragOrigin + axisDir * t;
+					}
+				}
+				else
+				{
+					DoViewportPicking(scene, camera, u, v);
+				}
+			}
+
+			// Gizmo drag update
+			if (m_bDraggingGizmo && ImGui::IsMouseDragging(ImGuiMouseButton_Left))
+			{
+				auto* pTransform = scene.Transforms().Get(m_SelectedEntity);
+				if (pTransform)
+				{
+					Vec3 rayOrigin, rayDir;
+					ComputeViewportRay(camera, u, v, rayOrigin, rayDir);
+
+					const Vec3 axes[3] = { Vec3(1,0,0), Vec3(0,1,0), Vec3(0,0,1) };
+					Vec3 axisDir = axes[m_iDragAxis];
+					Vec3 w0 = rayOrigin - m_vDragOrigin;
+					float a = Vec3::Dot(axisDir, axisDir);
+					float b = Vec3::Dot(axisDir, rayDir);
+					float c = Vec3::Dot(rayDir, rayDir);
+					float d = Vec3::Dot(axisDir, w0);
+					float e = Vec3::Dot(rayDir, w0);
+					float denom = a * c - b * b;
+					float t = (denom > 1e-6f) ? (b * e - c * d) / denom : 0.0f;
+					Vec3 currentHit = m_vDragOrigin + axisDir * t;
+					Vec3 delta = currentHit - m_vDragRayHit;
+					pTransform->vPosition = m_vDragOrigin + delta;
+				}
+			}
+
+			// End drag
+			if (m_bDraggingGizmo && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+			{
+				m_bDraggingGizmo = false;
+				m_iDragAxis = -1;
 			}
 		}
 #endif
@@ -560,6 +638,20 @@ void Editor::DrawInspectorPanel(Scene& scene)
 				ImGui::SliderFloat("Roughness", &pMaterial->fRoughness, 0.0f, 1.0f);
 				ImGui::SliderFloat("Metallic", &pMaterial->fMetallic, 0.0f, 1.0f);
 				ImGui::SliderFloat("Alpha", &pMaterial->fAlpha, 0.0f, 1.0f);
+			}
+		}
+
+		// Camera
+		auto* pCamera = scene.Cameras().Get(m_SelectedEntity);
+		if (pCamera)
+		{
+			if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				float fovDeg = RadToDeg(pCamera->fFovY);
+				if (ImGui::DragFloat("FOV", &fovDeg, 0.5f, 1.0f, 179.0f))
+					pCamera->fFovY = DegToRad(fovDeg);
+				ImGui::DragFloat("Near", &pCamera->fNearZ, 0.01f, 0.001f, 100.0f);
+				ImGui::DragFloat("Far", &pCamera->fFarZ, 1.0f, 1.0f, 10000.0f);
 			}
 		}
 	}
@@ -711,6 +803,78 @@ void Editor::DoViewportPicking(Scene& scene, const Camera& camera, float u, floa
 	});
 
 	m_SelectedEntity = hitEntity;
+}
+
+// ============================================================================
+// Gizmo helpers
+// ============================================================================
+
+void Editor::ComputeViewportRay(const Camera& camera, float u, float v,
+                                Vec3& outOrigin, Vec3& outDir) const
+{
+	float ndcX = u * 2.0f - 1.0f;
+	float ndcY = (1.0f - v) * 2.0f - 1.0f;
+
+	Mat4 invVP = camera.GetViewProjectionMatrix().Inverse();
+	Vec3 nearWS = invVP.TransformPoint(Vec3(ndcX, ndcY, 0.0f));
+	Vec3 farWS  = invVP.TransformPoint(Vec3(ndcX, ndcY, 1.0f));
+
+	outOrigin = nearWS;
+	outDir    = (farWS - nearWS).Normalized();
+}
+
+int Editor::TestGizmoAxisHit(const Vec3& rayOrigin, const Vec3& rayDir,
+                             const Vec3& gizmoPos, float fSize, float fThreshold) const
+{
+	const Vec3 axes[3] = { Vec3(1,0,0), Vec3(0,1,0), Vec3(0,0,1) };
+	int bestAxis = -1;
+	float bestDist = fThreshold;
+
+	for (int i = 0; i < 3; ++i)
+	{
+		Vec3 axisDir = axes[i];
+
+		// Closest point between ray and axis segment
+		// Axis line: P = gizmoPos + t * axisDir, t in [0, fSize]
+		// Ray line:  Q = rayOrigin + s * rayDir
+		Vec3 w0 = rayOrigin - gizmoPos;
+		float a = Vec3::Dot(axisDir, axisDir);   // always 1.0
+		float b = Vec3::Dot(axisDir, rayDir);
+		float c = Vec3::Dot(rayDir, rayDir);      // always 1.0 if normalized
+		float d = Vec3::Dot(axisDir, w0);
+		float e = Vec3::Dot(rayDir, w0);
+		float denom = a * c - b * b;
+
+		float t, s;
+		if (denom < 1e-6f)
+		{
+			// Lines are parallel
+			t = 0.0f;
+			s = e / c;
+		}
+		else
+		{
+			t = (b * e - c * d) / denom;
+			s = (a * e - b * d) / denom;
+		}
+
+		// Clamp t to axis segment [0, fSize]
+		t = Clamp(t, 0.0f, fSize);
+		// s must be positive (in front of camera)
+		if (s < 0.0f) continue;
+
+		Vec3 closestOnAxis = gizmoPos + axisDir * t;
+		Vec3 closestOnRay  = rayOrigin + rayDir * s;
+		float dist = Vec3::Distance(closestOnAxis, closestOnRay);
+
+		if (dist < bestDist)
+		{
+			bestDist = dist;
+			bestAxis = i;
+		}
+	}
+
+	return bestAxis;
 }
 
 } // namespace Evo

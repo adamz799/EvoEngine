@@ -31,6 +31,7 @@ public:
 	void Render(RHICommandList* pCmdList);
 
 	EntityHandle GetSelectedEntity() const { return m_SelectedEntity; }
+	int          GetHoveredAxis()   const { return m_iHoveredAxis; }
 
 	// Viewport texture (final output for ImGui display)
 	RHITextureHandle    GetViewportTexture() const { return m_ViewportTexture; }
@@ -49,6 +50,12 @@ private:
 	void DrawLogPanel();
 	void DoViewportPicking(Scene& scene, const Camera& camera, float u, float v);
 
+	// Gizmo helpers
+	int  TestGizmoAxisHit(const Vec3& rayOrigin, const Vec3& rayDir,
+	                      const Vec3& gizmoPos, float fSize, float fThreshold) const;
+	void ComputeViewportRay(const Camera& camera, float u, float v,
+	                        Vec3& outOrigin, Vec3& outDir) const;
+
 	void CreateViewportTexture(uint32 uWidth, uint32 uHeight);
 	void DestroyViewportTexture();
 
@@ -64,6 +71,13 @@ private:
 	// Selection
 	EntityHandle m_SelectedEntity;
 	bool         m_bFirstFrame = true;
+
+	// Gizmo state
+	bool  m_bDraggingGizmo  = false;
+	int   m_iDragAxis       = -1;      // 0=X, 1=Y, 2=Z
+	int   m_iHoveredAxis    = -1;
+	Vec3  m_vDragOrigin;               // entity position at drag start
+	Vec3  m_vDragRayHit;               // initial closest point on axis
 
 	// Log sink for ImGui panel
 	std::shared_ptr<ImGuiLogSink> m_pLogSink;

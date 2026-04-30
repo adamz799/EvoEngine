@@ -6,7 +6,7 @@
 
 namespace Evo {
 
-/// TestScene -- five rotating cubes + two transparent cubes, with a fixed game camera.
+/// TestScene -- five rotating cubes + two transparent cubes, with a fixed game camera entity.
 /// Scene setup and update only; rendering is handled by RenderPipeline.
 class TestScene {
 public:
@@ -17,13 +17,12 @@ public:
 	void Update(float fDeltaTime);
 
 	Scene& GetScene() { return m_Scene; }
-	Camera& GetGameCamera() { return m_GameCamera; }
-	const Camera& GetGameCamera() const { return m_GameCamera; }
+	EntityHandle GetGameCameraEntity() const { return m_GameCameraEntity; }
 
 private:
 	AssetManager  m_AssetManager;
 	Scene         m_Scene;
-	Camera        m_GameCamera;
+	EntityHandle  m_GameCameraEntity;
 	float         m_fTime = 0.0f;
 };
 

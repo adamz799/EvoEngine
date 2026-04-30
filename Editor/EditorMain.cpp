@@ -113,7 +113,7 @@ int main(int /*argc*/, char* /*argv*/[])
 	// ---- Editor camera (free-roaming) ----
 	Evo::Camera editorCamera;
 	Evo::FreeCameraController cameraController;
-	editorCamera.SetPerspective(Evo::DegToRad(60.0f), 16.0f / 9.0f, 0.1f, 100.0f);
+	editorCamera.SetPerspective(Evo::DegToRad(60.0f), 16.0f / 9.0f, 0.1f, 1000.0f);
 	editorCamera.SetPosition(Evo::Vec3(0.0f, 5.0f, -12.0f));
 	editorCamera.LookAt(Evo::Vec3::Zero);
 
@@ -171,11 +171,33 @@ int main(int /*argc*/, char* /*argv*/[])
 			editor.GetViewportFrame(), editorVP,
 			vpRG, editor.GetViewportRTV());
 
-		// Debug overlay (camera frustum, icon) -> viewport texture
-		pipeline.GetDebugRenderer().DrawFrustum(testScene.GetGameCamera(),
-			Evo::Vec4(1.0f, 1.0f, 0.0f, 1.0f));
-		pipeline.GetDebugRenderer().DrawCameraIcon(testScene.GetGameCamera(),
-			Evo::Vec4(1.0f, 1.0f, 0.0f, 1.0f), 0.5f);
+		// Debug overlay (camera frustum, icon, gizmo) -> viewport texture
+		{
+			auto& scene = testScene.GetScene();
+			auto camEntity = testScene.GetGameCameraEntity();
+			auto* pCamTransform = scene.Transforms().Get(camEntity);
+			auto* pCamComp = scene.Cameras().Get(camEntity);
+			if (pCamTransform && pCamComp)
+			{
+				Evo::Camera gameCamera = Evo::BuildCameraFromEntity(*pCamTransform, *pCamComp, 16.0f / 9.0f);
+				pipeline.GetDebugRenderer().DrawFrustum(gameCamera,
+					Evo::Vec4(1.0f, 1.0f, 0.0f, 1.0f));
+				pipeline.GetDebugRenderer().DrawCameraIcon(gameCamera,
+					Evo::Vec4(1.0f, 1.0f, 0.0f, 1.0f), 0.5f);
+			}
+
+			// Translation gizmo for selected entity
+			auto selectedEntity = editor.GetSelectedEntity();
+			if (selectedEntity.IsValid() && scene.IsAlive(selectedEntity))
+			{
+				auto* pTransform = scene.Transforms().Get(selectedEntity);
+				if (pTransform)
+				{
+					pipeline.GetDebugRenderer().DrawTranslationGizmo(
+						pTransform->vPosition, 2.0f, editor.GetHoveredAxis());
+				}
+			}
+		}
 		pipeline.RenderDebugOverlay(renderer, vpRG, editor.GetViewportRTV(),
 			editorVP, vpW, vpH);
 
@@ -189,12 +211,20 @@ int main(int /*argc*/, char* /*argv*/[])
 
 			float rtW = static_cast<float>(pRuntimeSC->GetWidth());
 			float rtH = static_cast<float>(pRuntimeSC->GetHeight());
-			if (rtH > 0.0f)
-				testScene.GetGameCamera().SetAspect(rtW / rtH);
 
-			pipeline.RenderViewport(renderer, testScene.GetScene(),
-				runtimeViewport, testScene.GetGameCamera().GetViewProjectionMatrix(),
-				rtBB, pRuntimeSC->GetCurrentBackBufferRTV());
+			auto& scene = testScene.GetScene();
+			auto camEntity = testScene.GetGameCameraEntity();
+			auto* pCamTransform = scene.Transforms().Get(camEntity);
+			auto* pCamComp = scene.Cameras().Get(camEntity);
+			if (pCamTransform && pCamComp)
+			{
+				float rtAspect = (rtH > 0.0f) ? rtW / rtH : 1.0f;
+				Evo::Camera gameCamera = Evo::BuildCameraFromEntity(*pCamTransform, *pCamComp, rtAspect);
+
+				pipeline.RenderViewport(renderer, testScene.GetScene(),
+					runtimeViewport, gameCamera.GetViewProjectionMatrix(),
+					rtBB, pRuntimeSC->GetCurrentBackBufferRTV());
+			}
 		}
 
 		// ---- ImGui pass -> editor back buffer ----

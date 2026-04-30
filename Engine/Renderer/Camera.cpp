@@ -134,4 +134,22 @@ void FreeCameraController::Update(Camera& camera, const Input& input,
 		fMoveSpeed = Clamp(fMoveSpeed * (1.0f + scroll * 0.1f), 0.1f, 100.0f);
 }
 
+// ============================================================================
+// BuildCameraFromEntity
+// ============================================================================
+
+Camera BuildCameraFromEntity(const TransformComponent& transform,
+                             const CameraComponent& cam, float fAspect)
+{
+	Camera camera;
+	camera.SetPerspective(cam.fFovY, fAspect, cam.fNearZ, cam.fFarZ);
+	camera.SetPosition(transform.vPosition);
+
+	// Derive orientation from quaternion: rotate LH forward (0,0,1) by the quaternion
+	Vec3 forward = transform.qRotation.Rotate(Vec3(0, 0, 1));
+	camera.LookAt(transform.vPosition + forward);
+
+	return camera;
+}
+
 } // namespace Evo
