@@ -21,25 +21,28 @@ bool DX12Device::Initialize(const RHIDeviceDesc& desc)
     EVO_LOG_INFO("DX12Device::Initialize");
 
     // 1. Enable debug layer
-    if (desc.bEnableDebug)
+    if (desc.bEnableDebugLayer)
     {
         ComPtr<ID3D12Debug> debug;
         if (SUCCEEDED(D3D12GetDebugInterface(IID_PPV_ARGS(&debug))))
         {
             debug->EnableDebugLayer();
-			{
-				ComPtr<ID3D12Debug1> debug1;
-				if (SUCCEEDED(debug.As(&debug1)))
-				{
-					debug1->SetEnableGPUBasedValidation(TRUE);
-				}
-			}
+
+            if (desc.bEnableGPUBasedValidation)
+            {
+                ComPtr<ID3D12Debug1> debug1;
+                if (SUCCEEDED(debug.As(&debug1)))
+                {
+                    debug1->SetEnableGPUBasedValidation(TRUE);
+                    EVO_LOG_INFO("GPU-based validation enabled");
+                }
+            }
         }
     }
 
     // 2. Create DXGI factory
     UINT factoryFlags = 0;
-    if (desc.bEnableDebug)
+    if (desc.bEnableDebugLayer)
         factoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
 
     HRESULT hr = CreateDXGIFactory2(factoryFlags, IID_PPV_ARGS(&m_pDxgiFactory));
@@ -176,7 +179,7 @@ std::unique_ptr<RHISwapChain> DX12Device::CreateSwapChain(const RHISwapChainDesc
 
 std::unique_ptr<RHICommandList> DX12Device::CreateCommandList(RHIQueueType type)
 {
-    //Todo 这里还是应该使用一个支持多线程的Manager单例来管理
+    //Todo 这里还是应该使用一个支持多线程的Manager单例来管�?
     auto cl = std::make_unique<DX12CommandList>();
     if (!cl->Initialize(this, type))
         return nullptr;
@@ -191,7 +194,7 @@ std::unique_ptr<RHIFence> DX12Device::CreateFence(uint64 initialValue)
     return fence;
 }
 
-// ---- Handle resources (all stubs — implement in Phase 3+) ----
+// ---- Handle resources (all stubs �?implement in Phase 3+) ----
 
 RHIBufferHandle DX12Device::CreateBuffer(const RHIBufferDesc& desc)
 {
@@ -332,7 +335,7 @@ RHIPipelineHandle DX12Device::CreateGraphicsPipeline(const RHIGraphicsPipelineDe
     // Build root signature
     // Root params: [push constants (optional)] [descriptor table per set]
     std::vector<D3D12_ROOT_PARAMETER> rootParams;
-    // Storage for descriptor ranges — must outlive D3D12SerializeRootSignature
+    // Storage for descriptor ranges �?must outlive D3D12SerializeRootSignature
     std::vector<std::vector<D3D12_DESCRIPTOR_RANGE>> allRanges;
 
     uint32 descTableRootOffset = 0;
@@ -490,7 +493,7 @@ RHIPipelineHandle DX12Device::CreateGraphicsPipeline(const RHIGraphicsPipelineDe
 
 RHIPipelineHandle DX12Device::CreateComputePipeline(const RHIComputePipelineDesc& /*desc*/)
 {
-    EVO_LOG_WARN("DX12Device::CreateComputePipeline — not yet implemented");
+    EVO_LOG_WARN("DX12Device::CreateComputePipeline �?not yet implemented");
     return {};
 }
 
@@ -598,7 +601,7 @@ void* DX12Device::MapBuffer(RHIBufferHandle handle)
 
 void DX12Device::UnmapBuffer(RHIBufferHandle /*handle*/)
 {
-    // Upload heap uses persistent mapping — no explicit unmap needed
+    // Upload heap uses persistent mapping �?no explicit unmap needed
 }
 
 // ---- Descriptors ----
@@ -713,7 +716,7 @@ void DX12Device::WriteDescriptorSet(RHIDescriptorSetHandle set,
             }
             case RHIDescriptorType::Sampler:
             {
-                // Samplers require a separate heap — use static samplers for now
+                // Samplers require a separate heap �?use static samplers for now
                 break;
             }
         }

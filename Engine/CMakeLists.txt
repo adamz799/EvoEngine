@@ -8,7 +8,8 @@ configure_file(
 # We glob headers too so they appear in the VS solution tree.
 
 file(GLOB CORE_HEADERS    Core/*.h)
-set(CORE_SOURCES          Core/Log.cpp)
+set(CORE_SOURCES          Core/Log.cpp
+                           Core/EngineConfig.cpp)
 
 file(GLOB MATH_HEADERS    Math/*.h)
 

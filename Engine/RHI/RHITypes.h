@@ -311,8 +311,9 @@ struct RHIColor {
 
 // ---- Device ----
 struct RHIDeviceDesc {
-	RHIBackendType backend     = RHIBackendType::DX12;
-	bool           bEnableDebug = true;
+	RHIBackendType backend                  = RHIBackendType::DX12;
+	bool           bEnableDebugLayer          = true;
+	bool           bEnableGPUBasedValidation  = false;
 };
 
 // ---- Buffer ----

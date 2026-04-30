@@ -20,8 +20,9 @@ bool Renderer::Initialize(const RendererDesc& desc, Window& window)
 	}
 
 	RHIDeviceDesc deviceDesc{};
-	deviceDesc.backend     = desc.backend;
-	deviceDesc.bEnableDebug = desc.bEnableDebug;
+	deviceDesc.backend                 = desc.backend;
+	deviceDesc.bEnableDebugLayer        = desc.bEnableDebugLayer;
+	deviceDesc.bEnableGPUBasedValidation = desc.bEnableGPUBasedValidation;
 
 	if (!m_pRHIDevice->Initialize(deviceDesc)) {
 		EVO_LOG_CRITICAL("Failed to initialize RHI device");

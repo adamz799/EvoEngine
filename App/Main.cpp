@@ -1,4 +1,5 @@
 #include "Core/Log.h"
+#include "Core/EngineConfig.h"
 #include "Math/Math.h"
 #include "Platform/Window.h"
 #include "Platform/Input.h"
@@ -17,16 +18,39 @@ extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ".\\D3D12\\
 
 int main(int /*argc*/, char* /*argv*/[])
 {
-    // ---- Initialize logging ----
+    // ---- Initialize logging (must come first for config-load messages) ----
     Evo::Log::Initialize();
     EVO_LOG_INFO("EvoApp starting...");
+
+    // ---- Load engine config ----
+    auto config = Evo::EngineConfig::Load("Assets/engine_config.json");
+    if (!config)
+        config = Evo::EngineConfig::Default();
+
+    // ---- Resolve RHI backend from config ----
+    Evo::RHIBackendType backend = Evo::RHIBackendType::DX12;
+    if (config->rhi.backend == "vulkan") {
+#if EVO_RHI_VULKAN
+        backend = Evo::RHIBackendType::Vulkan;
+#else
+        EVO_LOG_WARN("Vulkan requested in config but not compiled in, falling back to DX12");
+#endif
+    } else if (config->rhi.backend != "dx12") {
+        EVO_LOG_WARN("Unknown backend '{}', falling back to DX12", config->rhi.backend);
+    }
+#if !EVO_RHI_DX12 && EVO_RHI_VULKAN
+    if (config->rhi.backend != "vulkan") {
+        backend = Evo::RHIBackendType::Vulkan;
+        EVO_LOG_WARN("DX12 requested but not compiled in, falling back to Vulkan");
+    }
+#endif
 
     // ---- Create window ----
     Evo::Window window;
     Evo::WindowDesc winDesc{};
-    winDesc.sTitle  = "EvoApp";
-    winDesc.uWidth  = 1280;
-    winDesc.uHeight = 720;
+    winDesc.sTitle  = config->window.sTitle;
+    winDesc.uWidth  = config->window.uWidth;
+    winDesc.uHeight = config->window.uHeight;
 
     if (!window.Initialize(winDesc)) {
         EVO_LOG_CRITICAL("Failed to create window");
@@ -37,12 +61,9 @@ int main(int /*argc*/, char* /*argv*/[])
     // ---- Create renderer ----
     Evo::Renderer renderer;
     Evo::RendererDesc renderDesc{};
-#if EVO_RHI_DX12
-    renderDesc.backend = Evo::RHIBackendType::DX12;
-#elif EVO_RHI_VULKAN
-    renderDesc.backend = Evo::RHIBackendType::Vulkan;
-#endif
-    renderDesc.bEnableDebug = true;
+    renderDesc.backend                 = backend;
+    renderDesc.bEnableDebugLayer        = config->rhi.bEnableDebugLayer;
+    renderDesc.bEnableGPUBasedValidation = config->rhi.bEnableGPUBasedValidation;
 
     if (!renderer.Initialize(renderDesc, window)) {
         EVO_LOG_ERROR("Failed to initialize renderer (continuing with window only)");
