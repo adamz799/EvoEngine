@@ -28,7 +28,7 @@ int main(int /*argc*/, char* /*argv*/[])
 	if (!EvoEngine.Launch())
 		return -1;
 
-	auto* pDevice = EvoEngine.GetRenderer().GetDevice();
+	auto* pRender = &EvoEngine.GetRender();
 
 	// ---- Create runtime window (separate OS window with its own swap chain) ----
 	SDL_Window* pRuntimeWindow = SDL_CreateWindow("Runtime", 640, 480, SDL_WINDOW_RESIZABLE);
@@ -43,31 +43,31 @@ int main(int /*argc*/, char* /*argv*/[])
 			SDL_GetWindowProperties(pRuntimeWindow),
 			SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr);
 
-		runtimeWin = EvoEngine.GetRenderer().CreateWindowTarget(hRuntimeWnd, 640, 480);
+		runtimeWin = pRender->CreateWindowTarget(hRuntimeWnd, 640, 480);
 	}
-
-	auto scFormat = EvoEngine.GetRenderer().GetSwapChain()->GetFormat();
 
 	// ---- Initialize editor render pipeline ----
 	Evo::EditorRenderPipeline pipeline;
-	if (!pipeline.Initialize(pDevice, scFormat))
+	if (!pipeline.Initialize(pRender))
 		EVO_LOG_ERROR("Failed to initialize render pipeline");
 
 	// ---- Initialize test scene ----
 	Evo::TestScene testScene;
-	if (!testScene.Initialize(pDevice))
+	if (!testScene.Initialize(pRender))
 		EVO_LOG_ERROR("Failed to initialize test scene");
+
+	pipeline.SetScene(&testScene.GetScene());
 
 	// ---- Initialize editor ----
 	Evo::Editor editor;
-	if (!editor.Initialize(pDevice, EvoEngine.GetWindow(), scFormat, pipeline))
+	if (!editor.Initialize(pRender, EvoEngine.GetWindow(), pipeline))
 		EVO_LOG_ERROR("Failed to initialize editor");
 
 	// ---- Runtime viewport resources ----
 	Evo::ViewportFrame runtimeViewport;
 	if (pRuntimeWindow)
 	{
-		runtimeViewport.Initialize(pDevice,
+		runtimeViewport.Initialize(pRender,
 			pipeline.MakeViewportFrameDesc(
 				runtimeWin.GetWidth(), runtimeWin.GetHeight(), "Runtime"));
 	}
@@ -94,10 +94,10 @@ int main(int /*argc*/, char* /*argv*/[])
 				&& (static_cast<Evo::uint32>(rtW) != runtimeWin.GetWidth()
 				 || static_cast<Evo::uint32>(rtH) != runtimeWin.GetHeight()))
 			{
-				pDevice->WaitIdle();
-				EvoEngine.GetRenderer().ResizeWindowTarget(runtimeWin,
+				pRender->WaitIdle();
+				pRender->ResizeWindowTarget(runtimeWin,
 				static_cast<Evo::uint32>(rtW), static_cast<Evo::uint32>(rtH));
-				runtimeViewport.Resize(pDevice,
+				runtimeViewport.Resize(
 					runtimeWin.GetWidth(), runtimeWin.GetHeight());
 			}
 		}
@@ -117,10 +117,10 @@ int main(int /*argc*/, char* /*argv*/[])
 		editor.Update(testScene.GetScene(), editorCamera, dt);
 
 		// ---- Render ----
-		auto& rg = EvoEngine.GetRenderer().GetRenderGraph();
+		auto& rg = pRender->GetRenderGraph();
 
 		// Shadow pass (once for all viewports)
-		pipeline.RenderShadow(EvoEngine.GetRenderer(), testScene.GetScene());
+		pipeline.RenderShadow();
 
 		// Import editor viewport texture (used by scene render + ImGui read)
 		Evo::RGHandle vpRG = rg.ImportTexture("EditorViewport",
@@ -132,8 +132,7 @@ int main(int /*argc*/, char* /*argv*/[])
 		Evo::Mat4 editorVP = editorCamera.GetViewProjectionMatrix();
 
 		// GBuffer -> Lighting -> Transparent -> PostProcess -> viewport texture
-		pipeline.RenderViewport(EvoEngine.GetRenderer(), testScene.GetScene(),
-			editor.GetViewportFrame(), editorVP,
+		pipeline.RenderViewport(editor.GetViewportFrame(), editorVP,
 			vpRG, editor.GetViewportRTV());
 
 		// Debug overlay (camera frustum, icon, gizmo) -> viewport texture
@@ -163,7 +162,7 @@ int main(int /*argc*/, char* /*argv*/[])
 				}
 			}
 		}
-		pipeline.RenderDebugOverlay(EvoEngine.GetRenderer(), vpRG, editor.GetViewportRTV(),
+		pipeline.RenderDebugOverlay(pRender, vpRG, editor.GetViewportRTV(),
 			editorVP, vpW, vpH);
 
 		// ---- Runtime viewport -> runtime swap chain ----
@@ -186,28 +185,28 @@ int main(int /*argc*/, char* /*argv*/[])
 				float rtAspect = (rtH > 0.0f) ? rtW / rtH : 1.0f;
 				Evo::Camera gameCamera = Evo::BuildCameraFromEntity(*pCamTransform, *pCamComp, rtAspect);
 
-				pipeline.RenderViewport(EvoEngine.GetRenderer(), testScene.GetScene(),
-					runtimeViewport, gameCamera.GetViewProjectionMatrix(),
+				pipeline.RenderViewport(runtimeViewport,
+					gameCamera.GetViewProjectionMatrix(),
 					rtBB, runtimeWin.GetCurrentBackBufferRTV());
 			}
 		}
 
 		// ---- ImGui pass -> editor back buffer ----
-		editor.CompositeToBackBuffer(EvoEngine.GetRenderer());
+		editor.CompositeToBackBuffer(pRender);
 
 		EvoEngine.EndFrame();
 
 		// Present runtime window via its own swap chain
 		if (pRuntimeWindow)
-			EvoEngine.GetRenderer().PresentWindowTarget(runtimeWin);
+			pRender->PresentWindowTarget(runtimeWin);
 	}
 
 	// ---- Shutdown ----
-	pDevice->WaitIdle();
-	runtimeViewport.Shutdown(pDevice);
+	pRender->WaitIdle();
+	runtimeViewport.Shutdown();
 	editor.Shutdown();
-	testScene.Shutdown(pDevice);
-	pipeline.Shutdown(pDevice);
+	testScene.Shutdown(pRender);
+	pipeline.Shutdown();
 	// runtimeWin destroyed automatically
 	if (pRuntimeWindow)
 		SDL_DestroyWindow(pRuntimeWindow);

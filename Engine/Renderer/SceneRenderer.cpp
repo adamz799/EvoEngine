@@ -16,7 +16,7 @@ struct GBufferPushConstants {
 	Vec3  _pad;
 };
 
-void SceneRenderer::RenderScene(Scene& scene, Renderer& renderer,
+void SceneRenderer::RenderScene(Scene& scene, Render* pRender,
 								RHIPipelineHandle defaultPipeline,
 								const Mat4& viewProj,
 								RGHandle targetTexture,
@@ -27,7 +27,7 @@ void SceneRenderer::RenderScene(Scene& scene, Renderer& renderer,
 {
 	m_vDrawItems.clear();
 	CollectDrawItems(scene, defaultPipeline);
-	AddOpaquePass(renderer, viewProj, targetTexture, targetRTV,
+	AddOpaquePass(pRender, viewProj, targetTexture, targetRTV,
 				  depthTexture, depthDSV, fViewportWidth, fViewportHeight);
 }
 
@@ -80,12 +80,12 @@ void SceneRenderer::CollectDrawItems(Scene& scene, RHIPipelineHandle defaultPipe
 	});
 }
 
-void SceneRenderer::AddOpaquePass(Renderer& renderer, const Mat4& viewProj,
+void SceneRenderer::AddOpaquePass(Render* pRender, const Mat4& viewProj,
 								  RGHandle targetTexture, RHIRenderTargetView targetRTV,
 								  RGHandle depthTexture, RHIDepthStencilView depthDSV,
 								  float fViewportWidth, float fViewportHeight)
 {
-	auto& graph = renderer.GetRenderGraph();
+	auto& graph = pRender->GetRenderGraph();
 
 	float w = fViewportWidth;
 	float h = fViewportHeight;
@@ -132,7 +132,7 @@ void SceneRenderer::AddOpaquePass(Renderer& renderer, const Mat4& viewProj,
 		});
 }
 
-void SceneRenderer::RenderGBuffer(Scene& scene, Renderer& renderer,
+void SceneRenderer::RenderGBuffer(Scene& scene, Render* pRender,
 								  RHIPipelineHandle gbufferPipeline,
 								  const Mat4& viewProj,
 								  const GBufferTargets& targets,
@@ -140,14 +140,14 @@ void SceneRenderer::RenderGBuffer(Scene& scene, Renderer& renderer,
 {
 	m_vDrawItems.clear();
 	CollectDrawItems(scene, gbufferPipeline);
-	AddGBufferPass(renderer, viewProj, targets, fViewportWidth, fViewportHeight);
+	AddGBufferPass(pRender, viewProj, targets, fViewportWidth, fViewportHeight);
 }
 
-void SceneRenderer::AddGBufferPass(Renderer& renderer, const Mat4& viewProj,
+void SceneRenderer::AddGBufferPass(Render* pRender, const Mat4& viewProj,
 								   const GBufferTargets& targets,
 								   float fViewportWidth, float fViewportHeight)
 {
-	auto& graph = renderer.GetRenderGraph();
+	auto& graph = pRender->GetRenderGraph();
 
 	float w = fViewportWidth;
 	float h = fViewportHeight;
@@ -205,7 +205,7 @@ void SceneRenderer::AddGBufferPass(Renderer& renderer, const Mat4& viewProj,
 		});
 }
 
-void SceneRenderer::RenderShadowMap(Scene& scene, Renderer& renderer,
+void SceneRenderer::RenderShadowMap(Scene& scene, Render* pRender,
 									RHIPipelineHandle shadowPipeline,
 									const Mat4& lightViewProj,
 									RGHandle shadowTexture, RHIDepthStencilView shadowDSV,
@@ -213,15 +213,15 @@ void SceneRenderer::RenderShadowMap(Scene& scene, Renderer& renderer,
 {
 	m_vDrawItems.clear();
 	CollectDrawItems(scene, shadowPipeline);
-	AddShadowPass(renderer, shadowPipeline, lightViewProj, shadowTexture, shadowDSV, fShadowMapSize);
+	AddShadowPass(pRender, shadowPipeline, lightViewProj, shadowTexture, shadowDSV, fShadowMapSize);
 }
 
-void SceneRenderer::AddShadowPass(Renderer& renderer, RHIPipelineHandle shadowPipeline,
+void SceneRenderer::AddShadowPass(Render* pRender, RHIPipelineHandle shadowPipeline,
 								  const Mat4& lightViewProj,
 								  RGHandle shadowTexture, RHIDepthStencilView shadowDSV,
 								  float fShadowMapSize)
 {
-	auto& graph = renderer.GetRenderGraph();
+	auto& graph = pRender->GetRenderGraph();
 
 	auto drawItems = m_vDrawItems;
 	// Filter to opaque-only for shadow casting
@@ -265,7 +265,7 @@ void SceneRenderer::AddShadowPass(Renderer& renderer, RHIPipelineHandle shadowPi
 		});
 }
 
-void SceneRenderer::AddLightingPass(Renderer& renderer,
+void SceneRenderer::AddLightingPass(Render* pRender,
 									RHIPipelineHandle lightingPipeline,
 									RHIDescriptorSetHandle lightingDescSet,
 									const GBufferTargets& gbTargets,
@@ -274,7 +274,7 @@ void SceneRenderer::AddLightingPass(Renderer& renderer,
 									const LightingPushConstants& lightPC,
 									float fViewportWidth, float fViewportHeight)
 {
-	auto& graph = renderer.GetRenderGraph();
+	auto& graph = pRender->GetRenderGraph();
 
 	float w = fViewportWidth;
 	float h = fViewportHeight;
@@ -306,14 +306,14 @@ void SceneRenderer::AddLightingPass(Renderer& renderer,
 		});
 }
 
-void SceneRenderer::AddPostProcessPass(Renderer& renderer,
+void SceneRenderer::AddPostProcessPass(Render* pRender,
 									   RHIPipelineHandle postPipeline,
 									   RHIDescriptorSetHandle postDescSet,
 									   RGHandle hdrTexture,
 									   RGHandle targetTexture, RHIRenderTargetView targetRTV,
 									   float fViewportWidth, float fViewportHeight)
 {
-	auto& graph = renderer.GetRenderGraph();
+	auto& graph = pRender->GetRenderGraph();
 
 	float w = fViewportWidth;
 	float h = fViewportHeight;
@@ -338,7 +338,7 @@ void SceneRenderer::AddPostProcessPass(Renderer& renderer,
 		});
 }
 
-void SceneRenderer::RenderForwardTransparent(Scene& scene, Renderer& renderer,
+void SceneRenderer::RenderForwardTransparent(Scene& scene, Render* pRender,
 											 RHIPipelineHandle transparentPipeline,
 											 RHIDescriptorSetHandle shadowDescSet,
 											 const Mat4& viewProj,
@@ -358,12 +358,12 @@ void SceneRenderer::RenderForwardTransparent(Scene& scene, Renderer& renderer,
 	if (m_vDrawItems.empty())
 		return;
 
-	AddForwardTransparentPass(renderer, transparentPipeline, shadowDescSet, basePc, viewProj,
+	AddForwardTransparentPass(pRender, transparentPipeline, shadowDescSet, basePc, viewProj,
 							  targetTexture, targetRTV, depthTexture, depthDSV, shadowTexture,
 							  fViewportWidth, fViewportHeight);
 }
 
-void SceneRenderer::AddForwardTransparentPass(Renderer& renderer,
+void SceneRenderer::AddForwardTransparentPass(Render* pRender,
 											  RHIPipelineHandle transparentPipeline,
 											  RHIDescriptorSetHandle shadowDescSet,
 											  const TransparentPushConstants& basePc,
@@ -373,7 +373,7 @@ void SceneRenderer::AddForwardTransparentPass(Renderer& renderer,
 											  RGHandle shadowTexture,
 											  float fViewportWidth, float fViewportHeight)
 {
-	auto& graph = renderer.GetRenderGraph();
+	auto& graph = pRender->GetRenderGraph();
 
 	float w = fViewportWidth;
 	float h = fViewportHeight;

@@ -244,12 +244,15 @@ static void SetEditorStyle()
 // Initialize / Shutdown
 // ============================================================================
 
-bool Editor::Initialize(RHIDevice* pDevice, Window& window, RHIFormat rtFormat,
+bool Editor::Initialize(Render* pRender, Window& window,
 						const RenderPipeline& pipeline)
 {
 #if EVO_RHI_DX12
-	m_pDevice  = pDevice;
-	m_RTFormat = rtFormat;
+	auto* pDevice  = pRender->GetDevice();
+	auto rtFormat  = pRender->GetSwapChain()->GetFormat();
+	m_pDevice   = pDevice;
+	m_pRender = pRender;
+	m_RTFormat  = rtFormat;
 	auto* pDX12 = static_cast<DX12Device*>(pDevice);
 
 	// Register log sink for the ImGui log panel
@@ -296,7 +299,7 @@ bool Editor::Initialize(RHIDevice* pDevice, Window& window, RHIFormat rtFormat,
 	CreateViewportTexture(window.GetWidth(), window.GetHeight());
 
 	// Create ViewportFrame for intermediate rendering resources
-	m_ViewportFrame.Initialize(pDevice,
+	m_ViewportFrame.Initialize(pRender,
 		pipeline.MakeViewportFrameDesc(window.GetWidth(), window.GetHeight(), "Editor"));
 
 	EVO_LOG_INFO("Editor initialized");
@@ -309,8 +312,8 @@ bool Editor::Initialize(RHIDevice* pDevice, Window& window, RHIFormat rtFormat,
 void Editor::Shutdown()
 {
 #if EVO_RHI_DX12
-	m_pDevice->WaitIdle();
-	m_ViewportFrame.Shutdown(m_pDevice);
+	m_pRender->WaitIdle();
+	m_ViewportFrame.Shutdown();
 	DestroyViewportTexture();
 	ImGui_ImplDX12_Shutdown();
 	ImGui_ImplSDL3_Shutdown();
@@ -406,10 +409,10 @@ void Editor::Update(Scene& scene, const Camera& camera, float /*fDeltaTime*/)
 		// Resize viewport texture if needed
 		if (uNewW != m_uViewportWidth || uNewH != m_uViewportHeight)
 		{
-			m_pDevice->WaitIdle();
+			m_pRender->WaitIdle();
 			DestroyViewportTexture();
 			CreateViewportTexture(uNewW, uNewH);
-			m_ViewportFrame.Resize(m_pDevice, uNewW, uNewH);
+			m_ViewportFrame.Resize(uNewW, uNewH);
 		}
 
 #if EVO_RHI_DX12
@@ -536,7 +539,7 @@ void Editor::Update(Scene& scene, const Camera& camera, float /*fDeltaTime*/)
 	}
 }
 
-void Editor::Render(RHICommandList* pCmdList)
+void Editor::RenderUI(RHICommandList* pCmdList)
 {
 #if EVO_RHI_DX12
 	ImGui::Render();
@@ -551,10 +554,10 @@ void Editor::Render(RHICommandList* pCmdList)
 #endif
 }
 
-void Editor::CompositeToBackBuffer(Renderer& renderer)
+void Editor::CompositeToBackBuffer(Render* pRender)
 {
-	auto& rg = renderer.GetRenderGraph();
-	auto bbRG = renderer.GetBackBufferRG();
+	auto& rg = m_pRender->GetRenderGraph();
+	auto bbRG = m_pRender->GetBackBufferRG();
 
 	auto vpRG = rg.ImportTexture("EditorViewport", m_ViewportTexture,
 		RHITextureLayout::Common, RHITextureLayout::Common);
@@ -562,9 +565,9 @@ void Editor::CompositeToBackBuffer(Renderer& renderer)
 	rg.AddPass("ImGui", [&](RGPassBuilder& builder) {
 		builder.ReadTexture(vpRG);
 		builder.WriteRenderTarget(bbRG,
-			renderer.GetSwapChain()->GetCurrentBackBufferRTV());
+			m_pRender->GetSwapChain()->GetCurrentBackBufferRTV());
 	}, [this](RHICommandList* pCmdList) {
-		Render(pCmdList);
+		RenderUI(pCmdList);
 	});
 }
 

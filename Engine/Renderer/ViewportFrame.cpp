@@ -1,10 +1,14 @@
 ﻿#include "Renderer/ViewportFrame.h"
+#include "Renderer/Renderer.h"
 #include "Core/Log.h"
 
 namespace Evo {
 
-void ViewportFrame::Initialize(RHIDevice* pDevice, const ViewportFrameDesc& desc)
+void ViewportFrame::Initialize(Render* pRender, const ViewportFrameDesc& desc)
 {
+	m_pRender = pRender;
+	auto* pDevice = pRender->GetDevice();
+
 	m_sDebugName = desc.sDebugName;
 	m_uWidth     = desc.uWidth;
 	m_uHeight    = desc.uHeight;
@@ -25,8 +29,9 @@ void ViewportFrame::Initialize(RHIDevice* pDevice, const ViewportFrameDesc& desc
 	EVO_LOG_INFO("ViewportFrame '{}' initialized: {}x{}", m_sDebugName, m_uWidth, m_uHeight);
 }
 
-void ViewportFrame::Shutdown(RHIDevice* pDevice)
+void ViewportFrame::Shutdown()
 {
+	auto* pDevice = m_pRender->GetDevice();
 	DestroyResources(pDevice);
 
 	if (m_TransShadowDescSet.IsValid()) pDevice->FreeDescriptorSet(m_TransShadowDescSet);
@@ -38,8 +43,9 @@ void ViewportFrame::Shutdown(RHIDevice* pDevice)
 	m_LightingDescSet    = {};
 }
 
-void ViewportFrame::Resize(RHIDevice* pDevice, uint32 uWidth, uint32 uHeight)
+void ViewportFrame::Resize(uint32 uWidth, uint32 uHeight)
 {
+	auto* pDevice = m_pRender->GetDevice();
 	if (uWidth == m_uWidth && uHeight == m_uHeight)
 		return;
 	if (uWidth == 0 || uHeight == 0)

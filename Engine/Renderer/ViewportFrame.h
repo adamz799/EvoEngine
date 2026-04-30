@@ -3,9 +3,12 @@
 #include "RHI/RHI.h"
 #include "Renderer/RenderGraph.h"
 #include "Renderer/SceneRenderer.h"
+#include "Scene/Entity.h"
 #include <string>
 
 namespace Evo {
+
+class Render;
 
 struct ViewportFrameDesc {
 	std::string sDebugName;
@@ -24,9 +27,17 @@ public:
 	ViewportFrame() = default;
 	~ViewportFrame() = default;
 
-	void Initialize(RHIDevice* pDevice, const ViewportFrameDesc& desc);
-	void Shutdown(RHIDevice* pDevice);
-	void Resize(RHIDevice* pDevice, uint32 uWidth, uint32 uHeight);
+	void Initialize(Render* pRender, const ViewportFrameDesc& desc);
+	void Shutdown();
+	void Resize(uint32 uWidth, uint32 uHeight);
+
+	// Camera
+	void         SetCameraEntity(EntityHandle h) { m_CameraEntity = h; }
+	EntityHandle GetCameraEntity() const         { return m_CameraEntity; }
+
+	// Output — final rendered result (HDR after PostProcess)
+	RHITextureHandle    GetOutputTexture() const { return m_HDRTexture; }
+	RHIRenderTargetView GetOutputRTV()     const { return m_HDRRTV; }
 
 	uint32 GetWidth()  const { return m_uWidth; }
 	uint32 GetHeight() const { return m_uHeight; }
@@ -57,7 +68,9 @@ private:
 	void DestroyResources(RHIDevice* pDevice);
 	void WriteDescriptorSets(RHIDevice* pDevice);
 
-	std::string m_sDebugName;
+	Render*       m_pRender = nullptr; // set during Initialize
+	EntityHandle m_CameraEntity;      // camera entity in Scene
+	std::string  m_sDebugName;
 	uint32 m_uWidth  = 0;
 	uint32 m_uHeight = 0;
 

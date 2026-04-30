@@ -1,4 +1,5 @@
 ﻿#include "TestScene.h"
+#include "Renderer/Renderer.h"
 #include "Asset/ShaderAsset.h"
 #include "Asset/TextureAsset.h"
 #include "Scene/MeshWriter.h"
@@ -66,8 +67,9 @@ static void GenerateCubeData(std::vector<StaticVertex>& outVertices, std::vector
 	}
 }
 
-bool TestScene::Initialize(RHIDevice* pDevice)
+bool TestScene::Initialize(Render* pRender)
 {
+	auto* pDevice = pRender->GetDevice();
 #if EVO_RHI_DX12
 	// ---- Initialize asset manager (scene assets only) ----
 	m_AssetManager.Initialize(pDevice);
@@ -287,7 +289,7 @@ bool TestScene::Initialize(RHIDevice* pDevice)
 #endif
 }
 
-void TestScene::Shutdown(RHIDevice* /*pDevice*/)
+void TestScene::Shutdown(Render* /*pRender*/)
 {
 	m_AssetManager.Shutdown();
 }

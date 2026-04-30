@@ -33,20 +33,30 @@ bool Engine::Launch() {
 	}
 
 	// ---- 4. Renderer (RHI device + swap chain) ----
-	m_pRenderer = std::make_unique<Renderer>();
+	m_pRender = std::make_unique<Render>();
 	RendererDesc renderDesc{};
 	renderDesc.backend                  = cfg.ResolveBackend();
 	renderDesc.bEnableDebugLayer         = cfg.rhi.bEnableDebugLayer;
 	renderDesc.bEnableGPUBasedValidation = cfg.rhi.bEnableGPUBasedValidation;
 
-	if (!m_pRenderer->Initialize(renderDesc, *m_pWindow)) {
+	if (!m_pRender->Initialize(renderDesc, *m_pWindow)) {
 		EVO_LOG_ERROR("Failed to initialize renderer");
 		m_pWindow->Shutdown();
 		Log::Shutdown();
 		return false;
 	}
 
-	// ---- 5. Timing ----
+	// ---- 5. Pipeline ----
+	m_pRenderPipeline = std::make_unique<RenderPipeline>();
+	if (!m_pRenderPipeline->Initialize(m_pRender.get())) {
+		EVO_LOG_ERROR("Failed to initialize render pipeline");
+		m_pRender->Shutdown();
+		m_pWindow->Shutdown();
+		Log::Shutdown();
+		return false;
+	}
+
+	// ---- 6. Timing ----
 	m_LastTime = Clock::now();
 
 	EVO_LOG_INFO("Engine launched (backend: {})", cfg.rhi.backend);
@@ -56,14 +66,15 @@ bool Engine::Launch() {
 void Engine::Shutdown() {
 	EVO_LOG_INFO("Shutting down...");
 
-	// Future: join render thread
-	// if (m_RenderThread.joinable())
-	// 	m_RenderThread.join();
-
-	if (m_pRenderer) {
-		m_pRenderer->GetDevice()->WaitIdle();
-		m_pRenderer->Shutdown();
-		m_pRenderer.reset();
+	if (m_pRenderPipeline) {
+		m_pRenderPipeline->Shutdown();
+		m_pRenderPipeline.reset();
+	}
+	m_pScene.reset();
+	if (m_pRender) {
+		m_pRender->GetDevice()->WaitIdle();
+		m_pRender->Shutdown();
+		m_pRender.reset();
 	}
 	m_pInput.reset();
 	if (m_pWindow) {
@@ -71,6 +82,17 @@ void Engine::Shutdown() {
 		m_pWindow.reset();
 	}
 	Log::Shutdown();
+}
+
+void Engine::SetScene(Scene* pScene) {
+	m_pRenderPipeline->SetScene(pScene);
+}
+
+bool Engine::LoadScene(const std::filesystem::path& path) {
+	m_pScene = std::make_unique<Scene>();
+	m_pRenderPipeline->SetScene(m_pScene.get());
+	EVO_LOG_INFO("Scene loaded: {}", path.string());
+	return true;
 }
 
 bool Engine::BeginFrame() {
@@ -86,29 +108,31 @@ bool Engine::BeginFrame() {
 	if (m_pWindow->IsMinimized())
 		return true;
 
-	m_DeltaTime = std::chrono::duration<float>(
+	m_fDeltaTime = std::chrono::duration<float>(
 		Clock::now() - m_LastTime).count();
 	m_LastTime = Clock::now();
 
-	m_pRenderer->HandleResize(
+	m_pRender->HandleResize(
 		m_pWindow->GetWidth(), m_pWindow->GetHeight());
 
-	m_pRenderer->BeginFrame();
+	m_pRender->BeginFrame();
 
 	return true;
+}
+
+void Engine::RenderFrame() {
+	if (m_pWindow->IsMinimized())
+		return;
+
+	if (m_pRenderPipeline && m_pScene)
+		m_pRenderPipeline->RenderFrame();
 }
 
 void Engine::EndFrame() {
 	if (m_pWindow->IsMinimized())
 		return;
 
-	m_pRenderer->EndFrame();
-
-	// Future: kick render thread
-	// m_bRenderThreadBusy = true;
-	// m_RenderThread = std::thread([this]() {
-	// 	m_pRenderer->EndFrame();
-	// });
+	m_pRender->EndFrame();
 }
 
 } // namespace Evo

@@ -3,12 +3,12 @@
 
 namespace Evo {
 
-Renderer::~Renderer()
+Render::~Render()
 {
 	Shutdown();
 }
 
-bool Renderer::Initialize(const RendererDesc& desc, Window& window)
+bool Render::Initialize(const RendererDesc& desc, Window& window)
 {
 	EVO_LOG_INFO("Renderer initializing...");
 
@@ -48,7 +48,7 @@ bool Renderer::Initialize(const RendererDesc& desc, Window& window)
 	return true;
 }
 
-void Renderer::Shutdown()
+void Render::Shutdown()
 {
 	if (m_pRHIDevice)
 	{
@@ -63,7 +63,7 @@ void Renderer::Shutdown()
 	}
 }
 
-void Renderer::HandleResize(uint32 uWidth, uint32 uHeight)
+void Render::HandleResize(uint32 uWidth, uint32 uHeight)
 {
 	if (!m_pSwapChain || uWidth == 0 || uHeight == 0)
 		return;
@@ -75,7 +75,7 @@ void Renderer::HandleResize(uint32 uWidth, uint32 uHeight)
 	EVO_LOG_INFO("Swap chain resized: {}x{}", uWidth, uHeight);
 }
 
-WindowTarget Renderer::CreateWindowTarget(void* nativeWindow, uint32 uWidth, uint32 uHeight)
+WindowTarget Render::CreateWindowTarget(void* nativeWindow, uint32 uWidth, uint32 uHeight)
 {
 	RHISwapChainDesc scDesc{};
 	scDesc.pWindowHandle = nativeWindow;
@@ -93,7 +93,7 @@ WindowTarget Renderer::CreateWindowTarget(void* nativeWindow, uint32 uWidth, uin
 	return target;
 }
 
-void Renderer::ResizeWindowTarget(WindowTarget& t, uint32 uWidth, uint32 uHeight)
+void Render::ResizeWindowTarget(WindowTarget& t, uint32 uWidth, uint32 uHeight)
 {
 	if (!t.m_pSwapChain || uWidth == 0 || uHeight == 0)
 		return;
@@ -106,13 +106,13 @@ void Renderer::ResizeWindowTarget(WindowTarget& t, uint32 uWidth, uint32 uHeight
 	t.m_uHeight = uHeight;
 }
 
-void Renderer::PresentWindowTarget(WindowTarget& t)
+void Render::PresentWindowTarget(WindowTarget& t)
 {
 	if (t.m_pSwapChain)
 		t.m_pSwapChain->Present();
 }
 
-void Renderer::BeginFrame()
+void Render::BeginFrame()
 {
 	m_uFrameIndex = m_pSwapChain->GetCurrentBackBufferIndex();
 	m_pFrameFence->CpuWait(m_vFenceValues[m_uFrameIndex]);
@@ -129,7 +129,7 @@ void Renderer::BeginFrame()
 		RHITextureLayout::Common);
 }
 
-void Renderer::EndFrame()
+void Render::EndFrame()
 {
 	// Compile and execute the render graph (each pass gets its own CmdList)
 	m_RenderGraph.Compile();

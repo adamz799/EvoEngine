@@ -8,7 +8,7 @@
 
 namespace Evo {
 
-class Renderer;
+class Render;
 
 struct DebugLineVertex {
 	float fPosX, fPosY, fPosZ;                // this endpoint (world)
@@ -20,15 +20,15 @@ struct DebugLineVertex {
 /// DebugRenderer -- draws anti-aliased colored lines (frustum, camera icon, gizmos).
 class DebugRenderer {
 public:
-	bool Initialize(RHIDevice* pDevice, AssetManager& assetManager, RHIFormat rtFormat);
-	void Shutdown(RHIDevice* pDevice);
+	bool Initialize(Render* pRender, AssetManager& assetManager);
+	void Shutdown(Render* pRender);
 
 	void DrawLine(const Vec3& from, const Vec3& to, const Vec4& color);
 	void DrawFrustum(const Camera& camera, const Vec4& color);
 	void DrawCameraIcon(const Camera& camera, const Vec4& color, float fSize);
 	void DrawTranslationGizmo(const Vec3& position, float fSize, int iHighlightAxis = -1);
 
-	void Render(Renderer& renderer, RGHandle target, RHIRenderTargetView rtv,
+	void RenderLines(Render* pRender, RGHandle target, RHIRenderTargetView rtv,
 				const Mat4& viewProj, float fViewportWidth, float fViewportHeight);
 
 private:

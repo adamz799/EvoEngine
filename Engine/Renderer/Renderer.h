@@ -15,7 +15,7 @@ struct RendererDesc {
 
 // ============================================================================
 // WindowTarget — secondary output window (e.g. editor runtime preview).
-// Owned by caller, created by Renderer. Hides swap chain lifecycle.
+// Owned by caller, created by Render. Hides swap chain lifecycle.
 // ============================================================================
 
 class WindowTarget {
@@ -30,20 +30,20 @@ public:
 	WindowTarget() = default;
 
 private:
-	friend class Renderer;
+	friend class Render;
 	std::unique_ptr<RHISwapChain> m_pSwapChain;
 	uint32 m_uWidth  = 0;
 	uint32 m_uHeight = 0;
 };
 
 // ============================================================================
-// Renderer
+// Render
 // ============================================================================
 
-class Renderer {
+class Render {
 public:
-	Renderer() = default;
-	~Renderer();
+	Render() = default;
+	~Render();
 
 	bool Initialize(const RendererDesc& desc, Window& window);
 	void Shutdown();
@@ -53,6 +53,9 @@ public:
 
 	/// Resize swap chain to match current window size. Call when window resizes.
 	void HandleResize(uint32 uWidth, uint32 uHeight);
+
+	/// Wait for all GPU work to complete.
+	void WaitIdle() { m_pRHIDevice->WaitIdle(); }
 
 	/// Create a secondary window target (its own swap chain).
 	WindowTarget CreateWindowTarget(void* nativeWindow, uint32 uWidth, uint32 uHeight);
@@ -65,6 +68,7 @@ public:
 
 	RHIDevice* GetDevice() const { return m_pRHIDevice.get(); }
 	RenderGraph& GetRenderGraph()        { return m_RenderGraph; }
+
 	RGHandle     GetBackBufferRG() const { return m_BackBufferRG; }
 	RHISwapChain* GetSwapChain() const   { return m_pSwapChain.get(); }
 

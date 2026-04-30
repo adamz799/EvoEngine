@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "RHI/RHI.h"
 #include "Asset/AssetManager.h"
@@ -7,59 +7,73 @@
 #include "Renderer/ViewportFrame.h"
 #include "Scene/Scene.h"
 #include "Math/Math.h"
+#include <vector>
 
 namespace Evo {
 
-class Renderer;
+class Render;
 
-/// Base rendering pipeline: owns shared PSOs, shadow map, and light data.
-/// Provides the 5-pass deferred rendering sequence per viewport.
+/// Rendering pipeline — owned by Engine. Holds its own Renderer* and Scene*.
+/// No per-frame parameter passing needed. App never sees this class.
 class RenderPipeline {
 public:
 	RenderPipeline() = default;
 	virtual ~RenderPipeline();
 
-	bool Initialize(RHIDevice* pDevice, RHIFormat rtFormat);
-	virtual void Shutdown(RHIDevice* pDevice);
+	bool Initialize(Render* pRender);
+	virtual void Shutdown();
 
-	/// Build a ViewportFrameDesc with proper layout handles and shadow texture.
+	/// Bind the current scene. Called by Engine::LoadScene.
+	void SetScene(Scene* pScene) { m_pScene = pScene; }
+
+	/// Single frame entry — called by Engine::EndFrame.
+	/// Reads scene cameras, renders shadow + all viewports.
+	virtual void RenderFrame();
+
+	// ---- Viewport query (Editor needs output textures for ImGui) ----
+
+	ViewportFrame* GetViewport(size_t i);
+	size_t         GetViewportCount() const { return m_vViewports.size(); }
 	ViewportFrameDesc MakeViewportFrameDesc(
 		uint32 uWidth, uint32 uHeight, const std::string& sName) const;
 
-	/// Import shadow map and render shadow pass. Call once per frame.
-	void RenderShadow(Renderer& renderer, Scene& scene);
+	RHITextureHandle GetShadowTexture() const { return m_ShadowTexture; }
 
-	/// Full per-viewport pipeline: GBuffer -> Lighting -> Transparent -> PostProcess.
-	/// Output goes to the swap chain back buffer.
-	void RenderViewport(Renderer& renderer, Scene& scene,
-						ViewportFrame& viewport, const Mat4& viewProj);
+	// === Per-pass methods (Editor uses these for custom render flow) ===
 
-	/// Overload with explicit output target (for off-screen viewports).
-	virtual void RenderViewport(Renderer& renderer, Scene& scene,
-								ViewportFrame& viewport, const Mat4& viewProj,
+	virtual void RenderShadow();
+
+	void RenderViewport(ViewportFrame& viewport, const Mat4& viewProj);
+
+	virtual void RenderViewport(ViewportFrame& viewport, const Mat4& viewProj,
 								RGHandle outputTarget, RHIRenderTargetView outputRTV);
 
-	// Accessors
-	RHITextureHandle             GetShadowTexture()             const { return m_ShadowTexture; }
+protected:
+	// Scene renderer access (EditorRenderPipeline uses for debug meshes)
+	SceneRenderer& GetSceneRenderer() { return m_SceneRenderer; }
+
 	RHIDescriptorSetLayoutHandle GetLightingSetLayout()         const { return m_LightingSetLayout; }
 	RHIDescriptorSetLayoutHandle GetPostProcessSetLayout()      const { return m_PostProcessSetLayout; }
 	RHIDescriptorSetLayoutHandle GetTransparentShadowSetLayout() const { return m_TransShadowSetLayout; }
-	const Mat4&                  GetLightViewProj()             const { return m_LightViewProj; }
+	const Mat4& GetLightViewProj() const { return m_LightViewProj; }
 
-protected:
-	// Shadow map
+	// Pointers (set during Initialize / SetScene)
+	Render* m_pRender = nullptr;
+	Scene*    m_pScene    = nullptr;
+
+	// Shadow
 	static constexpr uint32 kShadowMapSize = 2048;
 	RHITextureHandle    m_ShadowTexture;
 	RHIDepthStencilView m_ShadowDSV;
 
-	// Pipelines (PSOs)
+	// PSOs
 	RHIPipelineHandle m_GBufferPipeline;
 	RHIPipelineHandle m_ShadowPipeline;
 	RHIPipelineHandle m_LightingPipeline;
 	RHIPipelineHandle m_PostProcessPipeline;
 	RHIPipelineHandle m_TransparentPipeline;
 
-	// Descriptor set layouts
+	// Descriptor layouts
 	RHIDescriptorSetLayoutHandle m_LightingSetLayout;
 	RHIDescriptorSetLayoutHandle m_PostProcessSetLayout;
 	RHIDescriptorSetLayoutHandle m_TransShadowSetLayout;
@@ -71,11 +85,12 @@ protected:
 
 	// Utility
 	SceneRenderer m_SceneRenderer;
-	AssetManager  m_AssetManager;   // owns shader assets
+	AssetManager  m_AssetManager;
+	RGHandle      m_ShadowRG;
 
-	// Per-frame shadow RG handle (valid between RenderShadow and EndFrame)
-	RGHandle m_ShadowRG;
+private:
+	void SetupViewports();
+	std::vector<ViewportFrame> m_vViewports;
 };
 
 } // namespace Evo
-

@@ -39,6 +39,16 @@ public:
 		}
 	}
 
+	/// Get all entity handles that have a CameraComponent.
+	std::vector<EntityHandle> GetCameraEntities() const
+	{
+		std::vector<EntityHandle> result;
+		ForEachEntity([&](EntityHandle h) {
+			if (m_Cameras.Has(h)) result.push_back(h);
+		});
+		return result;
+	}
+
 	ComponentArray<TransformComponent>& Transforms() { return m_Transforms; }
 	ComponentArray<MeshComponent>&      Meshes()     { return m_Meshes; }
 	ComponentArray<MaterialComponent>&  Materials()  { return m_Materials; }

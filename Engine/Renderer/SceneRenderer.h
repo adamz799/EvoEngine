@@ -8,7 +8,7 @@
 namespace Evo {
 
 class Scene;
-class Renderer;
+class Render;
 
 /// Per-draw-call data collected from the scene.
 struct DrawItem {
@@ -67,7 +67,7 @@ struct TransparentPushConstants {
 /// Collects renderable entities, builds draw items, adds passes.
 class SceneRenderer {
 public:
-	void RenderScene(Scene& scene, Renderer& renderer,
+	void RenderScene(Scene& scene, Render* pRender,
 					 RHIPipelineHandle defaultPipeline,
 					 const Mat4& viewProj,
 					 RGHandle targetTexture,
@@ -76,19 +76,19 @@ public:
 					 RHIDepthStencilView depthDSV,
 					 float fViewportWidth, float fViewportHeight);
 
-	void RenderGBuffer(Scene& scene, Renderer& renderer,
+	void RenderGBuffer(Scene& scene, Render* pRender,
 					   RHIPipelineHandle gbufferPipeline,
 					   const Mat4& viewProj,
 					   const GBufferTargets& targets,
 					   float fViewportWidth, float fViewportHeight);
 
-	void RenderShadowMap(Scene& scene, Renderer& renderer,
+	void RenderShadowMap(Scene& scene, Render* pRender,
 						 RHIPipelineHandle shadowPipeline,
 						 const Mat4& lightViewProj,
 						 RGHandle shadowTexture, RHIDepthStencilView shadowDSV,
 						 float fShadowMapSize);
 
-	void AddLightingPass(Renderer& renderer,
+	void AddLightingPass(Render* pRender,
 						 RHIPipelineHandle lightingPipeline,
 						 RHIDescriptorSetHandle lightingDescSet,
 						 const GBufferTargets& gbTargets,
@@ -97,14 +97,14 @@ public:
 						 const LightingPushConstants& lightPC,
 						 float fViewportWidth, float fViewportHeight);
 
-	void AddPostProcessPass(Renderer& renderer,
+	void AddPostProcessPass(Render* pRender,
 							RHIPipelineHandle postPipeline,
 							RHIDescriptorSetHandle postDescSet,
 							RGHandle hdrTexture,
 							RGHandle targetTexture, RHIRenderTargetView targetRTV,
 							float fViewportWidth, float fViewportHeight);
 
-	void RenderForwardTransparent(Scene& scene, Renderer& renderer,
+	void RenderForwardTransparent(Scene& scene, Render* pRender,
 								  RHIPipelineHandle transparentPipeline,
 								  RHIDescriptorSetHandle shadowDescSet,
 								  const Mat4& viewProj,
@@ -118,18 +118,18 @@ private:
 	std::vector<DrawItem> m_vDrawItems;
 
 	void CollectDrawItems(Scene& scene, RHIPipelineHandle defaultPipeline);
-	void AddOpaquePass(Renderer& renderer, const Mat4& viewProj,
+	void AddOpaquePass(Render* pRender, const Mat4& viewProj,
 					   RGHandle targetTexture, RHIRenderTargetView targetRTV,
 					   RGHandle depthTexture, RHIDepthStencilView depthDSV,
 					   float fViewportWidth, float fViewportHeight);
-	void AddGBufferPass(Renderer& renderer, const Mat4& viewProj,
+	void AddGBufferPass(Render* pRender, const Mat4& viewProj,
 						const GBufferTargets& targets,
 						float fViewportWidth, float fViewportHeight);
-	void AddShadowPass(Renderer& renderer, RHIPipelineHandle shadowPipeline,
+	void AddShadowPass(Render* pRender, RHIPipelineHandle shadowPipeline,
 					   const Mat4& lightViewProj,
 					   RGHandle shadowTexture, RHIDepthStencilView shadowDSV,
 					   float fShadowMapSize);
-	void AddForwardTransparentPass(Renderer& renderer,
+	void AddForwardTransparentPass(Render* pRender,
 								   RHIPipelineHandle transparentPipeline,
 								   RHIDescriptorSetHandle shadowDescSet,
 								   const TransparentPushConstants& basePc,

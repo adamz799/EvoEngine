@@ -17,22 +17,22 @@ namespace Evo {
 class RHIDevice;
 class RHICommandList;
 class RenderPipeline;
-class Renderer;
+class Render;
 class Window;
 
 /// Editor — ImGui-based editor UI with scene hierarchy, inspector, and log panels.
 class Editor {
 public:
-	bool Initialize(RHIDevice* pDevice, Window& window, RHIFormat rtFormat,
+	bool Initialize(Render* pRender, Window& window,
 					const RenderPipeline& pipeline);
 	void Shutdown();
 
 	void BeginFrame();
 	void Update(Scene& scene, const Camera& camera, float fDeltaTime);
-	void Render(RHICommandList* pCmdList);
+	void RenderUI(RHICommandList* pCmdList);
 
 	/// Composite the editor viewport + ImGui onto the swap chain back buffer.
-	void CompositeToBackBuffer(Renderer& renderer);
+	void CompositeToBackBuffer(Render* pRender);
 
 	EntityHandle GetSelectedEntity() const { return m_SelectedEntity; }
 	int          GetHoveredAxis()   const { return m_iHoveredAxis; }
@@ -63,8 +63,9 @@ private:
 	void CreateViewportTexture(uint32 uWidth, uint32 uHeight);
 	void DestroyViewportTexture();
 
-	RHIDevice*   m_pDevice   = nullptr;
-	RHIFormat    m_RTFormat  = RHIFormat::R8G8B8A8_UNORM;
+	RHIDevice*   m_pDevice    = nullptr;
+	Render*      m_pRender  = nullptr;
+	RHIFormat    m_RTFormat   = RHIFormat::R8G8B8A8_UNORM;
 
 	// Panel visibility
 	bool m_bShowHierarchy = true;

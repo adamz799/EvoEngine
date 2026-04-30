@@ -15,9 +15,12 @@ struct DebugLinePushConstants {
 	float32 _pad;
 };
 
-bool DebugRenderer::Initialize(RHIDevice* pDevice, AssetManager& assetManager, RHIFormat rtFormat)
+bool DebugRenderer::Initialize(Render* pRender, AssetManager& assetManager)
 {
 #if EVO_RHI_DX12
+	auto* pDevice  = pRender->GetDevice();
+	auto rtFormat  = pRender->GetSwapChain()->GetFormat();
+
 	// Load debug line shader
 	m_ShaderHandle = assetManager.LoadSync("Assets/Shaders/DebugLine.hlsl");
 	auto* pShader = assetManager.Get<ShaderAsset>(m_ShaderHandle);
@@ -83,8 +86,9 @@ bool DebugRenderer::Initialize(RHIDevice* pDevice, AssetManager& assetManager, R
 #endif
 }
 
-void DebugRenderer::Shutdown(RHIDevice* pDevice)
+void DebugRenderer::Shutdown(Render* pRender)
 {
+	auto* pDevice = pRender->GetDevice();
 	if (m_LineBuffer.IsValid())
 	{
 		pDevice->UnmapBuffer(m_LineBuffer);
@@ -221,7 +225,7 @@ void DebugRenderer::DrawTranslationGizmo(const Vec3& position, float fSize, int 
 	}
 }
 
-void DebugRenderer::Render(Renderer& renderer, RGHandle target, RHIRenderTargetView rtv,
+void DebugRenderer::RenderLines(Render* pRender, RGHandle target, RHIRenderTargetView rtv,
 						   const Mat4& viewProj, float fViewportWidth, float fViewportHeight)
 {
 	if (m_vLines.empty())
@@ -291,7 +295,7 @@ void DebugRenderer::Render(Renderer& renderer, RGHandle target, RHIRenderTargetV
 	float h = fViewportHeight;
 	uint32 count = uVertexCount;
 
-	auto& rg = renderer.GetRenderGraph();
+	auto& rg = pRender->GetRenderGraph();
 	rg.AddPass("DebugLines", [&](RGPassBuilder& builder) {
 		builder.WriteRenderTarget(target, rtv);
 	}, [pipeline, buffer, pc, w, h, count](RHICommandList* pCmdList) {

@@ -3,24 +3,22 @@
 #include "Platform/Window.h"
 #include "Platform/Input.h"
 #include "Renderer/Renderer.h"
+#include "Renderer/RenderPipeline.h"
+#include "Scene/Scene.h"
 #include <memory>
 #include <chrono>
+#include <filesystem>
 
 namespace Evo {
 
+class Editor;
+
 // ============================================================================
-// Engine — application framework singleton.
+// Engine — the application. App only calls:
+//   Launch → LoadScene → while(BeginFrame) { EndFrame } → Shutdown
 //
-// Lifecycle:
-//   EngineConfig::LoadFromFile("...");   // Phase 1: config
-//   Engine engine;
-//   engine.Launch();                      // Phase 2: init all subsystems
-//   while (engine.BeginFrame()) { ... }   // Phase 3: main loop
-//   engine.Shutdown();
-//
-// Thread boundary (future):
-//   BeginFrame() = sync point  (main thread waits for previous render frame)
-//   EndFrame()   = kick point  (launches render thread to execute GPU commands)
+// All subsystems (Window, Input, Renderer, Pipeline, Scene) are internal.
+// Editor accesses internals via friend.
 // ============================================================================
 
 class Engine {
@@ -33,41 +31,47 @@ public:
 
 	// ---- Lifecycle ----
 
-	/// Initialize all subsystems (log, input, window, renderer).
-	/// EngineConfig must already be loaded. Returns false on critical failure.
 	bool Launch();
-
-	/// Tear down in reverse init order. Safe if Launch failed.
 	void Shutdown();
 
 	// ---- Frame ----
 
-	/// Pump events, calc delta, handle resize, begin GPU frame.
-	/// Returns false when quit is requested.
 	bool BeginFrame();
+	void RenderFrame();   // Pipeline::RenderFrame (Editor injects passes after this)
+	void EndFrame();      // Renderer::EndFrame (compile + execute + present)
 
-	/// Execute render graph and present. Call once per frame.
-	void EndFrame();
+	// ---- Scene ----
 
-	// ---- Accessors ----
+	bool LoadScene(const std::filesystem::path& path);
 
-	Window&     GetWindow()    { return *m_pWindow; }
-	Renderer&   GetRenderer()  { return *m_pRenderer; }
-	Input&      GetInput()     { return *m_pInput; }
-	float       GetDeltaTime() const { return m_DeltaTime; }
+	/// Use an externally-created scene. Caller retains ownership.
+	void SetScene(Scene* pScene);
+
+	// ---- App-visible accessors ----
+
+	Window& GetWindow()    { return *m_pWindow; }
+	Input&  GetInput()     { return *m_pInput; }
+	float   GetDeltaTime() const { return m_fDeltaTime; }
+
+	/// Current scene — App updates entity state (cameras, transforms) each frame.
+	Scene* GetScene() { return m_pScene.get(); }
+
+	/// Renderer — for scene setup only (asset loading). Prefer not to use.
+	Render& GetRender() { return *m_pRender; }
 
 private:
-	std::unique_ptr<Window>   m_pWindow;
-	std::unique_ptr<Renderer> m_pRenderer;
-	std::unique_ptr<Input>    m_pInput;
-	float                     m_DeltaTime = 0.0f;
+	friend class Editor;
+	RenderPipeline& GetPipeline() { return *m_pRenderPipeline; }
+
+	std::unique_ptr<Window>         m_pWindow;
+	std::unique_ptr<Render>			m_pRender;
+	std::unique_ptr<Input>          m_pInput;
+	std::unique_ptr<RenderPipeline> m_pRenderPipeline;
+	std::unique_ptr<Scene>          m_pScene;
+	float                           m_fDeltaTime = 0.0f;
 
 	using Clock = std::chrono::high_resolution_clock;
 	Clock::time_point m_LastTime;
-
-	// ---- Future: render thread ----
-	// std::thread         m_RenderThread;
-	// std::atomic<bool>   m_bRenderThreadBusy{false};
 };
 
 } // namespace Evo

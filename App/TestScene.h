@@ -6,12 +6,14 @@
 
 namespace Evo {
 
+class Render;
+
 /// TestScene -- five rotating cubes + two transparent cubes, with a fixed game camera entity.
 /// Scene setup and update only; rendering is handled by RenderPipeline.
 class TestScene {
 public:
-	bool Initialize(RHIDevice* pDevice);
-	void Shutdown(RHIDevice* pDevice);
+	bool Initialize(Render* pRender);
+	void Shutdown(Render* pRender);
 
 	/// Update cube rotations (no input, no camera controller).
 	void Update(float fDeltaTime);

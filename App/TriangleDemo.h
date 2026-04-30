@@ -9,8 +9,8 @@ class Renderer;
 
 class TriangleDemo {
 public:
-	bool Initialize(RHIDevice* pDevice, RHIFormat rtFormat);
-	void Shutdown(RHIDevice* pDevice);
+	bool Initialize(Renderer& renderer);
+	void Shutdown(Renderer& renderer);
 
 	/// Add triangle rendering pass to the frame's render graph.
 	void AddPasses(Renderer& renderer);
