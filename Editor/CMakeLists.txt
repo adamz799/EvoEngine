@@ -2,6 +2,7 @@ add_executable(EvoEditor
     EditorMain.cpp
     Editor.cpp
     DebugRenderer.cpp
+    EditorRenderPipeline.cpp
     ${CMAKE_SOURCE_DIR}/App/TestScene.cpp
 )
 

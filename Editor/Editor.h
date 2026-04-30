@@ -1,7 +1,8 @@
-﻿#pragma once
+#pragma once
 
 #include "RHI/RHITypes.h"
 #include "Renderer/Camera.h"
+#include "Renderer/ViewportFrame.h"
 #include "Scene/Scene.h"
 #include "ImGuiLogSink.h"
 
@@ -15,12 +16,14 @@ namespace Evo {
 
 class RHIDevice;
 class RHICommandList;
+class RenderPipeline;
 class Window;
 
 /// Editor — ImGui-based editor UI with scene hierarchy, inspector, and log panels.
 class Editor {
 public:
-	bool Initialize(RHIDevice* pDevice, Window& window, RHIFormat rtFormat);
+	bool Initialize(RHIDevice* pDevice, Window& window, RHIFormat rtFormat,
+	                const RenderPipeline& pipeline);
 	void Shutdown();
 
 	void BeginFrame();
@@ -29,26 +32,15 @@ public:
 
 	EntityHandle GetSelectedEntity() const { return m_SelectedEntity; }
 
-	// Scene viewport texture accessors
+	// Viewport texture (final output for ImGui display)
 	RHITextureHandle    GetViewportTexture() const { return m_ViewportTexture; }
 	RHIRenderTargetView GetViewportRTV()     const { return m_ViewportRTV; }
-	RHITextureHandle    GetDepthTexture()    const { return m_DepthTexture; }
-	RHIDepthStencilView GetDepthDSV()        const { return m_DepthDSV; }
 
-	// G-Buffer texture accessors
-	RHITextureHandle    GetGBAlbedoTexture()  const { return m_GBAlbedoTexture; }
-	RHIRenderTargetView GetGBAlbedoRTV()      const { return m_GBAlbedoRTV; }
-	RHITextureHandle    GetGBNormalTexture()  const { return m_GBNormalTexture; }
-	RHIRenderTargetView GetGBNormalRTV()      const { return m_GBNormalRTV; }
-	RHITextureHandle    GetGBRoughMetTexture() const { return m_GBRoughMetTexture; }
-	RHIRenderTargetView GetGBRoughMetRTV()     const { return m_GBRoughMetRTV; }
+	// Intermediate rendering resources
+	ViewportFrame& GetViewportFrame() { return m_ViewportFrame; }
 
-	// HDR intermediate texture accessors
-	RHITextureHandle    GetHDRTexture() const { return m_HDRTexture; }
-	RHIRenderTargetView GetHDRRTV()     const { return m_HDRRTV; }
-
-	uint32              GetViewportWidth()   const { return m_uViewportWidth; }
-	uint32              GetViewportHeight()  const { return m_uViewportHeight; }
+	uint32 GetViewportWidth()  const { return m_uViewportWidth; }
+	uint32 GetViewportHeight() const { return m_uViewportHeight; }
 
 private:
 	void DrawHierarchyPanel(Scene& scene);
@@ -57,8 +49,8 @@ private:
 	void DrawLogPanel();
 	void DoViewportPicking(Scene& scene, const Camera& camera, float u, float v);
 
-	void CreateViewportResources(uint32 uWidth, uint32 uHeight);
-	void DestroyViewportResources();
+	void CreateViewportTexture(uint32 uWidth, uint32 uHeight);
+	void DestroyViewportTexture();
 
 	RHIDevice*   m_pDevice   = nullptr;
 	RHIFormat    m_RTFormat  = RHIFormat::R8G8B8A8_UNORM;
@@ -76,26 +68,15 @@ private:
 	// Log sink for ImGui panel
 	std::shared_ptr<ImGuiLogSink> m_pLogSink;
 
-	// Off-screen scene viewport texture + depth buffer
+	// Off-screen viewport texture for ImGui display (NOT intermediate render resources)
 	RHITextureHandle    m_ViewportTexture;
 	RHIRenderTargetView m_ViewportRTV;
-	RHITextureHandle    m_DepthTexture;
-	RHIDepthStencilView m_DepthDSV;
 
-	// G-Buffer textures (same size as viewport)
-	RHITextureHandle    m_GBAlbedoTexture;
-	RHIRenderTargetView m_GBAlbedoRTV;
-	RHITextureHandle    m_GBNormalTexture;
-	RHIRenderTargetView m_GBNormalRTV;
-	RHITextureHandle    m_GBRoughMetTexture;
-	RHIRenderTargetView m_GBRoughMetRTV;
+	// Intermediate rendering resources (GBuffer, Depth, HDR, descriptor sets)
+	ViewportFrame m_ViewportFrame;
 
-	// HDR intermediate (same size as viewport)
-	RHITextureHandle    m_HDRTexture;
-	RHIRenderTargetView m_HDRRTV;
-
-	uint32              m_uViewportWidth  = 0;
-	uint32              m_uViewportHeight = 0;
+	uint32 m_uViewportWidth  = 0;
+	uint32 m_uViewportHeight = 0;
 
 #if EVO_RHI_DX12
 	DX12GpuDescriptorAllocator::Allocation m_ViewportSRV = {};

@@ -30,7 +30,9 @@ file(GLOB RENDERER_HEADERS Renderer/*.h)
 set(RENDERER_SOURCES       Renderer/Renderer.cpp
                            Renderer/RenderGraph.cpp
                            Renderer/SceneRenderer.cpp
-                           Renderer/Camera.cpp)
+                           Renderer/Camera.cpp
+                           Renderer/ViewportFrame.cpp
+                           Renderer/RenderPipeline.cpp)
 
 file(GLOB SCENE_HEADERS    Scene/*.h)
 set(SCENE_SOURCES          Scene/Scene.cpp
