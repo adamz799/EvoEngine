@@ -49,6 +49,16 @@ public:
 		return result;
 	}
 
+	/// Find entity by name. Returns invalid handle if not found.
+	EntityHandle FindEntity(const std::string& sName) const
+	{
+		EntityHandle result;
+		ForEachEntity([&](EntityHandle h) {
+			if (m_vNames[h.uIndex] == sName) result = h;
+		});
+		return result;
+	}
+
 	ComponentArray<TransformComponent>& Transforms() { return m_Transforms; }
 	ComponentArray<MeshComponent>&      Meshes()     { return m_Meshes; }
 	ComponentArray<MaterialComponent>&  Materials()  { return m_Materials; }

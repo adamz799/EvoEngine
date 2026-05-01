@@ -59,6 +59,16 @@ bool WriteScene(const std::string& sPath, Scene* pScene)
 			bVisible  = pMesh->bVisible;
 		}
 
+		// Camera component (optional)
+		float fFovY = 60.0f, fNearZ = 0.1f, fFarZ = 1000.0f;
+		auto* pCam = pScene->Cameras().Get(entity);
+		if (pCam)
+		{
+			fFovY  = pCam->fFovY;
+			fNearZ = pCam->fNearZ;
+			fFarZ  = pCam->fFarZ;
+		}
+
 		Schema::SceneEntityBuilder entityBuilder(builder);
 		entityBuilder.add_name(nameOffset);
 		entityBuilder.add_position(pPosition);
@@ -70,6 +80,9 @@ bool WriteScene(const std::string& sPath, Scene* pScene)
 		entityBuilder.add_visible(bVisible);
 		if (!materialPathOffset.IsNull())
 			entityBuilder.add_material_path(materialPathOffset);
+		entityBuilder.add_fov_y(fFovY);
+		entityBuilder.add_near_z(fNearZ);
+		entityBuilder.add_far_z(fFarZ);
 
 		entityOffsets.push_back(entityBuilder.Finish());
 	});

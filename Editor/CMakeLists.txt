@@ -3,6 +3,7 @@
 	Editor.cpp
 	DebugRenderer.cpp
 	EditorRenderPipeline.cpp
+	EditorAssetFactory.cpp
 	${CMAKE_SOURCE_DIR}/App/TestScene.cpp
 )
 

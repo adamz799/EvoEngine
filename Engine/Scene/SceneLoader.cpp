@@ -88,6 +88,16 @@ bool LoadScene(const std::string& sPath, Scene* pScene, AssetManager& assetManag
 			}
 		}
 
+		// Load camera component (if this entity has no mesh/prefab, assume it's a camera)
+		if (!pEntity->prefab_path() || pEntity->prefab_path()->size() == 0)
+		{
+			CameraComponent cam;
+			cam.fFovY  = pEntity->fov_y();
+			cam.fNearZ = pEntity->near_z();
+			cam.fFarZ  = pEntity->far_z();
+			pScene->Cameras().Add(entity, cam);
+		}
+
 		// Load material
 		if (pEntity->material_path() && pEntity->material_path()->size() > 0)
 		{

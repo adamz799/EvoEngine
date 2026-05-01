@@ -20,6 +20,11 @@ table SceneEntity {
 	// Material 引用
 	material_path: string;  // 资产路径，如 "Assets/Materials/CenterCube.ematerial"
 
+	// Camera (optional — only for camera entities)
+	fov_y:      float = 60.0;
+	near_z:     float = 0.1;
+	far_z:      float = 1000.0;
+
 	// 渲染标志
 	visible:    bool = true;
 }

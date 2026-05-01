@@ -5,6 +5,7 @@
 #include "Renderer/RenderGraph.h"
 #include "Editor.h"
 #include "EditorRenderPipeline.h"
+#include "EditorAssetFactory.h"
 #include "TestScene.h"
 
 #define SDL_MAIN_HANDLED
@@ -50,6 +51,9 @@ int main(int /*argc*/, char* /*argv*/[])
 	Evo::EditorRenderPipeline pipeline;
 	if (!pipeline.Initialize(pRender))
 		EVO_LOG_ERROR("Failed to initialize render pipeline");
+
+	// Ensure demo assets exist (idempotent — skips if present)
+	Evo::EditorAssetFactory::EnsureDemoAssets();
 
 	// ---- Initialize test scene ----
 	Evo::TestScene testScene;
