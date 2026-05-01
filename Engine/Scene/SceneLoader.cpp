@@ -10,7 +10,7 @@
 
 namespace Evo {
 
-bool LoadScene(const std::string& sPath, Scene& scene, AssetManager& assetManager)
+bool LoadScene(const std::string& sPath, Scene* pScene, AssetManager& assetManager)
 {
 	auto rawData = FileSystem::ReadBinary(sPath);
 	if (rawData.empty())
@@ -27,8 +27,8 @@ bool LoadScene(const std::string& sPath, Scene& scene, AssetManager& assetManage
 		return false;
 	}
 
-	auto* pScene = Schema::GetScene(rawData.data());
-	auto* pEntities = pScene->entities();
+	auto* fbScene = Schema::GetScene(rawData.data());
+	auto* pEntities = fbScene->entities();
 	if (!pEntities)
 	{
 		EVO_LOG_ERROR("LoadScene: no entities in '{}'", sPath);
@@ -41,7 +41,7 @@ bool LoadScene(const std::string& sPath, Scene& scene, AssetManager& assetManage
 
 		// Create entity
 		const char* pName = pEntity->name() ? pEntity->name()->c_str() : nullptr;
-		auto entity = scene.CreateEntity(pName);
+		auto entity = pScene->CreateEntity(pName);
 
 		// Set transform
 		TransformComponent transform;
@@ -51,13 +51,13 @@ bool LoadScene(const std::string& sPath, Scene& scene, AssetManager& assetManage
 			transform.qRotation = Quat(pRot->x(), pRot->y(), pRot->z(), pRot->w());
 		if (auto* pScl = pEntity->scale())
 			transform.vScale = Vec3(pScl->x(), pScl->y(), pScl->z());
-		scene.Transforms().Add(entity, transform);
+		pScene->Transforms().Add(entity, transform);
 
 		// Load prefab → resolve mesh
 		if (pEntity->prefab_path() && pEntity->prefab_path()->size() > 0)
 		{
 			std::string sPrefabPath = pEntity->prefab_path()->str();
-			scene.SetEntityPrefab(entity, sPrefabPath);
+			pScene->SetEntityPrefab(entity, sPrefabPath);
 
 			auto prefabHandle = assetManager.LoadSync(sPrefabPath);
 			auto* pPrefab = assetManager.Get<PrefabAsset>(prefabHandle);
@@ -73,7 +73,7 @@ bool LoadScene(const std::string& sPath, Scene& scene, AssetManager& assetManage
 					mesh.pMesh     = pMeshAsset;
 					mesh.uLODIndex = pEntity->lod_index();
 					mesh.bVisible  = pEntity->visible();
-					scene.Meshes().Add(entity, mesh);
+					pScene->Meshes().Add(entity, mesh);
 				}
 				else
 				{
@@ -92,7 +92,7 @@ bool LoadScene(const std::string& sPath, Scene& scene, AssetManager& assetManage
 		if (pEntity->material_path() && pEntity->material_path()->size() > 0)
 		{
 			std::string sMaterialPath = pEntity->material_path()->str();
-			scene.SetEntityMaterial(entity, sMaterialPath);
+			pScene->SetEntityMaterial(entity, sMaterialPath);
 
 			auto matHandle = assetManager.LoadSync(sMaterialPath);
 			auto* pMatAsset = assetManager.Get<MaterialAsset>(matHandle);
@@ -104,7 +104,7 @@ bool LoadScene(const std::string& sPath, Scene& scene, AssetManager& assetManage
 				mat.fRoughness   = pMatAsset->GetRoughness();
 				mat.fMetallic    = pMatAsset->GetMetallic();
 				mat.fAlpha       = pMatAsset->GetAlpha();
-				scene.Materials().Add(entity, mat);
+				pScene->Materials().Add(entity, mat);
 			}
 			else
 			{

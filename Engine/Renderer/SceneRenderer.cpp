@@ -16,7 +16,7 @@ struct GBufferPushConstants {
 	Vec3  _pad;
 };
 
-void SceneRenderer::RenderScene(Scene& scene, Render* pRender,
+void SceneRenderer::RenderScene(Scene* pScene, Render* pRender,
 								RHIPipelineHandle defaultPipeline,
 								const Mat4& viewProj,
 								RGHandle targetTexture,
@@ -26,17 +26,17 @@ void SceneRenderer::RenderScene(Scene& scene, Render* pRender,
 								float fViewportWidth, float fViewportHeight)
 {
 	m_vDrawItems.clear();
-	CollectDrawItems(scene, defaultPipeline);
+	CollectDrawItems(pScene, defaultPipeline);
 	AddOpaquePass(pRender, viewProj, targetTexture, targetRTV,
 				  depthTexture, depthDSV, fViewportWidth, fViewportHeight);
 }
 
-void SceneRenderer::CollectDrawItems(Scene& scene, RHIPipelineHandle defaultPipeline)
+void SceneRenderer::CollectDrawItems(Scene* pScene, RHIPipelineHandle defaultPipeline)
 {
 	// Iterate entities that have both Transform and Mesh components
-	scene.Meshes().ForEach([&](EntityHandle entity, MeshComponent& mesh) {
+	pScene->Meshes().ForEach([&](EntityHandle entity, MeshComponent& mesh) {
 		if (!mesh.bVisible) return;
-		auto* pTransform = scene.Transforms().Get(entity);
+		auto* pTransform = pScene->Transforms().Get(entity);
 		if (!pTransform || !mesh.pMesh)
 			return;
 
@@ -48,7 +48,7 @@ void SceneRenderer::CollectDrawItems(Scene& scene, RHIPipelineHandle defaultPipe
 		float roughness = 0.5f;
 		float metallic  = 0.0f;
 		float alpha     = 1.0f;
-		auto* pMaterial = scene.Materials().Get(entity);
+		auto* pMaterial = pScene->Materials().Get(entity);
 		if (pMaterial)
 		{
 			albedo    = pMaterial->vAlbedoColor;
@@ -132,14 +132,14 @@ void SceneRenderer::AddOpaquePass(Render* pRender, const Mat4& viewProj,
 		});
 }
 
-void SceneRenderer::RenderGBuffer(Scene& scene, Render* pRender,
+void SceneRenderer::RenderGBuffer(Scene* pScene, Render* pRender,
 								  RHIPipelineHandle gbufferPipeline,
 								  const Mat4& viewProj,
 								  const GBufferTargets& targets,
 								  float fViewportWidth, float fViewportHeight)
 {
 	m_vDrawItems.clear();
-	CollectDrawItems(scene, gbufferPipeline);
+	CollectDrawItems(pScene, gbufferPipeline);
 	AddGBufferPass(pRender, viewProj, targets, fViewportWidth, fViewportHeight);
 }
 
@@ -205,14 +205,14 @@ void SceneRenderer::AddGBufferPass(Render* pRender, const Mat4& viewProj,
 		});
 }
 
-void SceneRenderer::RenderShadowMap(Scene& scene, Render* pRender,
+void SceneRenderer::RenderShadowMap(Scene* pScene, Render* pRender,
 									RHIPipelineHandle shadowPipeline,
 									const Mat4& lightViewProj,
 									RGHandle shadowTexture, RHIDepthStencilView shadowDSV,
 									float fShadowMapSize)
 {
 	m_vDrawItems.clear();
-	CollectDrawItems(scene, shadowPipeline);
+	CollectDrawItems(pScene, shadowPipeline);
 	AddShadowPass(pRender, shadowPipeline, lightViewProj, shadowTexture, shadowDSV, fShadowMapSize);
 }
 
@@ -338,7 +338,7 @@ void SceneRenderer::AddPostProcessPass(Render* pRender,
 		});
 }
 
-void SceneRenderer::RenderForwardTransparent(Scene& scene, Render* pRender,
+void SceneRenderer::RenderForwardTransparent(Scene* pScene, Render* pRender,
 											 RHIPipelineHandle transparentPipeline,
 											 RHIDescriptorSetHandle shadowDescSet,
 											 const Mat4& viewProj,
@@ -349,7 +349,7 @@ void SceneRenderer::RenderForwardTransparent(Scene& scene, Render* pRender,
 											 float fViewportWidth, float fViewportHeight)
 {
 	m_vDrawItems.clear();
-	CollectDrawItems(scene, transparentPipeline);
+	CollectDrawItems(pScene, transparentPipeline);
 
 	// Filter to transparent-only
 	m_vDrawItems.erase(std::remove_if(m_vDrawItems.begin(), m_vDrawItems.end(),

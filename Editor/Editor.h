@@ -28,7 +28,7 @@ public:
 	void Shutdown();
 
 	void BeginFrame();
-	void Update(Scene& scene, const Camera& camera, float fDeltaTime);
+	void Update(Scene* pScene, const Camera& camera, float fDeltaTime);
 	void RenderUI(RHICommandList* pCmdList);
 
 	/// Composite the editor viewport + ImGui onto the swap chain back buffer.
@@ -48,11 +48,11 @@ public:
 	uint32 GetViewportHeight() const { return m_uViewportHeight; }
 
 private:
-	void DrawHierarchyPanel(Scene& scene);
-	void DrawInspectorPanel(Scene& scene);
-	void DrawMaterialEditorPanel(Scene& scene);
+	void DrawHierarchyPanel(Scene* pScene);
+	void DrawInspectorPanel(Scene* pScene);
+	void DrawMaterialEditorPanel(Scene* pScene);
 	void DrawLogPanel();
-	void DoViewportPicking(Scene& scene, const Camera& camera, float u, float v);
+	void DoViewportPicking(Scene* pScene, const Camera& camera, float u, float v);
 
 	// Gizmo helpers
 	int  TestGizmoAxisHit(const Vec3& rayOrigin, const Vec3& rayDir,

@@ -7,14 +7,14 @@
 
 namespace Evo {
 
-bool WriteScene(const std::string& sPath, Scene& scene)
+bool WriteScene(const std::string& sPath, Scene* pScene)
 {
 	flatbuffers::FlatBufferBuilder builder(1024);
 
 	std::vector<flatbuffers::Offset<Schema::SceneEntity>> entityOffsets;
 
-	scene.ForEachEntity([&](EntityHandle entity) {
-		const std::string& sName = scene.GetEntityName(entity);
+	pScene->ForEachEntity([&](EntityHandle entity) {
+		const std::string& sName = pScene->GetEntityName(entity);
 		auto nameOffset = builder.CreateString(sName);
 
 		// Transform
@@ -25,7 +25,7 @@ bool WriteScene(const std::string& sPath, Scene& scene)
 		Schema::Vec4 rotation(0, 0, 0, 1);
 		Schema::Vec3 scale(1, 1, 1);
 
-		auto* pTransform = scene.Transforms().Get(entity);
+		auto* pTransform = pScene->Transforms().Get(entity);
 		if (pTransform)
 		{
 			position = Schema::Vec3(pTransform->vPosition.x, pTransform->vPosition.y, pTransform->vPosition.z);
@@ -39,20 +39,20 @@ bool WriteScene(const std::string& sPath, Scene& scene)
 
 		// Prefab reference
 		flatbuffers::Offset<flatbuffers::String> prefabPathOffset;
-		const std::string& sPrefabPath = scene.GetEntityPrefab(entity);
+		const std::string& sPrefabPath = pScene->GetEntityPrefab(entity);
 		if (!sPrefabPath.empty())
 			prefabPathOffset = builder.CreateString(sPrefabPath);
 
 		// Material reference
 		flatbuffers::Offset<flatbuffers::String> materialPathOffset;
-		const std::string& sMaterialPath = scene.GetEntityMaterial(entity);
+		const std::string& sMaterialPath = pScene->GetEntityMaterial(entity);
 		if (!sMaterialPath.empty())
 			materialPathOffset = builder.CreateString(sMaterialPath);
 
 		// Per-instance rendering properties
 		uint32 uLODIndex = 0;
 		bool bVisible = true;
-		auto* pMesh = scene.Meshes().Get(entity);
+		auto* pMesh = pScene->Meshes().Get(entity);
 		if (pMesh)
 		{
 			uLODIndex = pMesh->uLODIndex;

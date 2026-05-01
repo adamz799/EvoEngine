@@ -335,7 +335,7 @@ void Editor::BeginFrame()
 #endif
 }
 
-void Editor::Update(Scene& scene, const Camera& camera, float /*fDeltaTime*/)
+void Editor::Update(Scene* pScene, const Camera& camera, float /*fDeltaTime*/)
 {
 	// Create a DockSpace over the entire window
 	ImGuiID dockspaceId = ImGui::DockSpaceOverViewport(0, ImGui::GetMainViewport());
@@ -394,7 +394,7 @@ void Editor::Update(Scene& scene, const Camera& camera, float /*fDeltaTime*/)
 	if (m_bShowHierarchy)
 	{
 		ImGui::Begin("Hierarchy", &m_bShowHierarchy);
-		DrawHierarchyPanel(scene);
+		DrawHierarchyPanel(pScene);
 		ImGui::End();
 	}
 
@@ -429,9 +429,9 @@ void Editor::Update(Scene& scene, const Camera& camera, float /*fDeltaTime*/)
 
 			// Gizmo hover detection (every frame when entity selected)
 			m_iHoveredAxis = -1;
-			if (bHovered && m_SelectedEntity.IsValid() && scene.IsAlive(m_SelectedEntity) && !m_bDraggingGizmo)
+			if (bHovered && m_SelectedEntity.IsValid() && pScene->IsAlive(m_SelectedEntity) && !m_bDraggingGizmo)
 			{
-				auto* pTransform = scene.Transforms().Get(m_SelectedEntity);
+				auto* pTransform = pScene->Transforms().Get(m_SelectedEntity);
 				if (pTransform)
 				{
 					Vec3 rayOrigin, rayDir;
@@ -447,7 +447,7 @@ void Editor::Update(Scene& scene, const Camera& camera, float /*fDeltaTime*/)
 				if (m_iHoveredAxis >= 0)
 				{
 					// Start gizmo drag
-					auto* pTransform = scene.Transforms().Get(m_SelectedEntity);
+					auto* pTransform = pScene->Transforms().Get(m_SelectedEntity);
 					if (pTransform)
 					{
 						m_bDraggingGizmo = true;
@@ -473,14 +473,14 @@ void Editor::Update(Scene& scene, const Camera& camera, float /*fDeltaTime*/)
 				}
 				else
 				{
-					DoViewportPicking(scene, camera, u, v);
+					DoViewportPicking(pScene, camera, u, v);
 				}
 			}
 
 			// Gizmo drag update
 			if (m_bDraggingGizmo && ImGui::IsMouseDragging(ImGuiMouseButton_Left))
 			{
-				auto* pTransform = scene.Transforms().Get(m_SelectedEntity);
+				auto* pTransform = pScene->Transforms().Get(m_SelectedEntity);
 				if (pTransform)
 				{
 					Vec3 rayOrigin, rayDir;
@@ -518,7 +518,7 @@ void Editor::Update(Scene& scene, const Camera& camera, float /*fDeltaTime*/)
 	if (m_bShowInspector)
 	{
 		ImGui::Begin("Inspector", &m_bShowInspector);
-		DrawInspectorPanel(scene);
+		DrawInspectorPanel(pScene);
 		ImGui::End();
 	}
 
@@ -526,7 +526,7 @@ void Editor::Update(Scene& scene, const Camera& camera, float /*fDeltaTime*/)
 	if (m_bShowMaterialEditor)
 	{
 		ImGui::Begin("Material Editor", &m_bShowMaterialEditor);
-		DrawMaterialEditorPanel(scene);
+		DrawMaterialEditorPanel(pScene);
 		ImGui::End();
 	}
 
@@ -575,13 +575,13 @@ void Editor::CompositeToBackBuffer(Render* pRender)
 // Panels
 // ============================================================================
 
-void Editor::DrawHierarchyPanel(Scene& scene)
+void Editor::DrawHierarchyPanel(Scene* pScene)
 {
 	ImGuiTreeNodeFlags sceneFlags = ImGuiTreeNodeFlags_DefaultOpen | ImGuiTreeNodeFlags_OpenOnArrow;
 	if (ImGui::TreeNodeEx("Scene", sceneFlags))
 	{
-		scene.ForEachEntity([&](EntityHandle entity) {
-			const auto& sName = scene.GetEntityName(entity);
+		pScene->ForEachEntity([&](EntityHandle entity) {
+			const auto& sName = pScene->GetEntityName(entity);
 			const char* pLabel = sName.empty() ? "<unnamed>" : sName.c_str();
 
 			ImGuiTreeNodeFlags nodeFlags = ImGuiTreeNodeFlags_Leaf
@@ -598,17 +598,17 @@ void Editor::DrawHierarchyPanel(Scene& scene)
 	}
 }
 
-void Editor::DrawInspectorPanel(Scene& scene)
+void Editor::DrawInspectorPanel(Scene* pScene)
 {
-	if (scene.IsAlive(m_SelectedEntity))
+	if (pScene->IsAlive(m_SelectedEntity))
 	{
 		// Entity name
-		const auto& sName = scene.GetEntityName(m_SelectedEntity);
+		const auto& sName = pScene->GetEntityName(m_SelectedEntity);
 		ImGui::Text("Entity: %s", sName.empty() ? "<unnamed>" : sName.c_str());
 		ImGui::Separator();
 
 		// Transform
-		auto* pTransform = scene.Transforms().Get(m_SelectedEntity);
+		auto* pTransform = pScene->Transforms().Get(m_SelectedEntity);
 		if (pTransform)
 		{
 			if (ImGui::CollapsingHeader("Transform", ImGuiTreeNodeFlags_DefaultOpen))
@@ -626,7 +626,7 @@ void Editor::DrawInspectorPanel(Scene& scene)
 		}
 
 		// Prefab
-		const auto& sPrefab = scene.GetEntityPrefab(m_SelectedEntity);
+		const auto& sPrefab = pScene->GetEntityPrefab(m_SelectedEntity);
 		if (!sPrefab.empty())
 		{
 			if (ImGui::CollapsingHeader("Prefab", ImGuiTreeNodeFlags_DefaultOpen))
@@ -636,7 +636,7 @@ void Editor::DrawInspectorPanel(Scene& scene)
 		}
 
 		// Mesh
-		auto* pMesh = scene.Meshes().Get(m_SelectedEntity);
+		auto* pMesh = pScene->Meshes().Get(m_SelectedEntity);
 		if (pMesh)
 		{
 			if (ImGui::CollapsingHeader("Mesh", ImGuiTreeNodeFlags_DefaultOpen))
@@ -647,12 +647,12 @@ void Editor::DrawInspectorPanel(Scene& scene)
 		}
 
 		// Material
-		auto* pMaterial = scene.Materials().Get(m_SelectedEntity);
+		auto* pMaterial = pScene->Materials().Get(m_SelectedEntity);
 		if (pMaterial)
 		{
 			if (ImGui::CollapsingHeader("Material", ImGuiTreeNodeFlags_DefaultOpen))
 			{
-				const auto& sMatPath = scene.GetEntityMaterial(m_SelectedEntity);
+				const auto& sMatPath = pScene->GetEntityMaterial(m_SelectedEntity);
 				if (!sMatPath.empty())
 					ImGui::Text("Path: %s", sMatPath.c_str());
 				ImGui::ColorEdit3("Albedo", &pMaterial->vAlbedoColor.x);
@@ -663,7 +663,7 @@ void Editor::DrawInspectorPanel(Scene& scene)
 		}
 
 		// Camera
-		auto* pCamera = scene.Cameras().Get(m_SelectedEntity);
+		auto* pCamera = pScene->Cameras().Get(m_SelectedEntity);
 		if (pCamera)
 		{
 			if (ImGui::CollapsingHeader("Camera", ImGuiTreeNodeFlags_DefaultOpen))
@@ -682,25 +682,25 @@ void Editor::DrawInspectorPanel(Scene& scene)
 	}
 }
 
-void Editor::DrawMaterialEditorPanel(Scene& scene)
+void Editor::DrawMaterialEditorPanel(Scene* pScene)
 {
-	if (!m_SelectedEntity.IsValid() || !scene.IsAlive(m_SelectedEntity))
+	if (!m_SelectedEntity.IsValid() || !pScene->IsAlive(m_SelectedEntity))
 	{
 		ImGui::TextDisabled("Select an entity to edit material");
 		return;
 	}
 
-	auto* pMaterial = scene.Materials().Get(m_SelectedEntity);
+	auto* pMaterial = pScene->Materials().Get(m_SelectedEntity);
 	if (!pMaterial)
 	{
 		ImGui::TextDisabled("Selected entity has no material");
 		if (ImGui::Button("Add Material"))
-			scene.Materials().Add(m_SelectedEntity);
+			pScene->Materials().Add(m_SelectedEntity);
 		return;
 	}
 
-	ImGui::Text("Entity: %s", scene.GetEntityName(m_SelectedEntity).c_str());
-	const auto& sMatPath = scene.GetEntityMaterial(m_SelectedEntity);
+	ImGui::Text("Entity: %s", pScene->GetEntityName(m_SelectedEntity).c_str());
+	const auto& sMatPath = pScene->GetEntityMaterial(m_SelectedEntity);
 	if (!sMatPath.empty())
 		ImGui::Text("File: %s", sMatPath.c_str());
 	else
@@ -783,7 +783,7 @@ void Editor::DrawLogPanel()
 // Viewport picking
 // ============================================================================
 
-void Editor::DoViewportPicking(Scene& scene, const Camera& camera, float u, float v)
+void Editor::DoViewportPicking(Scene* pScene, const Camera& camera, float u, float v)
 {
 	// Convert UV [0,1] to NDC — DX convention: Z in [0,1], Y up
 	float ndcX = u * 2.0f - 1.0f;
@@ -801,8 +801,8 @@ void Editor::DoViewportPicking(Scene& scene, const Camera& camera, float u, floa
 	EntityHandle hitEntity;
 	float fMinDist = FLT_MAX;
 
-	scene.ForEachEntity([&](EntityHandle entity) {
-		auto* pTransform = scene.Transforms().Get(entity);
+	pScene->ForEachEntity([&](EntityHandle entity) {
+		auto* pTransform = pScene->Transforms().Get(entity);
 		if (!pTransform) return;
 
 		Mat4 invModel = pTransform->GetWorldMatrix().Inverse();

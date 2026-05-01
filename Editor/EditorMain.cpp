@@ -56,7 +56,7 @@ int main(int /*argc*/, char* /*argv*/[])
 	if (!testScene.Initialize(pRender))
 		EVO_LOG_ERROR("Failed to initialize test scene");
 
-	pipeline.SetScene(&testScene.GetScene());
+	pipeline.SetScene(testScene.GetScene());
 
 	// ---- Initialize editor ----
 	Evo::Editor editor;
@@ -137,10 +137,10 @@ int main(int /*argc*/, char* /*argv*/[])
 
 		// Debug overlay (camera frustum, icon, gizmo) -> viewport texture
 		{
-			auto& scene = testScene.GetScene();
+			auto* pScene = testScene.GetScene();
 			auto camEntity = testScene.GetGameCameraEntity();
-			auto* pCamTransform = scene.Transforms().Get(camEntity);
-			auto* pCamComp = scene.Cameras().Get(camEntity);
+			auto* pCamTransform = pScene->Transforms().Get(camEntity);
+			auto* pCamComp = pScene->Cameras().Get(camEntity);
 			if (pCamTransform && pCamComp)
 			{
 				Evo::Camera gameCamera = Evo::BuildCameraFromEntity(*pCamTransform, *pCamComp, 16.0f / 9.0f);
@@ -152,9 +152,9 @@ int main(int /*argc*/, char* /*argv*/[])
 
 			// Translation gizmo for selected entity
 			auto selectedEntity = editor.GetSelectedEntity();
-			if (selectedEntity.IsValid() && scene.IsAlive(selectedEntity))
+			if (selectedEntity.IsValid() && pScene->IsAlive(selectedEntity))
 			{
-				auto* pTransform = scene.Transforms().Get(selectedEntity);
+				auto* pTransform = pScene->Transforms().Get(selectedEntity);
 				if (pTransform)
 				{
 					pipeline.GetDebugRenderer().DrawTranslationGizmo(
@@ -176,10 +176,10 @@ int main(int /*argc*/, char* /*argv*/[])
 			float rtW = static_cast<float>(runtimeWin.GetWidth());
 			float rtH = static_cast<float>(runtimeWin.GetHeight());
 
-			auto& scene = testScene.GetScene();
+			auto* pScene = testScene.GetScene();
 			auto camEntity = testScene.GetGameCameraEntity();
-			auto* pCamTransform = scene.Transforms().Get(camEntity);
-			auto* pCamComp = scene.Cameras().Get(camEntity);
+			auto* pCamTransform = pScene->Transforms().Get(camEntity);
+			auto* pCamComp = pScene->Cameras().Get(camEntity);
 			if (pCamTransform && pCamComp)
 			{
 				float rtAspect = (rtH > 0.0f) ? rtW / rtH : 1.0f;

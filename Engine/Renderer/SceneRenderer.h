@@ -67,7 +67,7 @@ struct TransparentPushConstants {
 /// Collects renderable entities, builds draw items, adds passes.
 class SceneRenderer {
 public:
-	void RenderScene(Scene& scene, Render* pRender,
+	void RenderScene(Scene* pScene, Render* pRender,
 					 RHIPipelineHandle defaultPipeline,
 					 const Mat4& viewProj,
 					 RGHandle targetTexture,
@@ -76,13 +76,13 @@ public:
 					 RHIDepthStencilView depthDSV,
 					 float fViewportWidth, float fViewportHeight);
 
-	void RenderGBuffer(Scene& scene, Render* pRender,
+	void RenderGBuffer(Scene* pScene, Render* pRender,
 					   RHIPipelineHandle gbufferPipeline,
 					   const Mat4& viewProj,
 					   const GBufferTargets& targets,
 					   float fViewportWidth, float fViewportHeight);
 
-	void RenderShadowMap(Scene& scene, Render* pRender,
+	void RenderShadowMap(Scene* pScene, Render* pRender,
 						 RHIPipelineHandle shadowPipeline,
 						 const Mat4& lightViewProj,
 						 RGHandle shadowTexture, RHIDepthStencilView shadowDSV,
@@ -104,7 +104,7 @@ public:
 							RGHandle targetTexture, RHIRenderTargetView targetRTV,
 							float fViewportWidth, float fViewportHeight);
 
-	void RenderForwardTransparent(Scene& scene, Render* pRender,
+	void RenderForwardTransparent(Scene* pScene, Render* pRender,
 								  RHIPipelineHandle transparentPipeline,
 								  RHIDescriptorSetHandle shadowDescSet,
 								  const Mat4& viewProj,
@@ -117,7 +117,7 @@ public:
 private:
 	std::vector<DrawItem> m_vDrawItems;
 
-	void CollectDrawItems(Scene& scene, RHIPipelineHandle defaultPipeline);
+	void CollectDrawItems(Scene* pScene, RHIPipelineHandle defaultPipeline);
 	void AddOpaquePass(Render* pRender, const Mat4& viewProj,
 					   RGHandle targetTexture, RHIRenderTargetView targetRTV,
 					   RGHandle depthTexture, RHIDepthStencilView depthDSV,

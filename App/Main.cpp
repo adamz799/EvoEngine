@@ -21,8 +21,8 @@ int main()
 
 	// ---- Setup test scene data (assets, entities) ----
 	Evo::TestScene testScene;
-	testScene.Initialize(EvoEngine.GetRender());
-	EvoEngine.SetScene(&testScene.GetScene());
+	testScene.Initialize(&EvoEngine.GetRender());
+	EvoEngine.SetScene(testScene.GetScene());
 
 	// ---- Main loop ----
 	while (EvoEngine.BeginFrame()) {
@@ -32,7 +32,7 @@ int main()
 		EvoEngine.EndFrame();
 	}
 
-	testScene.Shutdown(EvoEngine.GetRender());
+	testScene.Shutdown(&EvoEngine.GetRender());
 	EvoEngine.Shutdown();
 	return 0;
 }

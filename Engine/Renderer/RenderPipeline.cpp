@@ -273,7 +273,7 @@ void RenderPipeline::RenderShadow()
 	m_ShadowRG = rg.ImportTexture("ShadowMap", m_ShadowTexture,
 		RHITextureLayout::Common, RHITextureLayout::Common);
 
-	m_SceneRenderer.RenderShadowMap(*m_pScene, m_pRender, m_ShadowPipeline,
+	m_SceneRenderer.RenderShadowMap(m_pScene, m_pRender, m_ShadowPipeline,
 		m_LightViewProj, m_ShadowRG, m_ShadowDSV,
 		static_cast<float>(kShadowMapSize));
 }
@@ -295,7 +295,7 @@ void RenderPipeline::RenderViewport(ViewportFrame& viewport, const Mat4& viewPro
 	auto imported = viewport.ImportToRenderGraph(rg);
 
 	// G-Buffer
-	m_SceneRenderer.RenderGBuffer(*m_pScene, m_pRender, m_GBufferPipeline,
+	m_SceneRenderer.RenderGBuffer(m_pScene, m_pRender, m_GBufferPipeline,
 		viewProj, imported.gbTargets, w, h);
 
 	// Deferred lighting
@@ -325,7 +325,7 @@ void RenderPipeline::RenderViewport(ViewportFrame& viewport, const Mat4& viewPro
 	transPC.vLightColor[1] = m_vLightColor.y;
 	transPC.vLightColor[2] = m_vLightColor.z;
 
-	m_SceneRenderer.RenderForwardTransparent(*m_pScene, m_pRender, m_TransparentPipeline,
+	m_SceneRenderer.RenderForwardTransparent(m_pScene, m_pRender, m_TransparentPipeline,
 		viewport.GetTransparentShadowDescSet(), viewProj, transPC,
 		imported.hdrTexture, imported.hdrRTV,
 		imported.gbTargets.depthTexture, imported.gbTargets.depthDSV,

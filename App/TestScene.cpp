@@ -69,6 +69,7 @@ static void GenerateCubeData(std::vector<StaticVertex>& outVertices, std::vector
 
 bool TestScene::Initialize(Render* pRender)
 {
+	m_pScene = std::make_unique<Scene>();
 	auto* pDevice = pRender->GetDevice();
 #if EVO_RHI_DX12
 	// ---- Initialize asset manager (scene assets only) ----
@@ -180,7 +181,7 @@ bool TestScene::Initialize(Render* pRender)
 		}
 
 		std::filesystem::create_directories("Assets/Scenes");
-		if (!WriteScene("Assets/Scenes/CubeScene.escene", tempScene))
+		if (!WriteScene("Assets/Scenes/CubeScene.escene", &tempScene))
 		{
 			EVO_LOG_ERROR("TestScene: failed to write CubeScene.escene");
 			return false;
@@ -188,7 +189,7 @@ bool TestScene::Initialize(Render* pRender)
 	}
 
 	// ---- Load scene from .escene file ----
-	if (!LoadScene("Assets/Scenes/CubeScene.escene", m_Scene, m_AssetManager))
+	if (!LoadScene("Assets/Scenes/CubeScene.escene", m_pScene.get(), m_AssetManager))
 	{
 		EVO_LOG_ERROR("TestScene: failed to load CubeScene.escene");
 		return false;
@@ -215,18 +216,18 @@ bool TestScene::Initialize(Render* pRender)
 		auto tintMatHandle = m_AssetManager.LoadSync("Assets/Materials/TintedCube.ematerial");
 		auto* pTintMat = m_AssetManager.Get<MaterialAsset>(tintMatHandle);
 
-		auto transCube1 = m_Scene.CreateEntity("GlassCube");
+		auto transCube1 = m_pScene->CreateEntity("GlassCube");
 		TransformComponent t1;
 		t1.vPosition = Vec3(1.5f, 1.5f, 1.5f);
 		t1.vScale    = Vec3(1.2f);
-		m_Scene.Transforms().Add(transCube1, t1);
+		m_pScene->Transforms().Add(transCube1, t1);
 		if (pMeshAsset)
 		{
 			MeshComponent mesh1;
 			mesh1.pMesh = pMeshAsset;
-			m_Scene.Meshes().Add(transCube1, mesh1);
+			m_pScene->Meshes().Add(transCube1, mesh1);
 		}
-		m_Scene.SetEntityMaterial(transCube1, "Assets/Materials/GlassCube.ematerial");
+		m_pScene->SetEntityMaterial(transCube1, "Assets/Materials/GlassCube.ematerial");
 		if (pGlassMat)
 		{
 			MaterialComponent glassMat;
@@ -234,21 +235,21 @@ bool TestScene::Initialize(Render* pRender)
 			glassMat.fRoughness   = pGlassMat->GetRoughness();
 			glassMat.fMetallic    = pGlassMat->GetMetallic();
 			glassMat.fAlpha       = pGlassMat->GetAlpha();
-			m_Scene.Materials().Add(transCube1, glassMat);
+			m_pScene->Materials().Add(transCube1, glassMat);
 		}
 
-		auto transCube2 = m_Scene.CreateEntity("TintedCube");
+		auto transCube2 = m_pScene->CreateEntity("TintedCube");
 		TransformComponent t2;
 		t2.vPosition = Vec3(-1.5f, 1.5f, -1.5f);
 		t2.vScale    = Vec3(0.9f);
-		m_Scene.Transforms().Add(transCube2, t2);
+		m_pScene->Transforms().Add(transCube2, t2);
 		if (pMeshAsset)
 		{
 			MeshComponent mesh2;
 			mesh2.pMesh = pMeshAsset;
-			m_Scene.Meshes().Add(transCube2, mesh2);
+			m_pScene->Meshes().Add(transCube2, mesh2);
 		}
-		m_Scene.SetEntityMaterial(transCube2, "Assets/Materials/TintedCube.ematerial");
+		m_pScene->SetEntityMaterial(transCube2, "Assets/Materials/TintedCube.ematerial");
 		if (pTintMat)
 		{
 			MaterialComponent tintMat;
@@ -256,13 +257,13 @@ bool TestScene::Initialize(Render* pRender)
 			tintMat.fRoughness   = pTintMat->GetRoughness();
 			tintMat.fMetallic    = pTintMat->GetMetallic();
 			tintMat.fAlpha       = pTintMat->GetAlpha();
-			m_Scene.Materials().Add(transCube2, tintMat);
+			m_pScene->Materials().Add(transCube2, tintMat);
 		}
 	}
 
 	// Create game camera entity
 	{
-		m_GameCameraEntity = m_Scene.CreateEntity("GameCamera");
+		m_GameCameraEntity = m_pScene->CreateEntity("GameCamera");
 
 		TransformComponent camTransform;
 		camTransform.vPosition = Vec3(0.0f, 3.0f, -8.0f);
@@ -273,16 +274,16 @@ bool TestScene::Initialize(Render* pRender)
 		float pitch = std::asin(Clamp(dir.y, -1.0f, 1.0f));
 		camTransform.qRotation = Quat::FromEuler(pitch, yaw, 0.0f);
 
-		m_Scene.Transforms().Add(m_GameCameraEntity, camTransform);
+		m_pScene->Transforms().Add(m_GameCameraEntity, camTransform);
 
 		CameraComponent camComp;
 		camComp.fFovY  = DegToRad(60.0f);
 		camComp.fNearZ = 0.1f;
 		camComp.fFarZ  = 100.0f;
-		m_Scene.Cameras().Add(m_GameCameraEntity, camComp);
+		m_pScene->Cameras().Add(m_GameCameraEntity, camComp);
 	}
 
-	EVO_LOG_INFO("TestScene initialized: {} entities (loaded from .escene)", m_Scene.GetEntityCount());
+	EVO_LOG_INFO("TestScene initialized: {} entities (loaded from .escene)", m_pScene->GetEntityCount());
 	return true;
 #else
 	return false;
@@ -301,8 +302,8 @@ void TestScene::Update(float fDeltaTime)
 
 	// Rotate each cube differently (skip camera entities)
 	int index = 0;
-	m_Scene.Transforms().ForEach([&](EntityHandle entity, TransformComponent& transform) {
-		if (m_Scene.Cameras().Has(entity)) return;
+	m_pScene->Transforms().ForEach([&](EntityHandle entity, TransformComponent& transform) {
+		if (m_pScene->Cameras().Has(entity)) return;
 		float speed = 0.5f + index * 0.3f;
 		transform.qRotation = Quat::FromEuler(
 			m_fTime * speed * 0.7f,
