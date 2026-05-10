@@ -32,7 +32,7 @@ public:
 	void RenderUI(RHICommandList* pCmdList);
 
 	/// Composite the editor viewport + ImGui onto the swap chain back buffer.
-	void CompositeToBackBuffer(Render* pRender);
+	void CompositeToBackBuffer();
 
 	EntityHandle GetSelectedEntity() const { return m_SelectedEntity; }
 	int          GetHoveredAxis()   const { return m_iHoveredAxis; }

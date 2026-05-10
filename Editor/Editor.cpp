@@ -554,7 +554,7 @@ void Editor::RenderUI(RHICommandList* pCmdList)
 #endif
 }
 
-void Editor::CompositeToBackBuffer(Render* pRender)
+void Editor::CompositeToBackBuffer()
 {
 	auto& rg = m_pRender->GetRenderGraph();
 	auto bbRG = m_pRender->GetBackBufferRG();

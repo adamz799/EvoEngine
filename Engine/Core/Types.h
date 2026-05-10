@@ -17,9 +17,9 @@
 
 namespace Evo {
 
-// ============================================================================
-// Compiler-specific type definitions
-// ============================================================================
+	// ============================================================================
+	// Compiler-specific type definitions
+	// ============================================================================
 
 #if defined(_MSC_VER)
 	// ---- Microsoft Visual C++ ----
@@ -55,27 +55,27 @@ namespace Evo {
 	typedef unsigned long long  uint64;
 
 #else
-	#error "Unsupported compiler. Evo requires MSVC, GCC, or Clang."
+#error "Unsupported compiler. Evo requires MSVC, GCC, or Clang."
 #endif
 
 // ---- Floating point (IEEE-754, same on all supported compilers) ----
-typedef float   float32;
-typedef double  float64;
+	typedef float   float32;
+	typedef double  float64;
 
-// ============================================================================
-// Compile-time size guarantees
-// ============================================================================
+	// ============================================================================
+	// Compile-time size guarantees
+	// ============================================================================
 
-static_assert(sizeof(int8)    == 1, "int8 must be exactly 1 byte");
-static_assert(sizeof(int16)   == 2, "int16 must be exactly 2 bytes");
-static_assert(sizeof(int32)   == 4, "int32 must be exactly 4 bytes");
-static_assert(sizeof(int64)   == 8, "int64 must be exactly 8 bytes");
-static_assert(sizeof(uint8)   == 1, "uint8 must be exactly 1 byte");
-static_assert(sizeof(uint16)  == 2, "uint16 must be exactly 2 bytes");
-static_assert(sizeof(uint32)  == 4, "uint32 must be exactly 4 bytes");
-static_assert(sizeof(uint64)  == 8, "uint64 must be exactly 8 bytes");
-static_assert(sizeof(float32) == 4, "float32 must be exactly 4 bytes (IEEE-754 single)");
-static_assert(sizeof(float64) == 8, "float64 must be exactly 8 bytes (IEEE-754 double)");
+	static_assert(sizeof(int8) == 1, "int8 must be exactly 1 byte");
+	static_assert(sizeof(int16) == 2, "int16 must be exactly 2 bytes");
+	static_assert(sizeof(int32) == 4, "int32 must be exactly 4 bytes");
+	static_assert(sizeof(int64) == 8, "int64 must be exactly 8 bytes");
+	static_assert(sizeof(uint8) == 1, "uint8 must be exactly 1 byte");
+	static_assert(sizeof(uint16) == 2, "uint16 must be exactly 2 bytes");
+	static_assert(sizeof(uint32) == 4, "uint32 must be exactly 4 bytes");
+	static_assert(sizeof(uint64) == 8, "uint64 must be exactly 8 bytes");
+	static_assert(sizeof(float32) == 4, "float32 must be exactly 4 bytes (IEEE-754 single)");
+	static_assert(sizeof(float64) == 8, "float64 must be exactly 8 bytes (IEEE-754 double)");
 
 } // namespace Evo
 

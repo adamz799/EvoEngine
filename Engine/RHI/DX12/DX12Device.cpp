@@ -497,8 +497,21 @@ RHIPipelineHandle DX12Device::CreateComputePipeline(const RHIComputePipelineDesc
 	return {};
 }
 
-void DX12Device::DestroyBuffer(RHIBufferHandle handle) { m_BufferPool.Free(handle); }
-void DX12Device::DestroyTexture(RHITextureHandle handle) { m_TexturePool.Free(handle); }
+void DX12Device::DestroyBuffer(RHIBufferHandle handle)
+{
+	auto entry = m_BufferPool.Free(handle);
+	if (!entry.pResource)
+		return;
+	m_BufferDestroyQueue.Enqueue(std::move(entry));
+}
+
+void DX12Device::DestroyTexture(RHITextureHandle handle)
+{
+	auto entry = m_TexturePool.Free(handle);
+	if (!entry.pResource)
+		return;
+	m_TextureDestroyQueue.Enqueue(std::move(entry));
+}
 void DX12Device::DestroyShader(RHIShaderHandle handle) { m_ShaderPool.Free(handle); }
 void DX12Device::DestroyPipeline(RHIPipelineHandle handle) { m_PipelinePool.Free(handle); }
 
@@ -736,11 +749,17 @@ DX12TextureEntry* DX12Device::ResolveTextureMutable(RHITextureHandle handle)
 }
 
 RHITextureHandle DX12Device::RegisterTextureExternal(
-	ComPtr<ID3D12Resource> resource,
-	const std::string& debugName,
+	ComPtr<ID3D12Resource> pResource,
+	const std::string& sDebugName,
 	const RHIBarrierState& initialBarrier)
 {
-	return m_TexturePool.Allocate(std::move(resource), debugName, RHIFormat::Unknown, initialBarrier);
+	DX12TextureEntry entry = {};
+	entry.pResource = std::move(pResource);
+	entry.sDebugName = sDebugName;
+	entry.barrierState = initialBarrier;
+	entry.rhiFormat = RHIFormat::Unknown;
+
+	return m_TexturePool.Allocate(std::move(entry));
 }
 
 void DX12Device::UnregisterTextureExternal(RHITextureHandle handle)
@@ -780,11 +799,15 @@ RHICommandList* DX12Device::AcquireCommandList(RHIQueueType /*type*/)
 
 void DX12Device::BeginFrame(uint64 uCompletedFenceValue)
 {
+	m_BufferDestroyQueue.ReleaseCompleted(uCompletedFenceValue);
+	m_TextureDestroyQueue.ReleaseCompleted(uCompletedFenceValue);
 	m_GraphicsCmdListPool.BeginFrame(uCompletedFenceValue);
 }
 
 void DX12Device::EndFrame(uint64 uFrameFenceValue)
 {
+	m_BufferDestroyQueue.StampPending(uFrameFenceValue);
+	m_TextureDestroyQueue.StampPending(uFrameFenceValue);
 	m_GraphicsCmdListPool.EndFrame(uFrameFenceValue);
 }
 
@@ -793,6 +816,9 @@ void DX12Device::WaitIdle()
 	if (m_pGraphicsQueue) m_pGraphicsQueue->WaitIdle();
 	if (m_pComputeQueue)  m_pComputeQueue->WaitIdle();
 	if (m_pCopyQueue)     m_pCopyQueue->WaitIdle();
+
+	m_BufferDestroyQueue.Drain();
+	m_TextureDestroyQueue.Drain();
 }
 
 void DX12Device::BindGpuDescriptorHeap(RHICommandList* pCmdList)
