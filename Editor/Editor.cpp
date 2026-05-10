@@ -29,21 +29,18 @@ static void ImGuiSrvAllocCallback(ImGui_ImplDX12_InitInfo* info,
 								   D3D12_CPU_DESCRIPTOR_HANDLE* out_cpu,
 								   D3D12_GPU_DESCRIPTOR_HANDLE* out_gpu)
 {
-	auto* pAlloc = static_cast<DX12GpuDescriptorAllocator*>(info->UserData);
-	auto alloc = pAlloc->Allocate();
-	*out_cpu = alloc.cpuHandle;
-	*out_gpu = alloc.gpuHandle;
+	auto* pHeap = static_cast<DX12GpuDescriptorHeap*>(info->UserData);
+	auto desc = pHeap->Allocate();
+	*out_cpu = desc.cpuHandle;
+	*out_gpu = desc.gpuHandle;
 }
 
 static void ImGuiSrvFreeCallback(ImGui_ImplDX12_InitInfo* info,
 								  D3D12_CPU_DESCRIPTOR_HANDLE cpu,
-								  D3D12_GPU_DESCRIPTOR_HANDLE gpu)
+								  D3D12_GPU_DESCRIPTOR_HANDLE /*gpu*/)
 {
-	auto* pAlloc = static_cast<DX12GpuDescriptorAllocator*>(info->UserData);
-	DX12GpuDescriptorAllocator::Allocation alloc;
-	alloc.cpuHandle = cpu;
-	alloc.gpuHandle = gpu;
-	pAlloc->Free(alloc);
+	auto* pHeap = static_cast<DX12GpuDescriptorHeap*>(info->UserData);
+	pHeap->FreeByCpuHandle(cpu);
 }
 
 // Wrapper to match EventCallbackFn signature
@@ -289,7 +286,7 @@ bool Editor::Initialize(Render* pRender, Window& window,
 	initInfo.SrvDescriptorHeap   = pDX12->GetSRVHeap();
 	initInfo.SrvDescriptorAllocFn = ImGuiSrvAllocCallback;
 	initInfo.SrvDescriptorFreeFn  = ImGuiSrvFreeCallback;
-	initInfo.UserData             = &pDX12->GetSRVAllocator();
+	initInfo.UserData             = &pDX12->GetDescriptorHeap();
 	ImGui_ImplDX12_Init(&initInfo);
 
 	// Register event callback for ImGui input

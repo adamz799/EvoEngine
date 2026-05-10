@@ -133,9 +133,38 @@ void DX12CommandList::TextureBarrier(const RHITextureBarrier* barriers, uint32 c
 
 void DX12CommandList::BufferBarrier(const RHIBufferBarrier* barriers, uint32 count)
 {
-	// TODO: resolve RHIBufferHandle → ID3D12Resource* via Device handle pool (Phase 3)
-	(void)barriers;
-	(void)count;
+	for (uint32 i = 0; i < count; ++i)
+	{
+		const auto& b = barriers[i];
+
+		auto* entry = m_pDevice->ResolveBuffer(b.buffer);
+		if (!entry)
+		{
+			EVO_LOG_WARN("BufferBarrier: invalid buffer handle (idx={}, gen={})",
+			              b.buffer.uHandle, b.buffer.uGeneration);
+			continue;
+		}
+
+		ID3D12Resource* resource = entry->pResource.Get();
+		if (!resource)
+		{
+			EVO_LOG_WARN("BufferBarrier: buffer '{}' has null ID3D12Resource",
+			              entry->sDebugName);
+			continue;
+		}
+
+		NativeBufferBarrier(
+			resource,
+			MapBarrierSync(b.syncBefore),    MapBarrierSync(b.syncAfter),
+			MapBarrierAccess(b.accessBefore), MapBarrierAccess(b.accessAfter));
+
+		// Update CPU-side barrier state tracking
+		if (auto* mut = m_pDevice->ResolveBufferMutable(b.buffer))
+		{
+			mut->barrierState.currentSync   = b.syncAfter;
+			mut->barrierState.currentAccess  = b.accessAfter;
+		}
+	}
 }
 
 // ---- Clear ----
@@ -187,6 +216,28 @@ void DX12CommandList::NativeTextureBarrier(
 	group.Type                = D3D12_BARRIER_TYPE_TEXTURE;
 	group.NumBarriers         = 1;
 	group.pTextureBarriers    = &texBarrier;
+
+	m_pCmdList->Barrier(1, &group);
+}
+
+void DX12CommandList::NativeBufferBarrier(
+	ID3D12Resource* resource,
+	D3D12_BARRIER_SYNC syncBefore, D3D12_BARRIER_SYNC syncAfter,
+	D3D12_BARRIER_ACCESS accessBefore, D3D12_BARRIER_ACCESS accessAfter)
+{
+	D3D12_BUFFER_BARRIER bufBarrier = {};
+	bufBarrier.SyncBefore   = syncBefore;
+	bufBarrier.SyncAfter    = syncAfter;
+	bufBarrier.AccessBefore = accessBefore;
+	bufBarrier.AccessAfter  = accessAfter;
+	bufBarrier.pResource    = resource;
+	bufBarrier.Offset       = 0;
+	bufBarrier.Size         = UINT64_MAX;
+
+	D3D12_BARRIER_GROUP group = {};
+	group.Type             = D3D12_BARRIER_TYPE_BUFFER;
+	group.NumBarriers      = 1;
+	group.pBufferBarriers  = &bufBarrier;
 
 	m_pCmdList->Barrier(1, &group);
 }
@@ -261,15 +312,30 @@ void DX12CommandList::SetPushConstants(const void* data, uint32 size)
 
 void DX12CommandList::SetDescriptorSet(uint32 index, RHIDescriptorSetHandle set)
 {
-	auto* setEntry = m_pDevice->ResolveDescriptorSet(set);
-	if (!setEntry || !setEntry->allocation.IsValid())
+	auto* setEntry = m_pDevice->ResolveDescriptorSetMutable(set);
+	if (!setEntry || setEntry->descriptorIndices.empty())
 	{
 		EVO_LOG_WARN("SetDescriptorSet: invalid descriptor set handle");
 		return;
 	}
 
+	auto& heap = m_pDevice->GetDescriptorHeap();
+
+	// Stage once per set per frame — staging cache avoids redundant copies
+	if (setEntry->stagingFrameFence != heap.GetCurrentFrameFence())
+	{
+		setEntry->stagedAllocation = heap.Stage(
+			setEntry->descriptorIndices.data(),
+			static_cast<uint32>(setEntry->descriptorIndices.size()),
+			m_pDevice->GetD3D12Device());
+		setEntry->stagingFrameFence = heap.GetCurrentFrameFence();
+	}
+
+	if (!setEntry->stagedAllocation.IsValid())
+		return;
+
 	uint32 rootIndex = m_uDescTableRootOffset + index;
-	m_pCmdList->SetGraphicsRootDescriptorTable(rootIndex, setEntry->allocation.gpuStart);
+	m_pCmdList->SetGraphicsRootDescriptorTable(rootIndex, setEntry->stagedAllocation.gpuBase);
 }
 
 void DX12CommandList::SetDescriptorHeaps(uint32 uCount, void* const* ppHeaps)

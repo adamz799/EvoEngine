@@ -1,4 +1,4 @@
-﻿#include "RHI/DX12/DX12Device.h"
+#include "RHI/DX12/DX12Device.h"
 #include "RHI/DX12/DX12Queue.h"
 #include "RHI/DX12/DX12Fence.h"
 #include "RHI/DX12/DX12SwapChain.h"
@@ -122,10 +122,10 @@ bool DX12Device::Initialize(const RHIDeviceDesc& desc)
 		return false;
 	}
 
-	// 8. Create GPU-visible SRV descriptor heap (for ImGui, texture bindings)
-	if (!m_SRVAllocator.Initialize(m_pDevice.Get(), D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 256))
+	// 8. Create GPU-visible descriptor heap (64K CBV_SRV_UAV, bitmap + ring)
+	if (!m_DescriptorHeap.Initialize(m_pDevice.Get()))
 	{
-		EVO_LOG_ERROR("Failed to create SRV descriptor allocator");
+		EVO_LOG_ERROR("Failed to create GPU descriptor heap");
 		return false;
 	}
 
@@ -145,7 +145,7 @@ void DX12Device::Shutdown()
 	WaitIdle();
 
 	m_GraphicsCmdListPool.Shutdown();
-	m_SRVAllocator.Shutdown();
+	m_DescriptorHeap.Shutdown();
 	m_DSVAllocator.Shutdown();
 	m_RTVAllocator.Shutdown();
 	m_pCopyQueue.reset();
@@ -179,7 +179,7 @@ std::unique_ptr<RHISwapChain> DX12Device::CreateSwapChain(const RHISwapChainDesc
 
 std::unique_ptr<RHICommandList> DX12Device::CreateCommandList(RHIQueueType type)
 {
-	//Todo 这里还是应该使用一个支持多线程的Manager单例来管�?
+	//Todo ���ﻹ��Ӧ��ʹ��һ��֧�ֶ��̵߳�Manager��������??
 	auto cl = std::make_unique<DX12CommandList>();
 	if (!cl->Initialize(this, type))
 		return nullptr;
@@ -194,7 +194,7 @@ std::unique_ptr<RHIFence> DX12Device::CreateFence(uint64 initialValue)
 	return fence;
 }
 
-// ---- Handle resources (all stubs �?implement in Phase 3+) ----
+// ---- Handle resources (all stubs ??implement in Phase 3+) ----
 
 RHIBufferHandle DX12Device::CreateBuffer(const RHIBufferDesc& desc)
 {
@@ -240,7 +240,15 @@ RHIBufferHandle DX12Device::CreateBuffer(const RHIBufferDesc& desc)
 	}
 
 	D3D12_GPU_VIRTUAL_ADDRESS gpuAddress = resource->GetGPUVirtualAddress();
-	return m_BufferPool.Allocate(std::move(resource), allocation, gpuAddress, desc.uSize, mappedPtr, desc.sDebugName);
+
+	DX12BufferEntry entry;
+	entry.pResource   = std::move(resource);
+	entry.pAllocation = allocation;
+	entry.uGpuAddress = gpuAddress;
+	entry.uSize       = desc.uSize;
+	entry.pMappedPtr  = mappedPtr;
+	entry.sDebugName  = desc.sDebugName;
+	return m_BufferPool.Allocate(std::move(entry));
 }
 
 RHITextureHandle DX12Device::CreateTexture(const RHITextureDesc& desc)
@@ -308,7 +316,11 @@ RHITextureHandle DX12Device::CreateTexture(const RHITextureDesc& desc)
 		resource->SetName(wname);
 	}
 
-	return m_TexturePool.Allocate(std::move(resource), desc.sDebugName, desc.format);
+	DX12TextureEntry texEntry;
+	texEntry.pResource  = std::move(resource);
+	texEntry.sDebugName = desc.sDebugName;
+	texEntry.rhiFormat  = desc.format;
+	return m_TexturePool.Allocate(std::move(texEntry));
 }
 
 RHIShaderHandle DX12Device::CreateShader(const RHIShaderDesc& desc)
@@ -335,7 +347,7 @@ RHIPipelineHandle DX12Device::CreateGraphicsPipeline(const RHIGraphicsPipelineDe
 	// Build root signature
 	// Root params: [push constants (optional)] [descriptor table per set]
 	std::vector<D3D12_ROOT_PARAMETER> rootParams;
-	// Storage for descriptor ranges �?must outlive D3D12SerializeRootSignature
+	// Storage for descriptor ranges ??must outlive D3D12SerializeRootSignature
 	std::vector<std::vector<D3D12_DESCRIPTOR_RANGE>> allRanges;
 
 	uint32 descTableRootOffset = 0;
@@ -493,7 +505,7 @@ RHIPipelineHandle DX12Device::CreateGraphicsPipeline(const RHIGraphicsPipelineDe
 
 RHIPipelineHandle DX12Device::CreateComputePipeline(const RHIComputePipelineDesc& /*desc*/)
 {
-	EVO_LOG_WARN("DX12Device::CreateComputePipeline �?not yet implemented");
+	EVO_LOG_WARN("DX12Device::CreateComputePipeline ??not yet implemented");
 	return {};
 }
 
@@ -576,7 +588,7 @@ void DX12Device::DestroyDepthStencilView(RHIDepthStencilView dsv)
 	m_DSVAllocator.Free(UnwrapDSV(dsv));
 }
 
-DX12GpuDescriptorAllocator::Allocation DX12Device::CreateShaderResourceView(RHITextureHandle texture)
+DX12GpuDescriptorHeap::Descriptor DX12Device::CreateShaderResourceView(RHITextureHandle texture)
 {
 	auto* pEntry = m_TexturePool.GetEntry(texture);
 	if (!pEntry || !pEntry->pResource)
@@ -585,8 +597,8 @@ DX12GpuDescriptorAllocator::Allocation DX12Device::CreateShaderResourceView(RHIT
 		return {};
 	}
 
-	auto alloc = m_SRVAllocator.Allocate();
-	if (!alloc.IsValid())
+	auto desc = m_DescriptorHeap.Allocate();
+	if (!desc.IsValid())
 		return {};
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
@@ -597,13 +609,13 @@ DX12GpuDescriptorAllocator::Allocation DX12Device::CreateShaderResourceView(RHIT
 	srvDesc.ViewDimension           = D3D12_SRV_DIMENSION_TEXTURE2D;
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 	srvDesc.Texture2D.MipLevels    = 1;
-	m_pDevice->CreateShaderResourceView(pEntry->pResource.Get(), &srvDesc, alloc.cpuHandle);
-	return alloc;
+	m_pDevice->CreateShaderResourceView(pEntry->pResource.Get(), &srvDesc, desc.cpuHandle);
+	return desc;
 }
 
-void DX12Device::DestroyShaderResourceView(const DX12GpuDescriptorAllocator::Allocation& alloc)
+void DX12Device::DestroyShaderResourceView(const DX12GpuDescriptorHeap::Descriptor& desc)
 {
-	m_SRVAllocator.Free(alloc);
+	m_DescriptorHeap.Free(desc.index);
 }
 
 void* DX12Device::MapBuffer(RHIBufferHandle handle)
@@ -614,7 +626,7 @@ void* DX12Device::MapBuffer(RHIBufferHandle handle)
 
 void DX12Device::UnmapBuffer(RHIBufferHandle /*handle*/)
 {
-	// Upload heap uses persistent mapping �?no explicit unmap needed
+	// Upload heap uses persistent mapping ??no explicit unmap needed
 }
 
 // ---- Descriptors ----
@@ -638,21 +650,36 @@ RHIDescriptorSetHandle DX12Device::AllocateDescriptorSet(RHIDescriptorSetLayoutH
 		return {};
 	}
 
-	auto range = m_SRVAllocator.AllocateRange(layoutEntry->uTotalDescriptorCount);
-	if (!range.IsValid())
+	// Allocate one persistent descriptor per slot in the set
+	std::vector<uint32> indices;
+	indices.reserve(layoutEntry->uTotalDescriptorCount);
+
+	for (uint32 i = 0; i < layoutEntry->uTotalDescriptorCount; ++i)
 	{
-		EVO_LOG_ERROR("AllocateDescriptorSet: failed to allocate {} descriptors",
-					  layoutEntry->uTotalDescriptorCount);
-		return {};
+		auto desc = m_DescriptorHeap.Allocate();
+		if (!desc.IsValid())
+		{
+			EVO_LOG_ERROR("AllocateDescriptorSet: failed to allocate descriptor {}/{}",
+			              i + 1, layoutEntry->uTotalDescriptorCount);
+			// Free already-allocated descriptors
+			for (uint32 idx : indices)
+				m_DescriptorHeap.Free(idx);
+			return {};
+		}
+		indices.push_back(desc.index);
 	}
 
-	return m_DescSetPool.Allocate(layout, range);
+	return m_DescSetPool.Allocate(layout, std::move(indices));
 }
 
 void DX12Device::FreeDescriptorSet(RHIDescriptorSetHandle handle)
 {
-	// Note: range descriptors are not individually freed back to the allocator
-	// since we use bump allocation for ranges. They'll be reclaimed on reset.
+	auto* entry = m_DescSetPool.GetEntry(handle);
+	if (entry)
+	{
+		for (uint32 idx : entry->descriptorIndices)
+			m_DescriptorHeap.Free(idx);
+	}
 	m_DescSetPool.Free(handle);
 }
 
@@ -688,8 +715,8 @@ void DX12Device::WriteDescriptorSet(RHIDescriptorSetHandle set,
 		}
 		if (!found) continue;
 
-		D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = m_SRVAllocator.GetCpuHandle(
-			setEntry->allocation, offset);
+		uint32 descIndex = setEntry->descriptorIndices[offset];
+		D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle = m_DescriptorHeap.GetCpuHandle(descIndex);
 
 		switch (write.type)
 		{
@@ -729,7 +756,7 @@ void DX12Device::WriteDescriptorSet(RHIDescriptorSetHandle set,
 			}
 			case RHIDescriptorType::Sampler:
 			{
-				// Samplers require a separate heap �?use static samplers for now
+				// Samplers require a separate heap ??use static samplers for now
 				break;
 			}
 		}
@@ -774,6 +801,11 @@ const DX12BufferEntry* DX12Device::ResolveBuffer(RHIBufferHandle handle) const
 	return m_BufferPool.GetEntry(handle);
 }
 
+DX12BufferEntry* DX12Device::ResolveBufferMutable(RHIBufferHandle handle)
+{
+	return m_BufferPool.GetEntry(handle);
+}
+
 const DX12ShaderEntry* DX12Device::ResolveShader(RHIShaderHandle handle) const
 {
 	return m_ShaderPool.GetEntry(handle);
@@ -785,6 +817,11 @@ const DX12PipelineEntry* DX12Device::ResolvePipeline(RHIPipelineHandle handle) c
 }
 
 const DX12DescriptorSetEntry* DX12Device::ResolveDescriptorSet(RHIDescriptorSetHandle handle) const
+{
+	return m_DescSetPool.GetEntry(handle);
+}
+
+DX12DescriptorSetEntry* DX12Device::ResolveDescriptorSetMutable(RHIDescriptorSetHandle handle)
 {
 	return m_DescSetPool.GetEntry(handle);
 }
@@ -802,6 +839,7 @@ void DX12Device::BeginFrame(uint64 uCompletedFenceValue)
 	m_BufferDestroyQueue.ReleaseCompleted(uCompletedFenceValue);
 	m_TextureDestroyQueue.ReleaseCompleted(uCompletedFenceValue);
 	m_GraphicsCmdListPool.BeginFrame(uCompletedFenceValue);
+	m_DescriptorHeap.BeginFrame();
 }
 
 void DX12Device::EndFrame(uint64 uFrameFenceValue)
@@ -823,7 +861,7 @@ void DX12Device::WaitIdle()
 
 void DX12Device::BindGpuDescriptorHeap(RHICommandList* pCmdList)
 {
-	ID3D12DescriptorHeap* pHeap = m_SRVAllocator.GetHeap();
+	ID3D12DescriptorHeap* pHeap = m_DescriptorHeap.GetHeap();
 	if (pHeap)
 	{
 		void* heapPtr = static_cast<void*>(pHeap);

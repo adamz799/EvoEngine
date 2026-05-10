@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "RHI/RHITypes.h"
 #include "RHI/RHIResourcePool.h"
@@ -17,6 +17,7 @@ namespace Evo
 		uint64                    uSize = 0;
 		void*                     pMappedPtr = nullptr;
 		std::string               sDebugName;
+		RHIBarrierState           barrierState;
 		uint16                    uGeneration = 0;
 		bool                      bAlive = false;
 
@@ -29,6 +30,7 @@ namespace Evo
 			, uSize(other.uSize)
 			, pMappedPtr(other.pMappedPtr)
 			, sDebugName(std::move(other.sDebugName))
+			, barrierState(other.barrierState)
 			, uGeneration(other.uGeneration)
 			, bAlive(other.bAlive)
 		{
@@ -49,6 +51,7 @@ namespace Evo
 				uSize       = other.uSize;
 				pMappedPtr  = other.pMappedPtr;
 				sDebugName  = std::move(other.sDebugName);
+				barrierState = other.barrierState;
 				uGeneration = other.uGeneration;
 				bAlive      = other.bAlive;
 
@@ -101,4 +104,3 @@ namespace Evo
 	using DX12TexturePool = RHIResourcePool<struct TextureTag, DX12TextureEntry>;
 
 } // namespace Evo
-

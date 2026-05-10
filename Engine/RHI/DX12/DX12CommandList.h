@@ -1,4 +1,4 @@
-ï»¿#pragma once
+#pragma once
 
 #include "RHI/RHICommandList.h"
 #include "RHI/DX12/DX12Common.h"
@@ -15,7 +15,7 @@ public:
 	/// Initialize with self-owned allocator (standalone mode).
 	bool Initialize(DX12Device* device, RHIQueueType type);
 
-	/// Initialize with external allocator (pool mode â€” pool owns the allocator).
+	/// Initialize with external allocator (pool mode ¡ª pool owns the allocator).
 	bool InitializePooled(DX12Device* device, RHIQueueType type,
 						   ID3D12CommandAllocator* pExternalAllocator);
 
@@ -78,6 +78,10 @@ public:
 							  D3D12_BARRIER_SYNC syncBefore, D3D12_BARRIER_SYNC syncAfter,
 							  D3D12_BARRIER_ACCESS accessBefore, D3D12_BARRIER_ACCESS accessAfter,
 							  D3D12_BARRIER_LAYOUT layoutBefore, D3D12_BARRIER_LAYOUT layoutAfter);
+
+		void NativeBufferBarrier(ID3D12Resource* resource,
+							   D3D12_BARRIER_SYNC syncBefore, D3D12_BARRIER_SYNC syncAfter,
+							   D3D12_BARRIER_ACCESS accessBefore, D3D12_BARRIER_ACCESS accessAfter);
 
 private:
 	DX12Device*                         m_pDevice = nullptr;   // non-owning

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "RHI/RHIDevice.h"
 #include "RHI/DX12/DX12Common.h"
@@ -7,7 +7,7 @@
 #include "RHI/DX12/DX12ShaderPool.h"
 #include "RHI/DX12/DX12PipelinePool.h"
 #include "RHI/DX12/DX12DescriptorAllocator.h"
-#include "RHI/DX12/DX12GpuDescriptorAllocator.h"
+#include "RHI/DX12/DX12GpuDescriptorHeap.h"
 #include "RHI/DX12/DX12DescriptorSetLayoutPool.h"
 #include "RHI/DX12/DX12DescriptorSetPool.h"
 #include "RHI/DX12/DX12CommandListPool.h"
@@ -90,13 +90,12 @@ namespace Evo {
 		HWND                 GetHWND() const { return m_HWND; }
 		void                 SetHWND(HWND hwnd) { m_HWND = hwnd; }
 
-		// ---- GPU-visible SRV descriptor heap (for ImGui, texture bindings) ----
-		DX12GpuDescriptorAllocator& GetSRVAllocator() { return m_SRVAllocator; }
-		ID3D12DescriptorHeap* GetSRVHeap() const { return m_SRVAllocator.GetHeap(); }
+		// ---- GPU-visible SRV descriptor heap ----
+		DX12GpuDescriptorHeap& GetDescriptorHeap() { return m_DescriptorHeap; }
+		ID3D12DescriptorHeap* GetSRVHeap() const { return m_DescriptorHeap.GetHeap(); }
 
-		/// Create a shader resource view and return its GPU descriptor allocation.
-		DX12GpuDescriptorAllocator::Allocation CreateShaderResourceView(RHITextureHandle texture);
-		void DestroyShaderResourceView(const DX12GpuDescriptorAllocator::Allocation& alloc);
+		DX12GpuDescriptorHeap::Descriptor CreateShaderResourceView(RHITextureHandle texture);
+		void DestroyShaderResourceView(const DX12GpuDescriptorHeap::Descriptor& desc);
 
 		// ---- Texture pool access ----
 		const DX12TextureEntry* ResolveTexture(RHITextureHandle handle) const;
@@ -109,11 +108,13 @@ namespace Evo {
 
 		// ---- Buffer / Shader / Pipeline pool access ----
 		const DX12BufferEntry* ResolveBuffer(RHIBufferHandle handle) const;
+		DX12BufferEntry*       ResolveBufferMutable(RHIBufferHandle handle);
 		const DX12ShaderEntry* ResolveShader(RHIShaderHandle handle) const;
 		const DX12PipelineEntry* ResolvePipeline(RHIPipelineHandle handle) const;
 
 		// ---- Descriptor set access ----
 		const DX12DescriptorSetEntry* ResolveDescriptorSet(RHIDescriptorSetHandle handle) const;
+		DX12DescriptorSetEntry*       ResolveDescriptorSetMutable(RHIDescriptorSetHandle handle);
 
 	private:
 		std::string m_sAdapterName;
@@ -136,10 +137,10 @@ namespace Evo {
 		DX12DescriptorSetPool       m_DescSetPool;
 		DX12CpuDescriptorAllocator m_RTVAllocator;
 		DX12CpuDescriptorAllocator m_DSVAllocator;
-		DX12GpuDescriptorAllocator m_SRVAllocator;
+		DX12GpuDescriptorHeap m_DescriptorHeap;
 		DX12CommandListPool        m_GraphicsCmdListPool;
 
-		// Deferred destruction — holds freed entries until GPU fence passes
+		// Deferred destruction �� holds freed entries until GPU fence passes
 		RHIDeferredDestroyQueue<DX12BufferEntry>  m_BufferDestroyQueue;
 		RHIDeferredDestroyQueue<DX12TextureEntry> m_TextureDestroyQueue;
 	};

@@ -9,7 +9,7 @@
 #include <memory>
 
 #if EVO_RHI_DX12
-#include "RHI/DX12/DX12GpuDescriptorAllocator.h"
+#include "RHI/DX12/DX12GpuDescriptorHeap.h"
 #endif
 
 namespace Evo {
@@ -98,9 +98,10 @@ private:
 	uint32 m_uViewportHeight = 0;
 
 #if EVO_RHI_DX12
-	DX12GpuDescriptorAllocator::Allocation m_ViewportSRV = {};
+	DX12GpuDescriptorHeap::Descriptor m_ViewportSRV = {};
 #endif
 };
 
 } // namespace Evo
+
 
